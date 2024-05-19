@@ -1,0 +1,27 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pipelinez", "Pipelinez\Pipelinez.csproj", "{2FBE23FB-0882-4026-9734-88006009DCF3}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{6148F783-9A51-48BB-BBB7-3A12E3B0A5DE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pipelinez.Tests", "tests\Pipelinez.Tests\Pipelinez.Tests.csproj", "{F65D05DF-35D4-4D99-9715-F8AE72FE3177}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2FBE23FB-0882-4026-9734-88006009DCF3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2FBE23FB-0882-4026-9734-88006009DCF3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2FBE23FB-0882-4026-9734-88006009DCF3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2FBE23FB-0882-4026-9734-88006009DCF3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F65D05DF-35D4-4D99-9715-F8AE72FE3177}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F65D05DF-35D4-4D99-9715-F8AE72FE3177}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F65D05DF-35D4-4D99-9715-F8AE72FE3177}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F65D05DF-35D4-4D99-9715-F8AE72FE3177}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{F65D05DF-35D4-4D99-9715-F8AE72FE3177} = {6148F783-9A51-48BB-BBB7-3A12E3B0A5DE}
+	EndGlobalSection
+EndGlobal
