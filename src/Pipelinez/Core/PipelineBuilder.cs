@@ -7,10 +7,9 @@ using Pipelinez.Core.Record;
 using Pipelinez.Core.Segment;
 using Pipelinez.Core.Source;
 
-
 namespace Pipelinez.Core;
 
-public class PipelineBuilder<T>(string pipelineName)
+public partial class PipelineBuilder<T>(string pipelineName)
     where T : PipelineRecord
 {
     #region Pipeline Components
@@ -28,13 +27,13 @@ public class PipelineBuilder<T>(string pipelineName)
         _source = new InMemoryPipelineSource<T>();
         return this;
     }
-    
+    /*
     public PipelineBuilder<T> WithKafkaSource<TRecordKey, TRecordValue>(string config,
         Func<TRecordKey, TRecordValue, T> map)
     {
         throw new NotImplementedException();
     }
-    
+    */
     
     #endregion
 
@@ -71,6 +70,15 @@ public class PipelineBuilder<T>(string pipelineName)
     {
         LoggingManager.Instance.AssignLogFactory(logFactory);
         return this;
+    }
+    
+    #endregion
+    
+    #region Error Handling
+    
+    public PipelineBuilder<T> WithErrorHandler(Func<Exception, PipelineContainer<T>, bool> errorHandler)
+    {
+        throw new NotImplementedException();
     }
     
     #endregion

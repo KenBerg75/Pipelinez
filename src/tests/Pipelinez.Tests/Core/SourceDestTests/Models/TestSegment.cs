@@ -5,8 +5,8 @@ namespace Pipelinez.Tests.Core.SourceDestTests.Models;
 
 public class TestSegment : PipelineSegment<TestPipelineRecord>
 {
-    public override TestPipelineRecord ExecuteAsync(TestPipelineRecord arg)
+    public override Task<TestPipelineRecord> ExecuteAsync(TestPipelineRecord arg)
     {
-        return arg;
+        return Task.FromResult(arg);
     }
 }

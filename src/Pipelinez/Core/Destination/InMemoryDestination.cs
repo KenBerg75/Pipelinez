@@ -15,4 +15,9 @@ public class InMemoryPipelineDestination<T> : PipelineDestination<T> where T : P
     {
         Logger.LogTrace("Record received: {record}", record);
     }
+
+    protected override void Initialize()
+    {
+        // No initialization needed
+    }
 }

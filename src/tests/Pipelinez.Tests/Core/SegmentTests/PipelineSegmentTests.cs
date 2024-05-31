@@ -25,7 +25,7 @@ public class PipelineSegmentTests
             Assert.Equal(testRecord.FirstValue + testRecord.SecondValue, args.Record.AddResult);
         };
 
-        await pipeline.StartAsync(new CancellationTokenSource());
+        pipeline.StartPipelineAsync(new CancellationTokenSource());
         
         await pipeline.PublishAsync(testRecord);
         
@@ -56,7 +56,7 @@ public class PipelineSegmentTests
             Assert.Equal(testRecord.FirstValue * testRecord.SecondValue, args.Record.MultiplyResult);
         };
 
-        await pipeline.StartAsync(new CancellationTokenSource());
+        pipeline.StartPipelineAsync(new CancellationTokenSource());
         
         await pipeline.PublishAsync(testRecord);
         
@@ -81,7 +81,7 @@ public class PipelineSegmentTests
             Assert.True(args.Record.FirstStamp < args.Record.SecondStamp);
         };
 
-        await pipeline.StartAsync(new CancellationTokenSource());
+        pipeline.StartPipelineAsync(new CancellationTokenSource());
         
         await pipeline.PublishAsync(testRecord);
         

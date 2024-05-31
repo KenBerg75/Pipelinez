@@ -14,6 +14,12 @@ public class PipelineExecution
         var pipeline = Pipeline<TestPipelineRecord>.New("Pipeline_Builds_With_Source_Dest")
             .WithInMemorySource("config")
             .WithInMemoryDestination("config")
+            //.WithErrorHandler(((exception, container) =>
+            //{
+                // Do something useful with the error
+            //})
+            //.WithKafkaErrorHandler("kafkaConfig")
+            //.WithLoggingErrorHandler() // shouldn't need config - uses logger
             .Build();
         
         // register to receive the record
@@ -23,7 +29,8 @@ public class PipelineExecution
             Assert.Equal(testRecord.Data, args.Record.Data);
         };
 
-        await pipeline.StartAsync(token);
+        pipeline.StartPipelineAsync(token);
+        //await pipeline.StartAsync(token);
         
         await pipeline.PublishAsync(testRecord);
         
@@ -58,7 +65,7 @@ public class PipelineExecution
             Assert.NotNull(args.Record);
         };
 
-        await pipeline.StartAsync(token);
+        pipeline.StartPipelineAsync(token);
         foreach(var record in testRecords)
         {
             await pipeline.PublishAsync(record);

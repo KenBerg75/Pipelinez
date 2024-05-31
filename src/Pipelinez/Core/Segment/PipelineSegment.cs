@@ -34,7 +34,7 @@ public abstract class PipelineSegment<T> : IPipelineSegment<T> where T : Pipelin
     private void InitializeTransformBlock(ExecutionDataflowBlockOptions options)
     {
         Logger.LogTrace("Initializing Segment");
-        Func<PipelineContainer<T>, PipelineContainer<T>> wrapper = ExecuteInternal;
+        Func<PipelineContainer<T>, Task<PipelineContainer<T>>> wrapper = ExecuteInternal;
         _transformBlock =  new TransformBlock<PipelineContainer<T>, PipelineContainer<T>>(wrapper, options);
     }
 
@@ -66,12 +66,12 @@ public abstract class PipelineSegment<T> : IPipelineSegment<T> where T : Pipelin
     
     #region Execution
     
-    private PipelineContainer<T> ExecuteInternal(PipelineContainer<T> arg)
+    private async Task<PipelineContainer<T>> ExecuteInternal(PipelineContainer<T> arg)
     {
         // Reference the implementation provided by the inheriting class
-        Func<T, T> transformMethod = this.ExecuteAsync;
+        Func<T, Task<T>> transformMethod = this.ExecuteAsync;
         
-        T finalResult = null;
+        T? finalResult = null;
         
         // Should be the last thing we do before entering the try/catch{}
         var stopwatch = Stopwatch.StartNew();
@@ -80,7 +80,7 @@ public abstract class PipelineSegment<T> : IPipelineSegment<T> where T : Pipelin
             Logger.LogTrace("Executing Segment");
             
             // Execute the worker method
-            finalResult = transformMethod(arg.Record);
+            finalResult = await transformMethod(arg.Record);
             
             Logger.LogTrace("Completed Segment Execution");
         }
@@ -109,6 +109,7 @@ public abstract class PipelineSegment<T> : IPipelineSegment<T> where T : Pipelin
         }
         
         // ToDo: This will need to change as pipelinecontainer matures with metadata
+        // ToDo: Handle a NULL result
         arg.Record = finalResult;
         return arg;
     }
@@ -122,7 +123,9 @@ public abstract class PipelineSegment<T> : IPipelineSegment<T> where T : Pipelin
     /// </summary>
     /// <param name="arg"></param>
     /// <returns></returns>
-    public abstract T ExecuteAsync(T arg);
+    public abstract Task<T> ExecuteAsync(T arg);
     
     #endregion
+
+    public Task Completion => _transformBlock.Completion;
 }

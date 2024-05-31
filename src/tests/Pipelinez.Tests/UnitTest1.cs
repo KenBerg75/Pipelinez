@@ -9,11 +9,18 @@ public class UnitTest1
     public async void Pipeline_Build()
     {
         /*var pipeline1 = Pipeline<SomePipelineRecordClass>.New("SomeAppName")
-            .WithInLineSource("config")
+            .WithKafkaSource<string, string>("config", (key, value) =>
+            {
+                return new SomePipelineRecordClass()
+                {
+                    Key = key,
+                    JobPosting = value
+                };
+            })
             //.AddSegment(new SomeSegment(), "config")
-            .WithInLineDestination("config")
+            .WithInMemoryDestination("config")
             .Build();
-
+/*
         await pipeline1.StartAsync(token);*/
         
         //pipeline1.Publish();

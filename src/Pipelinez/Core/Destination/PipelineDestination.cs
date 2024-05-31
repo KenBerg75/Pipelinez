@@ -25,6 +25,8 @@ public abstract class PipelineDestination<T> : IPipelineDestination<T> where T :
     
     #region IPipelineDestination
     
+    public Task Completion => _messageBuffer.Completion;
+    
     public ITargetBlock<PipelineContainer<T>> AsTargetBlock()
     {
         return _messageBuffer;
@@ -50,17 +52,19 @@ public abstract class PipelineDestination<T> : IPipelineDestination<T> where T :
         }
     }
 
-    public Task Completion => _messageBuffer.Completion;
-
     public void Initialize(Pipeline<T> parentPipeline)
     {
         this._parentPipeline = parentPipeline;
+        
+        // Give a chance for inheritors to initialize
+        this.Initialize();
     }
 
     #endregion
     
-    #region Required Implementation
-
+    #region Implementation
+    
+    
     /// <summary>
     /// This method should contain the logic for the pipeline source.
     /// Source method is async and should contain the complete application loop for the source
@@ -68,30 +72,45 @@ public abstract class PipelineDestination<T> : IPipelineDestination<T> where T :
     /// <returns></returns>
     private async Task ExecuteInternal(CancellationTokenSource cancellationToken)
     {
-        await Task.Run(() =>
+        await Task.Run(async () =>
         {
-            while (!cancellationToken.IsCancellationRequested)
+            while (await _messageBuffer.OutputAvailableAsync())
             {
-                var sourceRecord = _messageBuffer.Receive(cancellationToken.Token);
-
                 try
                 {
+                    var sourceRecord = await _messageBuffer.ReceiveAsync(cancellationToken.Token);
                     ExecuteAsync(sourceRecord.Record);
-                    
+
                     // Let the pipeline know that the container record has completed the pipeline
-                    _parentPipeline.TriggerPipelineEvent(new PipelineContainerCompletedEventHandlerArgs<PipelineContainer<T>>(sourceRecord));
+                    _parentPipeline.TriggerPipelineEvent(
+                        new PipelineContainerCompletedEventHandlerArgs<PipelineContainer<T>>(sourceRecord));
                 }
                 catch (Exception e)
                 {
-                    cancellationToken.Cancel();
-                    return;
+                    Logger.LogError(e, "Error in the PipelineDestination");
+                    await cancellationToken.CancelAsync();
+                    //return;
                 }
             }
         }, cancellationToken.Token);
+        
+        Logger.LogInformation("Pipeline Destination has completed");
     }
-
-    // TEST
+    
+    #endregion
+    
+    #region Required Implementation
+    
+    /// <summary>
+    /// Execution logic of the destination
+    /// </summary>
+    /// <param name="record">Record coming through the pipeline</param>
     protected abstract void ExecuteAsync(T record);
+
+    /// <summary>
+    /// Method to provide an opportunity for the destination to initialize
+    /// </summary>
+    protected abstract void Initialize();
 
     #endregion
 }

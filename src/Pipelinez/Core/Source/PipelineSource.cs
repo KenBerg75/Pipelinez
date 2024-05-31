@@ -4,6 +4,7 @@ using Pipelinez.Core.Eventing;
 using Pipelinez.Core.Flow;
 using Pipelinez.Core.Logging;
 using Pipelinez.Core.Record;
+using Pipelinez.Core.Record.Metadata;
 
 namespace Pipelinez.Core.Source;
 
@@ -42,14 +43,14 @@ public abstract class PipelineSourceBase<T> : IPipelineSource<T> where T : Pipel
         catch (Exception e)
         {
             Logger.LogError(e, "Error in the PipelineSource MainLoop()");
-            await cancellationToken.CancelAsync();
+            Complete();
         }
     }
 
     public async Task PublishAsync(T record)
     {
         // ToDo: Needs to be refactored - maybe move to a factory
-        var container = new PipelineContainer<T>(){Record = record};
+        var container = new PipelineContainer<T>(record);
         
         await _messageBuffer.SendAsync(container);
         
@@ -75,6 +76,14 @@ public abstract class PipelineSourceBase<T> : IPipelineSource<T> where T : Pipel
         #endregion
     }
 
+    public async Task PublishAsync(T record, MetadataCollection metadata)
+    {
+        // ToDo: Needs to be refactored - maybe move to a factory
+        var container = new PipelineContainer<T>(record, metadata);
+        
+        await _messageBuffer.SendAsync(container);
+    }
+
     public void Complete()
     {
         Logger.LogInformation("Completing pipeline source");
@@ -88,6 +97,9 @@ public abstract class PipelineSourceBase<T> : IPipelineSource<T> where T : Pipel
     {
         this._parentPipeline = parentPipeline;
         this._parentPipeline.OnPipelineContainerCompelted += OnPipelineContainerComplete;
+        
+        // Give a chance for inheritors to initialize
+        this.Initialize();
     }
 
     public virtual void OnPipelineContainerComplete(object sender,
@@ -107,6 +119,10 @@ public abstract class PipelineSourceBase<T> : IPipelineSource<T> where T : Pipel
     /// </summary>
     /// <returns></returns>
     protected abstract Task MainLoop(CancellationTokenSource cancellationToken);
+    /// <summary>
+    /// Method to provide an opportunity for the source to initialize
+    /// </summary>
+    protected abstract void Initialize();
     
     #endregion
 }
