@@ -12,4 +12,9 @@ public class InMemoryPipelineSource<T> : PipelineSourceBase<T> where T : Pipelin
             await Task.Delay(1000);
         }
     }
+
+    protected override void Initialize()
+    {
+        // nothing to initialize
+    }
 }

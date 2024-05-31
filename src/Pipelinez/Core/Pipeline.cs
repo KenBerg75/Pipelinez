@@ -7,6 +7,7 @@ using Pipelinez.Core.Logging;
 using Pipelinez.Core.Record;
 using Pipelinez.Core.Segment;
 using Pipelinez.Core.Source;
+using Pipelinez.Core.Status;
 
 namespace Pipelinez.Core;
 
@@ -33,6 +34,8 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
     private readonly IPipelineSource<TPipelineRecord> _source;
     private readonly IList<IPipelineSegment<TPipelineRecord>> _segments;
     private readonly IPipelineDestination<TPipelineRecord> _destination;
+
+    private CancellationTokenSource _cancellationToken;
     
     #endregion
     
@@ -132,11 +135,12 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
     #endregion
     
     // Initiates the pipeline
-    public async Task StartAsync(CancellationTokenSource cancellationToken)
+    public async void StartPipelineAsync(CancellationTokenSource cancellationToken)
     {
+        _cancellationToken = cancellationToken;
         _sourceExecution = _source.StartAsync(cancellationToken);
         _destinationExecution = _destination.StartAsync(cancellationToken);
-        Logger?.LogInformation("$Pipeline started: {PipelineName}", _name);
+        Logger.LogInformation("Pipeline started: {PipelineName}", _name);
     }
 
     public async Task PublishAsync(TPipelineRecord record)
@@ -146,8 +150,29 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
 
     public async Task CompleteAsync()
     {
+        // Mark the source as complete
         _source.Complete();
-
-        _destination.Completion.Wait(CancellationToken.None);
+        // Wait for the completion to propagate to the destination
+        await _destination.Completion.WaitAsync(CancellationToken.None);
     }
+    
+    /// <summary>Gets a <see cref="T:System.Threading.Tasks.Task" /> that represents the asynchronous operation and completion of the pipeline.</summary>
+    /// <returns>The task.</returns>
+    public Task Completion => _destination.Completion;
+
+    public PipelineStatus GetStatus()
+    {
+        var components = new List<PipelineComponentStatus>();
+        components.Add(new PipelineComponentStatus(_source.GetType().Name, _source.Completion.Status.ToPipelineExecutionStatus()));
+        components.AddRange(_segments.Select(s => new PipelineComponentStatus(s.GetType().Name, s.Completion.Status.ToPipelineExecutionStatus())));
+        components.Add(new PipelineComponentStatus(_destination.GetType().Name, _destination.Completion.Status.ToPipelineExecutionStatus()));
+        return new PipelineStatus(components);
+    }
+
 }
+
+
+
+
+
+

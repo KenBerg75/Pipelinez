@@ -1,6 +1,7 @@
 using Pipelinez.Core.Eventing;
 using Pipelinez.Core.Flow;
 using Pipelinez.Core.Record;
+using Pipelinez.Core.Record.Metadata;
 
 namespace Pipelinez.Core.Source;
 
@@ -9,6 +10,8 @@ public interface IPipelineSource<T> : IFlowSource<PipelineContainer<T>> where T 
     Task StartAsync(CancellationTokenSource cancellationToken);
     
     Task PublishAsync(T record);
+
+    Task PublishAsync(T record, MetadataCollection metadata);
 
     void Complete();
     Task Completion { get; }

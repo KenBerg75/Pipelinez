@@ -5,9 +5,9 @@ namespace Pipelinez.Tests.Core.SegmentTests.Models;
 
 public class TestMultiplySegment : PipelineSegment<TestSegmentModel>
 {
-    public override TestSegmentModel ExecuteAsync(TestSegmentModel arg)
+    public override Task<TestSegmentModel> ExecuteAsync(TestSegmentModel arg)
     {
         arg.MultiplyResult = arg.FirstValue * arg.SecondValue;
-        return arg;
+        return Task.FromResult(arg);
     }
 }

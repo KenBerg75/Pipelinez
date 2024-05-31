@@ -17,7 +17,7 @@ public class PipelineLoggingTests
             .WithInMemoryDestination("config")
             .Build();
 
-        await pipeline.StartAsync(new CancellationTokenSource());
+        pipeline.StartPipelineAsync(new CancellationTokenSource());
         
         await pipeline.PublishAsync(testRecord);
         

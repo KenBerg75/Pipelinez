@@ -5,9 +5,9 @@ namespace Pipelinez.Tests.Core.SegmentTests.Models;
 
 public class TestOrderSecondSegment : PipelineSegment<TestOrderModel>
 {
-    public override TestOrderModel ExecuteAsync(TestOrderModel arg)
+    public override Task<TestOrderModel> ExecuteAsync(TestOrderModel arg)
     {
         arg.SecondStamp = DateTime.UtcNow;
-        return arg;
+        return Task.FromResult(arg);
     }
 }
