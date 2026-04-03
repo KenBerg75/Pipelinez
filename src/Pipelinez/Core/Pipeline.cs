@@ -7,6 +7,7 @@ using Pipelinez.Core.Destination;
 using Pipelinez.Core.ErrorHandling;
 using Pipelinez.Core.Eventing;
 using Pipelinez.Core.FaultHandling;
+using Pipelinez.Core.FlowControl;
 using Pipelinez.Core.Logging;
 using Pipelinez.Core.Performance;
 using Pipelinez.Core.Record;
@@ -52,12 +53,14 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
     private readonly IPipelineDestination<TPipelineRecord> _destination;
     private readonly PipelineErrorHandler<TPipelineRecord>? _errorHandler;
     private readonly PipelineHostOptions _hostOptions;
+    private readonly PipelineFlowControlOptions _flowControlOptions;
     private readonly IPipelinePerformanceCollector _performanceCollector;
     private readonly bool _emitRetryEvents;
     private readonly string _instanceId;
     private readonly string _workerId;
     private readonly object _stateLock = new();
     private readonly object _distributionLock = new();
+    private readonly object _flowControlLock = new();
     private readonly TaskCompletionSource _completionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private CancellationTokenSource? _runtimeCancellationTokenSource;
@@ -67,6 +70,8 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
     private IReadOnlyList<PipelinePartitionLease> _ownedPartitions = Array.Empty<PipelinePartitionLease>();
     private bool _workerStartedRaised;
     private bool _workerStoppingRaised;
+    private bool? _lastObservedSaturationWarningState;
+    private bool? _lastObservedSaturationState;
     
     #endregion
     
@@ -100,6 +105,8 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
     /// Occurs when a record is about to be retried after a transient failure.
     /// </summary>
     public event PipelineRecordRetryingEventHandler<TPipelineRecord>? OnPipelineRecordRetrying;
+    public event PipelineSaturationChangedEventHandler? OnSaturationChanged;
+    public event PipelinePublishRejectedEventHandler<TPipelineRecord>? OnPublishRejected;
 
     /// <summary>
     /// Occurs when the pipeline transitions into a faulted state.
@@ -147,6 +154,7 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
             new PipelineRecordCompletedEventHandlerArgs<TPipelineRecord>(
                 evt.Container.Record,
                 BuildDistributionContext(evt.Container.Metadata)));
+        ObserveFlowControlState();
     }
 
     internal async Task<PipelineErrorAction> HandleFaultedContainerAsync(PipelineContainer<TPipelineRecord> container)
@@ -180,6 +188,7 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
                     "Skipping faulted record in pipeline {PipelineName}. Component: {ComponentName}",
                     _name,
                     container.Fault.ComponentName);
+                ObserveFlowControlState();
                 return PipelineErrorAction.SkipRecord;
             case PipelineErrorAction.StopPipeline:
                 FaultPipeline(container.Fault);
@@ -203,6 +212,7 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
         IList<IPipelineSegment<TPipelineRecord>> segments,
         PipelineErrorHandler<TPipelineRecord>? errorHandler = null,
         PipelineHostOptions? hostOptions = null,
+        PipelineFlowControlOptions? flowControlOptions = null,
         IPipelinePerformanceCollector? performanceCollector = null,
         bool emitRetryEvents = true)
     {
@@ -218,6 +228,7 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
         this._segments = segments;
         this._errorHandler = errorHandler;
         _hostOptions = hostOptions ?? new PipelineHostOptions();
+        _flowControlOptions = (flowControlOptions ?? new PipelineFlowControlOptions()).Validate();
         _performanceCollector = performanceCollector ?? new PipelinePerformanceCollector(new PipelineMetricsOptions());
         _emitRetryEvents = emitRetryEvents;
         _instanceId = string.IsNullOrWhiteSpace(_hostOptions.InstanceId)
@@ -321,10 +332,18 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
 
     public async Task PublishAsync(TPipelineRecord record)
     {
+        var publishResult = await PublishAsync(record, new PipelinePublishOptions()).ConfigureAwait(false);
+        publishResult.ThrowIfNotAccepted();
+    }
+
+    public async Task<PipelinePublishResult> PublishAsync(
+        TPipelineRecord record,
+        PipelinePublishOptions options)
+    {
         Guard.Against.Null(record, nameof(record));
         EnsurePipelineStartedForPublish();
 
-        await _source.PublishAsync(record).ConfigureAwait(false);
+        return await _source.PublishAsync(record, Guard.Against.Null(options, nameof(options)).Validate()).ConfigureAwait(false);
     }
 
     public async Task CompleteAsync()
@@ -393,14 +412,27 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
 
     public PipelineStatus GetStatus()
     {
+        var flowControlStatus = GetFlowControlStatus();
+        PipelineComponentFlowStatus? GetFlow(string name) =>
+            flowControlStatus.Components.FirstOrDefault(component => component.Name == name);
         var components = new List<PipelineComponentStatus>();
-        components.Add(new PipelineComponentStatus(_source.GetType().Name, _source.Completion.Status.ToPipelineExecutionStatus()));
-        components.AddRange(_segments.Select(s => new PipelineComponentStatus(s.GetType().Name, s.Completion.Status.ToPipelineExecutionStatus())));
-        components.Add(new PipelineComponentStatus(_destination.GetType().Name, _destination.Completion.Status.ToPipelineExecutionStatus()));
+        components.Add(new PipelineComponentStatus(
+            _source.GetType().Name,
+            _source.Completion.Status.ToPipelineExecutionStatus(),
+            GetFlow(_source.GetType().Name)));
+        components.AddRange(_segments.Select(segment => new PipelineComponentStatus(
+            segment.GetType().Name,
+            segment.Completion.Status.ToPipelineExecutionStatus(),
+            GetFlow(segment.GetType().Name))));
+        components.Add(new PipelineComponentStatus(
+            _destination.GetType().Name,
+            _destination.Completion.Status.ToPipelineExecutionStatus(),
+            GetFlow(_destination.GetType().Name)));
         return new PipelineStatus(
             components,
             _state == PipelineRuntimeState.Faulted ? PipelineExecutionStatus.Faulted : null,
-            GetDistributedStatus());
+            GetDistributedStatus(),
+            flowControlStatus);
     }
 
     public PipelineRuntimeContext GetRuntimeContext()
@@ -421,9 +453,80 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
         return _performanceCollector.CreateSnapshot();
     }
 
+    internal PipelineFlowControlOptions GetFlowControlOptions()
+    {
+        return _flowControlOptions;
+    }
+
     internal CancellationToken GetRuntimeCancellationToken()
     {
         return _runtimeCancellationTokenSource?.Token ?? CancellationToken.None;
+    }
+
+    internal void NotifyPublishAccepted(TimeSpan waitDuration)
+    {
+        _performanceCollector.RecordPublishWait(waitDuration);
+        ObserveFlowControlState();
+    }
+
+    internal void NotifyPublishRejected(TPipelineRecord record, PipelinePublishResult publishResult)
+    {
+        Guard.Against.Null(record, nameof(record));
+        Guard.Against.Null(publishResult, nameof(publishResult));
+
+        if (publishResult.WaitDuration > TimeSpan.Zero)
+        {
+            _performanceCollector.RecordPublishWait(publishResult.WaitDuration);
+        }
+
+        _performanceCollector.RecordPublishRejected();
+        OnPublishRejected?.Invoke(
+            this,
+            new PipelinePublishRejectedEventArgs<TPipelineRecord>(
+                record,
+                publishResult.Reason,
+                DateTimeOffset.UtcNow));
+        ObserveFlowControlState();
+    }
+
+    internal void ObserveFlowControlState()
+    {
+        var flowControlStatus = GetFlowControlStatus();
+        if (flowControlStatus is null)
+        {
+            return;
+        }
+
+        _performanceCollector.ObserveBufferedCount(flowControlStatus.TotalBufferedCount);
+
+        if (!_flowControlOptions.EmitSaturationEvents)
+        {
+            return;
+        }
+
+        var warningThresholdExceeded = flowControlStatus.SaturationRatio >= _flowControlOptions.SaturationWarningThreshold;
+        var shouldRaiseEvent = false;
+
+        lock (_flowControlLock)
+        {
+            if (_lastObservedSaturationWarningState != warningThresholdExceeded ||
+                _lastObservedSaturationState != flowControlStatus.IsSaturated)
+            {
+                _lastObservedSaturationWarningState = warningThresholdExceeded;
+                _lastObservedSaturationState = flowControlStatus.IsSaturated;
+                shouldRaiseEvent = true;
+            }
+        }
+
+        if (shouldRaiseEvent)
+        {
+            OnSaturationChanged?.Invoke(
+                this,
+                new PipelineSaturationChangedEventArgs(
+                    flowControlStatus.SaturationRatio,
+                    flowControlStatus.IsSaturated,
+                    DateTimeOffset.UtcNow));
+        }
     }
 
     internal Task NotifyRecordRetryingAsync(
@@ -692,6 +795,59 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
                 _workerId,
                 _ownedPartitions);
         }
+    }
+
+    private PipelineFlowControlStatus GetFlowControlStatus()
+    {
+        var componentFlows = new List<PipelineComponentFlowStatus>();
+
+        if (_source is IPipelineFlowStatusProvider sourceFlowProvider)
+        {
+            componentFlows.Add(new PipelineComponentFlowStatus(
+                _source.GetType().Name,
+                sourceFlowProvider.GetApproximateQueueDepth(),
+                sourceFlowProvider.GetBoundedCapacity()));
+        }
+
+        foreach (var segment in _segments)
+        {
+            if (segment is IPipelineFlowStatusProvider segmentFlowProvider)
+            {
+                componentFlows.Add(new PipelineComponentFlowStatus(
+                    segment.GetType().Name,
+                    segmentFlowProvider.GetApproximateQueueDepth(),
+                    segmentFlowProvider.GetBoundedCapacity()));
+            }
+        }
+
+        if (_destination is IPipelineFlowStatusProvider destinationFlowProvider)
+        {
+            componentFlows.Add(new PipelineComponentFlowStatus(
+                _destination.GetType().Name,
+                destinationFlowProvider.GetApproximateQueueDepth(),
+                destinationFlowProvider.GetBoundedCapacity()));
+        }
+
+        var totalBufferedCount = componentFlows.Sum(component => component.ApproximateQueueDepth);
+        var boundedComponents = componentFlows
+            .Where(component => component.BoundedCapacity.HasValue)
+            .ToArray();
+        int? totalCapacity = boundedComponents.Length == 0
+            ? null
+            : boundedComponents.Sum(component => component.BoundedCapacity!.Value);
+        var boundedBufferedCount = boundedComponents.Sum(component => component.ApproximateQueueDepth);
+        var saturationRatio = totalCapacity.HasValue && totalCapacity.Value > 0
+            ? Math.Min(1d, (double)boundedBufferedCount / totalCapacity.Value)
+            : 0d;
+        var isSaturated = componentFlows.Any(component => component.IsSaturated);
+
+        return new PipelineFlowControlStatus(
+            _flowControlOptions.OverflowPolicy,
+            isSaturated,
+            saturationRatio,
+            totalBufferedCount,
+            totalCapacity,
+            componentFlows);
     }
 
     private PipelineRecordDistributionContext BuildDistributionContext(Pipelinez.Core.Record.Metadata.MetadataCollection metadata)

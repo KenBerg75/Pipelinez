@@ -1,5 +1,6 @@
 using Pipelinez.Core.Eventing;
 using Pipelinez.Core.Flow;
+using Pipelinez.Core.FlowControl;
 using Pipelinez.Core.Record;
 using Pipelinez.Core.Record.Metadata;
 
@@ -11,7 +12,11 @@ public interface IPipelineSource<T> : IFlowSource<PipelineContainer<T>> where T 
     
     Task PublishAsync(T record);
 
+    Task<PipelinePublishResult> PublishAsync(T record, PipelinePublishOptions options);
+
     Task PublishAsync(T record, MetadataCollection metadata);
+
+    Task<PipelinePublishResult> PublishAsync(T record, MetadataCollection metadata, PipelinePublishOptions options);
 
     void Complete();
     Task Completion { get; }

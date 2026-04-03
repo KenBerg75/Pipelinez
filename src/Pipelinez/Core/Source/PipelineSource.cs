@@ -3,6 +3,7 @@ using Ardalis.GuardClauses;
 using Microsoft.Extensions.Logging;
 using Pipelinez.Core.Eventing;
 using Pipelinez.Core.Flow;
+using Pipelinez.Core.FlowControl;
 using Pipelinez.Core.Logging;
 using Pipelinez.Core.Performance;
 using Pipelinez.Core.Record;
@@ -10,7 +11,7 @@ using Pipelinez.Core.Record.Metadata;
 
 namespace Pipelinez.Core.Source;
 
-public abstract class PipelineSourceBase<T> : IPipelineSource<T>, IPipelineExecutionConfigurable, IPipelinePerformanceAware where T : PipelineRecord
+public abstract class PipelineSourceBase<T> : IPipelineSource<T>, IPipelineExecutionConfigurable, IPipelinePerformanceAware, IPipelineFlowStatusProvider where T : PipelineRecord
 {
     private BufferBlock<PipelineContainer<T>>? _messageBuffer;
     private Pipeline<T>? _parentPipeline;
@@ -54,18 +55,44 @@ public abstract class PipelineSourceBase<T> : IPipelineSource<T>, IPipelineExecu
 
     public async Task PublishAsync(T record)
     {
-        var container = new PipelineContainer<T>(record);
+        var publishResult = await PublishAsync(record, new PipelinePublishOptions()).ConfigureAwait(false);
+        HandleUnacceptedPublishResult(publishResult);
+    }
 
-        await MessageBuffer.SendAsync(container).ConfigureAwait(false);
-        _performanceCollector?.RecordPublished(_componentName);
+    public Task<PipelinePublishResult> PublishAsync(T record, PipelinePublishOptions options)
+    {
+        return PublishAsync(record, new MetadataCollection(), options);
     }
 
     public async Task PublishAsync(T record, MetadataCollection metadata)
     {
-        var container = new PipelineContainer<T>(record, metadata);
+        var publishResult = await PublishAsync(record, metadata, new PipelinePublishOptions()).ConfigureAwait(false);
+        HandleUnacceptedPublishResult(publishResult);
+    }
 
-        await MessageBuffer.SendAsync(container).ConfigureAwait(false);
-        _performanceCollector?.RecordPublished(_componentName);
+    public async Task<PipelinePublishResult> PublishAsync(T record, MetadataCollection metadata, PipelinePublishOptions options)
+    {
+        var container = new PipelineContainer<T>(
+            Guard.Against.Null(record, nameof(record)),
+            Guard.Against.Null(metadata, nameof(metadata)));
+        var validatedOptions = Guard.Against.Null(options, nameof(options)).Validate();
+        var publishResult = await PipelineFlowController.PublishAsync(
+                MessageBuffer,
+                container,
+                ParentPipeline.GetFlowControlOptions(),
+                validatedOptions,
+                ParentPipeline.GetRuntimeCancellationToken())
+            .ConfigureAwait(false);
+
+        if (publishResult.Accepted)
+        {
+            _performanceCollector?.RecordPublished(_componentName);
+            ParentPipeline.NotifyPublishAccepted(publishResult.WaitDuration);
+            return publishResult;
+        }
+
+        ParentPipeline.NotifyPublishRejected(record, publishResult);
+        return publishResult;
     }
 
     public void Complete()
@@ -144,6 +171,18 @@ public abstract class PipelineSourceBase<T> : IPipelineSource<T>, IPipelineExecu
             EnsureOrdered = _executionOptions.EnsureOrdered
         });
 
+    int IPipelineFlowStatusProvider.GetApproximateQueueDepth()
+    {
+        return MessageBuffer.Count;
+    }
+
+    int? IPipelineFlowStatusProvider.GetBoundedCapacity()
+    {
+        return _executionOptions.BoundedCapacity == DataflowBlockOptions.Unbounded
+            ? null
+            : _executionOptions.BoundedCapacity;
+    }
+
     private void EnsureExecutionOptionsCanBeChanged()
     {
         if (_messageBuffer is not null)
@@ -151,5 +190,21 @@ public abstract class PipelineSourceBase<T> : IPipelineSource<T>, IPipelineExecu
             throw new InvalidOperationException(
                 $"Execution options for source '{GetType().Name}' must be configured before the source is linked or used.");
         }
+    }
+
+    private void HandleUnacceptedPublishResult(PipelinePublishResult publishResult)
+    {
+        if (publishResult.Accepted)
+        {
+            return;
+        }
+
+        if (publishResult.Reason == PipelinePublishResultReason.Canceled &&
+            ParentPipeline.GetRuntimeCancellationToken().IsCancellationRequested)
+        {
+            return;
+        }
+
+        publishResult.ThrowIfNotAccepted();
     }
 }

@@ -4,6 +4,7 @@ using Ardalis.GuardClauses;
 using Microsoft.Extensions.Logging;
 using Pipelinez.Core.FaultHandling;
 using Pipelinez.Core.Flow;
+using Pipelinez.Core.FlowControl;
 using Pipelinez.Core.Logging;
 using Pipelinez.Core.Performance;
 using Pipelinez.Core.Record;
@@ -11,7 +12,7 @@ using Pipelinez.Core.Retry;
 
 namespace Pipelinez.Core.Segment;
 
-public abstract class PipelineSegment<T> : IPipelineSegment<T>, IPipelineExecutionConfigurable, IPipelinePerformanceAware, IPipelineRetryConfigurable<T> where T : PipelineRecord
+public abstract class PipelineSegment<T> : IPipelineSegment<T>, IPipelineExecutionConfigurable, IPipelinePerformanceAware, IPipelineRetryConfigurable<T>, IPipelineFlowStatusProvider where T : PipelineRecord
 {
     private TransformBlock<PipelineContainer<T>, PipelineContainer<T>>? _transformBlock;
     private Pipeline<T>? _parentPipeline;
@@ -96,6 +97,7 @@ public abstract class PipelineSegment<T> : IPipelineSegment<T>, IPipelineExecuti
         try
         {
             Logger.LogTrace("Executing Segment");
+            ParentPipeline.ObserveFlowControlState();
 
             var finalResult = await PipelineRetryExecutor.ExecuteAsync(
                     arg,
@@ -152,6 +154,7 @@ public abstract class PipelineSegment<T> : IPipelineSegment<T>, IPipelineExecuti
                 succeeded,
                 failureMessage));
             _performanceCollector?.RecordComponentExecution(_componentName, stopwatch.Elapsed, succeeded);
+            ParentPipeline.ObserveFlowControlState();
         }
 
         return arg;
@@ -232,4 +235,16 @@ public abstract class PipelineSegment<T> : IPipelineSegment<T>, IPipelineExecuti
 
     private Pipeline<T> ParentPipeline =>
         _parentPipeline ?? throw new InvalidOperationException("Pipeline segment has not been initialized.");
+
+    int IPipelineFlowStatusProvider.GetApproximateQueueDepth()
+    {
+        return TransformBlock.InputCount + TransformBlock.OutputCount;
+    }
+
+    int? IPipelineFlowStatusProvider.GetBoundedCapacity()
+    {
+        return _executionOptions.BoundedCapacity == DataflowBlockOptions.Unbounded
+            ? null
+            : _executionOptions.BoundedCapacity;
+    }
 }

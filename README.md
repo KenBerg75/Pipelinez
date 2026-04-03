@@ -9,6 +9,7 @@ Pipelinez is a small .NET 8 framework for building record-processing pipelines w
 - async startup and completion
 - fault tracking and configurable error policies
 - configurable retry policies for segments and destinations
+- explicit flow control and saturation observability
 - optional distributed execution for transport-backed sources
 - explicit performance tuning and runtime performance snapshots
 - transport extensions such as Kafka
@@ -196,6 +197,57 @@ Console.WriteLine(snapshot.RecordsPerSecond);
 
 Increasing parallelism or disabling ordering can improve throughput, but it can also change observable processing order. Those settings should be treated as explicit tradeoffs rather than passive defaults.
 
+## Flow Control
+
+Pipelinez now exposes explicit publish-time flow-control behavior in addition to component `BoundedCapacity` tuning.
+
+Flow control can be configured through:
+
+- `UseFlowControlOptions(...)`
+- `PublishAsync(record, PipelinePublishOptions)`
+
+Supported overflow behaviors include:
+
+- `PipelineOverflowPolicy.Wait`
+- `PipelineOverflowPolicy.Reject`
+- `PipelineOverflowPolicy.Cancel`
+
+Example shape:
+
+```csharp
+using Pipelinez.Core.FlowControl;
+
+var pipeline = Pipeline<MyRecord>.New("orders")
+    .UsePerformanceOptions(new PipelinePerformanceOptions
+    {
+        SourceExecution = new PipelineExecutionOptions { BoundedCapacity = 100 },
+        DestinationExecution = new PipelineExecutionOptions { BoundedCapacity = 100 }
+    })
+    .UseFlowControlOptions(new PipelineFlowControlOptions
+    {
+        OverflowPolicy = PipelineOverflowPolicy.Wait,
+        PublishTimeout = TimeSpan.FromSeconds(5),
+        SaturationWarningThreshold = 0.8
+    })
+    .WithInMemorySource(new object())
+    .WithInMemoryDestination("config")
+    .Build();
+
+var publishResult = await pipeline.PublishAsync(
+    new MyRecord(),
+    new PipelinePublishOptions
+    {
+        OverflowPolicyOverride = PipelineOverflowPolicy.Reject
+    });
+
+if (!publishResult.Accepted)
+{
+    Console.WriteLine($"Publish was not accepted: {publishResult.Reason}");
+}
+```
+
+The runtime now also surfaces flow pressure through `GetStatus().FlowControlStatus`, `OnSaturationChanged`, `OnPublishRejected`, and publish wait/rejection counters in `GetPerformanceSnapshot()`.
+
 ## Retry Policies
 
 Pipelinez supports explicit retry policies for transient failures in segments and destinations.
@@ -261,6 +313,8 @@ Available actions:
 Public events include:
 
 - `OnPipelineRecordRetrying`
+- `OnSaturationChanged`
+- `OnPublishRejected`
 - `OnPipelineRecordCompleted`
 - `OnPipelineRecordFaulted`
 - `OnPipelineFaulted`
@@ -327,6 +381,7 @@ Current implemented capabilities include:
 - segment execution history
 - configurable error policies
 - configurable retry policies with retry events and retry history
+- configurable flow-control policies with saturation status and publish result handling
 - async destination execution
 - distributed runtime mode and worker/partition observability
 - performance tuning options, batching support, and runtime performance snapshots

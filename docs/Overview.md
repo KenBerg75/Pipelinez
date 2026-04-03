@@ -52,6 +52,7 @@ The core builder currently supports:
 - `WithDestination(...)`
 - `WithInMemoryDestination(...)`
 - `UseHostOptions(...)`
+- `UseFlowControlOptions(...)`
 - `UsePerformanceOptions(...)`
 - `UseRetryOptions(...)`
 - `UseLogger(...)`
@@ -94,6 +95,7 @@ Sources derive from `PipelineSourceBase<T>`, which owns a `BufferBlock<PipelineC
 Responsibilities:
 
 - publish records manually through `PublishAsync`
+- publish records with explicit flow-control behavior through `PublishAsync(..., PipelinePublishOptions)`
 - optionally produce records from an external system inside `MainLoop(...)`
 - link to the next pipeline component
 - observe completed containers through `OnPipelineContainerComplete(...)`
@@ -147,6 +149,7 @@ The runtime lifecycle is:
 Important current semantics:
 
 - `StartPipelineAsync(...)` returns `Task`
+- `PublishAsync(record, PipelinePublishOptions)` returns `PipelinePublishResult`
 - starting twice throws
 - publishing before start throws
 - completing before start throws
@@ -193,6 +196,10 @@ Segment defaults remain conservative, but callers can now opt into higher-throug
 - total retry count
 - successful retry recovery count
 - retry exhaustion count
+- total publish wait count
+- average publish wait duration
+- total publish rejection count
+- peak buffered count
 - calculated records-per-second
 - average end-to-end latency
 - per-component performance snapshots
@@ -220,6 +227,58 @@ When batching is enabled:
 - batch failures are converted into per-record fault handling so the existing error-policy model remains in control
 
 This is intended for throughput-oriented destinations and should be used carefully because batching improves throughput at the cost of per-record latency.
+
+## Flow Control Model
+
+Pipelinez now has an explicit flow-control model layered on top of component bounded capacities.
+
+### Flow Control Configuration
+
+Flow behavior is configured through `UseFlowControlOptions(...)`.
+
+`PipelineFlowControlOptions` controls:
+
+- `OverflowPolicy`
+- `PublishTimeout`
+- `EmitSaturationEvents`
+- `SaturationWarningThreshold`
+
+Per-call overrides can then be supplied through `PublishAsync(record, PipelinePublishOptions)`.
+
+Supported overflow behaviors are:
+
+- `Wait`
+- `Reject`
+- `Cancel`
+
+### Publish Semantics
+
+Manual publishing now has two shapes:
+
+- `PublishAsync(T record)`
+- `PublishAsync(T record, PipelinePublishOptions options)`
+
+The overload with options returns `PipelinePublishResult`, which tells the caller whether the record was accepted and, if not, whether it was rejected, timed out, or canceled.
+
+The convenience overload still exists for callers that want exception-based behavior.
+
+### Flow Status And Events
+
+`PipelineStatus` now carries `FlowControlStatus`, which exposes:
+
+- current overflow policy
+- pipeline saturation state
+- saturation ratio
+- total buffered count
+- total bounded capacity
+- per-component queue depth and saturation
+
+The public event surface now also includes:
+
+- `OnSaturationChanged`
+- `OnPublishRejected`
+
+This makes pressure visible as operating state instead of only as a side effect of blocked tasks.
 
 ## Distributed Execution Model
 
@@ -365,6 +424,10 @@ The pipeline exposes:
 
 - `OnPipelineRecordRetrying`
   raised when a record is scheduled for another attempt after a retryable failure
+- `OnSaturationChanged`
+  raised when the pipeline crosses or clears the configured saturation warning threshold or full saturation state
+- `OnPublishRejected`
+  raised when a publish request is not accepted because it timed out, was canceled, or was rejected by overflow policy
 - `OnPipelineRecordCompleted`
   raised after a record successfully completes the entire pipeline
 - `OnPipelineRecordFaulted`
@@ -422,8 +485,10 @@ Reported execution status is derived from task state and runtime fault state:
 
 For distributed sources, this status reflects live ownership while the worker is active. For Kafka specifically, owned partitions are cleared on shutdown when the consumer leaves the group and revocation is observed.
 
+`PipelineStatus` now also carries `FlowControlStatus`, which exposes queue pressure and bounded-capacity saturation across the source, segments, and destination.
+
 Logging is managed through the internal `LoggingManager`, which wraps an `ILoggerFactory`. If the caller never supplies a logger factory, the runtime falls back to a null logger factory.
-The runtime now also exposes additive performance metrics through `GetPerformanceSnapshot()` rather than relying only on logs for throughput diagnostics, including retry counts and retry recovery/exhaustion totals.
+The runtime now also exposes additive performance metrics through `GetPerformanceSnapshot()` rather than relying only on logs for throughput diagnostics, including retry counts, retry recovery/exhaustion totals, publish wait totals, publish rejection totals, and peak buffered depth.
 
 ## Kafka Integration
 
@@ -520,6 +585,7 @@ The solution now includes two test layers.
 - async destination behavior
 - fault tracking and pipeline fault events
 - error-handler policies
+- flow-control wait, reject, cancel, status, and saturation event behavior
 - retry policy behavior, retry events, retry exhaustion, and retry-aware error handling
 - logger integration
 - builder-surface expectations
@@ -538,6 +604,7 @@ The solution now includes two test layers.
 - destination fault handling
 - record-fault and pipeline-fault event behavior
 - transient segment failures that recover under retry
+- downstream pressure slowing Kafka-backed ingress safely without faulting the pipeline
 - offset commit and replay behavior across pipeline runs
 - distributed worker startup, rebalance, and shutdown behavior across multiple pipeline instances
 - record-level worker and partition context on successful and faulted records
@@ -560,6 +627,7 @@ The major architectural work called out in the earlier planning docs has been im
 - explicit distributed execution mode with worker identity, partition ownership, and rebalance events
 - explicit performance tuning controls, built-in performance snapshots, destination batching, and a benchmark project
 - explicit retry policies with retry history, retry events, and retry-aware performance counters
+- explicit flow-control policies with publish results, saturation status, and pressure metrics
 
 The remaining work is mostly future evolution work rather than foundational cleanup. Likely areas include broader transport coverage, schema-registry integration tests, and further runtime ergonomics.
 
@@ -571,15 +639,17 @@ The simplest way to think about Pipelinez is:
 2. choose where records come from
 3. chain one or more `PipelineSegment<T>` transforms
 4. choose where processed records end up
-5. optionally configure retry behavior through `UseRetryOptions(...)`
-6. optionally configure fault policy through `WithErrorHandler(...)`
-7. observe retry, success, or failure through the public pipeline events
+5. optionally configure flow control through `UseFlowControlOptions(...)`
+6. optionally configure retry behavior through `UseRetryOptions(...)`
+7. optionally configure fault policy through `WithErrorHandler(...)`
+8. observe pressure, retry, success, or failure through the public pipeline events
 
 Under the hood, Pipelinez is a thin framework over TPL Dataflow that standardizes:
 
 - record wrapping
 - metadata flow
 - fault capture
+- flow control
 - retry execution
 - completion semantics
 - logging

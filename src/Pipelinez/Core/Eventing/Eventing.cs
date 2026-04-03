@@ -52,6 +52,14 @@ public delegate void PipelineRecordRetryingEventHandler<T>(
     object sender,
     PipelineRecordRetryingEventArgs<T> args) where T : PipelineRecord;
 
+public delegate void PipelineSaturationChangedEventHandler(
+    object sender,
+    PipelineSaturationChangedEventArgs args);
+
+public delegate void PipelinePublishRejectedEventHandler<T>(
+    object sender,
+    PipelinePublishRejectedEventArgs<T> args) where T : PipelineRecord;
+
 public sealed class PipelineRecordFaultedEventArgs<T> where T : PipelineRecord
 {
     public PipelineRecordFaultedEventArgs(
@@ -114,6 +122,44 @@ public sealed class PipelineRecordRetryingEventArgs<T> where T : PipelineRecord
     public PipelineComponentKind ComponentKind => Fault.ComponentKind;
 
     public Exception Exception => Fault.Exception;
+}
+
+public sealed class PipelineSaturationChangedEventArgs
+{
+    public PipelineSaturationChangedEventArgs(
+        double saturationRatio,
+        bool isSaturated,
+        DateTimeOffset observedAtUtc)
+    {
+        SaturationRatio = saturationRatio;
+        IsSaturated = isSaturated;
+        ObservedAtUtc = observedAtUtc;
+    }
+
+    public double SaturationRatio { get; }
+
+    public bool IsSaturated { get; }
+
+    public DateTimeOffset ObservedAtUtc { get; }
+}
+
+public sealed class PipelinePublishRejectedEventArgs<T> where T : PipelineRecord
+{
+    public PipelinePublishRejectedEventArgs(
+        T record,
+        FlowControl.PipelinePublishResultReason reason,
+        DateTimeOffset observedAtUtc)
+    {
+        Record = Guard.Against.Null(record, nameof(record));
+        Reason = reason;
+        ObservedAtUtc = observedAtUtc;
+    }
+
+    public T Record { get; }
+
+    public FlowControl.PipelinePublishResultReason Reason { get; }
+
+    public DateTimeOffset ObservedAtUtc { get; }
 }
 
 public delegate void PipelineFaultedEventHandler(object sender, PipelineFaultedEventArgs args);
