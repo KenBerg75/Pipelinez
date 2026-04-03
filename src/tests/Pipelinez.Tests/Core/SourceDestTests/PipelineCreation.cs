@@ -6,7 +6,7 @@ namespace Pipelinez.Tests.Core.SourceDestTests;
 public class PipelineCreation
 {
     [Fact]
-    public async void Pipeline_Builds_With_Source_Dest()
+    public void Pipeline_Builds_With_Source_Dest()
     {
         var pipeline = Pipeline<TestPipelineRecord>.New("Pipeline_Builds_With_Source_Dest")
             .WithInMemorySource("config")
@@ -17,7 +17,7 @@ public class PipelineCreation
     }
     
     [Fact]
-    public async void Pipeline_Builds_With_Source_Segments_Dest()
+    public void Pipeline_Builds_With_Source_Segments_Dest()
     {
         var builder = Pipeline<TestPipelineRecord>.New("Pipeline_Builds_With_Source_Segments_Dest")
             .WithInMemorySource("config");

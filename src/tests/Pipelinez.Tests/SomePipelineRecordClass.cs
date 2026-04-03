@@ -5,11 +5,11 @@ namespace Pipelinez.Tests;
 
 public class SomePipelineRecordClass : PipelineRecord
 {
-    public string JobPosting { get; set; }
-    public string Key { get; set; }
+    public required string JobPosting { get; set; }
+    public required string Key { get; set; }
     //public string Value { get; set; }
     
-    public string CSJobPosting { get; set; }
+    public required string CSJobPosting { get; set; }
     
     
 }

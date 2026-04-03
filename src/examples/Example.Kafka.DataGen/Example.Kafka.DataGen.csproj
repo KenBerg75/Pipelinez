@@ -8,11 +8,14 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Confluent.SchemaRegistry" Version="2.4.0" />
+      <PackageReference Include="Confluent.Kafka" Version="2.4.0" />
+      <PackageReference Include="Testcontainers.Kafka" Version="4.11.0" />
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\Pipelinez\Pipelinez.csproj" />
+      <ProjectReference Include="..\..\Pipelinez.Kafka\Pipelinez.Kafka.csproj" />
+      <Compile Include="..\Shared\KafkaExampleCluster.cs" Link="Infrastructure\KafkaExampleCluster.cs" />
+      <Compile Include="..\Shared\KafkaExampleSettings.cs" Link="Infrastructure\KafkaExampleSettings.cs" />
     </ItemGroup>
 
 </Project>

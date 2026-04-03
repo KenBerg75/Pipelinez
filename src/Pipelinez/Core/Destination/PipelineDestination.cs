@@ -1,8 +1,11 @@
 using System.Threading.Tasks.Dataflow;
 using Microsoft.Extensions.Logging;
 using Pipelinez.Core.Eventing;
+using Pipelinez.Core.ErrorHandling;
+using Pipelinez.Core.FaultHandling;
 using Pipelinez.Core.Logging;
 using Pipelinez.Core.Record;
+using System.Runtime.ExceptionServices;
 
 namespace Pipelinez.Core.Destination;
 
@@ -10,7 +13,9 @@ namespace Pipelinez.Core.Destination;
 public abstract class PipelineDestination<T> : IPipelineDestination<T> where T : PipelineRecord
 {
     private readonly BufferBlock<PipelineContainer<T>> _messageBuffer;
-    private Pipeline<T> _parentPipeline;
+    private readonly TaskCompletionSource _completionSource =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private Pipeline<T>? _parentPipeline;
     protected ILogger<PipelineDestination<T>> Logger { get; }
 
     #region Constructor
@@ -25,7 +30,7 @@ public abstract class PipelineDestination<T> : IPipelineDestination<T> where T :
     
     #region IPipelineDestination
     
-    public Task Completion => _messageBuffer.Completion;
+    public Task Completion => _completionSource.Task;
     
     public ITargetBlock<PipelineContainer<T>> AsTargetBlock()
     {
@@ -36,14 +41,16 @@ public abstract class PipelineDestination<T> : IPipelineDestination<T> where T :
     {
         try
         {
-            await ExecuteInternal(cancellationToken);
+            await ExecuteInternal(cancellationToken).ConfigureAwait(false);
+            _completionSource.TrySetResult();
         }
         catch (Exception e)
         {
             // Exceptions on Destinations can be un-recoverable
             // hence any exceptions shut down the pipeline
             Logger.LogError(e, "Error in the PipelineDestination");
-            //cancellationToken.Cancel();
+            _completionSource.TrySetException(e);
+            throw;
         }
         finally
         {
@@ -72,27 +79,69 @@ public abstract class PipelineDestination<T> : IPipelineDestination<T> where T :
     /// <returns></returns>
     private async Task ExecuteInternal(CancellationTokenSource cancellationToken)
     {
-        await Task.Run(async () =>
+        while (!cancellationToken.IsCancellationRequested && await _messageBuffer.OutputAvailableAsync().ConfigureAwait(false))
         {
-            while (await _messageBuffer.OutputAvailableAsync())
-            {
-                try
-                {
-                    var sourceRecord = await _messageBuffer.ReceiveAsync(cancellationToken.Token);
-                    ExecuteAsync(sourceRecord.Record);
+            PipelineContainer<T> sourceRecord;
 
-                    // Let the pipeline know that the container record has completed the pipeline
-                    _parentPipeline.TriggerPipelineEvent(
-                        new PipelineContainerCompletedEventHandlerArgs<PipelineContainer<T>>(sourceRecord));
-                }
-                catch (Exception e)
-                {
-                    Logger.LogError(e, "Error in the PipelineDestination");
-                    await cancellationToken.CancelAsync();
-                    //return;
-                }
+            try
+            {
+                sourceRecord = await _messageBuffer.ReceiveAsync(cancellationToken.Token).ConfigureAwait(false);
             }
-        }, cancellationToken.Token);
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                break;
+            }
+
+            if (sourceRecord.HasFault)
+            {
+                var action = await ParentPipeline.HandleFaultedContainerAsync(sourceRecord).ConfigureAwait(false);
+
+                if (action == PipelineErrorAction.SkipRecord)
+                {
+                    continue;
+                }
+
+                if (action == PipelineErrorAction.Rethrow)
+                {
+                    ExceptionDispatchInfo.Capture(sourceRecord.Fault!.Exception).Throw();
+                }
+
+                break;
+            }
+
+            try
+            {
+                await ExecuteAsync(sourceRecord.Record, cancellationToken.Token).ConfigureAwait(false);
+
+                // Let the pipeline know that the container record has completed the pipeline
+                ParentPipeline.TriggerPipelineCompletedEvent(
+                    new PipelineContainerCompletedEventHandlerArgs<PipelineContainer<T>>(sourceRecord));
+            }
+            catch (Exception e)
+            {
+                Logger.LogError(e, "Error in the PipelineDestination");
+                sourceRecord.MarkFaulted(new PipelineFaultState(
+                    e,
+                    GetType().Name,
+                    PipelineComponentKind.Destination,
+                    DateTimeOffset.UtcNow,
+                    e.Message));
+
+                var action = await ParentPipeline.HandleFaultedContainerAsync(sourceRecord).ConfigureAwait(false);
+
+                if (action == PipelineErrorAction.SkipRecord)
+                {
+                    continue;
+                }
+
+                if (action == PipelineErrorAction.Rethrow)
+                {
+                    ExceptionDispatchInfo.Capture(sourceRecord.Fault!.Exception).Throw();
+                }
+
+                break;
+            }
+        }
         
         Logger.LogInformation("Pipeline Destination has completed");
     }
@@ -105,7 +154,7 @@ public abstract class PipelineDestination<T> : IPipelineDestination<T> where T :
     /// Execution logic of the destination
     /// </summary>
     /// <param name="record">Record coming through the pipeline</param>
-    protected abstract void ExecuteAsync(T record);
+    protected abstract Task ExecuteAsync(T record, CancellationToken cancellationToken);
 
     /// <summary>
     /// Method to provide an opportunity for the destination to initialize
@@ -113,4 +162,7 @@ public abstract class PipelineDestination<T> : IPipelineDestination<T> where T :
     protected abstract void Initialize();
 
     #endregion
+
+    private Pipeline<T> ParentPipeline =>
+        _parentPipeline ?? throw new InvalidOperationException("Pipeline destination has not been initialized.");
 }

@@ -6,9 +6,8 @@ namespace Pipelinez.Tests.Core.SourceDestTests;
 public class PipelineExecution
 {
     [Fact]
-    public async void Pipeline_Executes_With_Source_Dest()
+    public async Task Pipeline_Executes_With_Source_Dest()
     {
-        var token = new CancellationTokenSource();
         var testRecord = new TestPipelineRecord(){Data = "Test"};
         
         var pipeline = Pipeline<TestPipelineRecord>.New("Pipeline_Builds_With_Source_Dest")
@@ -29,8 +28,7 @@ public class PipelineExecution
             Assert.Equal(testRecord.Data, args.Record.Data);
         };
 
-        pipeline.StartPipelineAsync(token);
-        //await pipeline.StartAsync(token);
+        await pipeline.StartPipelineAsync();
         
         await pipeline.PublishAsync(testRecord);
         
@@ -41,9 +39,8 @@ public class PipelineExecution
     }
     
     [Fact]
-    public async void Pipeline_Executes_Multiple_With_Source_Dest()
+    public async Task Pipeline_Executes_Multiple_With_Source_Dest()
     {
-        var token = new CancellationTokenSource();
         var rand = new Random().Next(100,1000);
         var testRecords = new List<TestPipelineRecord>();
 
@@ -65,7 +62,7 @@ public class PipelineExecution
             Assert.NotNull(args.Record);
         };
 
-        pipeline.StartPipelineAsync(token);
+        await pipeline.StartPipelineAsync();
         foreach(var record in testRecords)
         {
             await pipeline.PublishAsync(record);
@@ -75,5 +72,49 @@ public class PipelineExecution
         await pipeline.CompleteAsync();
 
         Assert.Equal(testRecords.Count, receivedRecords);
+    }
+
+    [Fact]
+    public async Task Pipeline_Publish_Throws_Before_Start()
+    {
+        var pipeline = Pipeline<TestPipelineRecord>.New("Pipeline_Publish_Throws_Before_Start")
+            .WithInMemorySource("config")
+            .WithInMemoryDestination("config")
+            .Build();
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            pipeline.PublishAsync(new TestPipelineRecord { Data = "Test" }));
+
+        Assert.Contains("must be running", exception.Message);
+    }
+
+    [Fact]
+    public async Task Pipeline_Complete_Throws_Before_Start()
+    {
+        var pipeline = Pipeline<TestPipelineRecord>.New("Pipeline_Complete_Throws_Before_Start")
+            .WithInMemorySource("config")
+            .WithInMemoryDestination("config")
+            .Build();
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => pipeline.CompleteAsync());
+
+        Assert.Contains("must be started", exception.Message);
+    }
+
+    [Fact]
+    public async Task Pipeline_Start_Throws_On_Double_Start()
+    {
+        var pipeline = Pipeline<TestPipelineRecord>.New("Pipeline_Start_Throws_On_Double_Start")
+            .WithInMemorySource("config")
+            .WithInMemoryDestination("config")
+            .Build();
+
+        await pipeline.StartPipelineAsync();
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => pipeline.StartPipelineAsync());
+
+        Assert.Contains("cannot be started", exception.Message);
+
+        await pipeline.CompleteAsync();
     }
 }

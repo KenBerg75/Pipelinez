@@ -11,9 +11,10 @@ public class InMemoryPipelineDestination<T> : PipelineDestination<T> where T : P
         
     }
 
-    protected override void ExecuteAsync(T record)
+    protected override Task ExecuteAsync(T record, CancellationToken cancellationToken)
     {
         Logger.LogTrace("Record received: {record}", record);
+        return Task.CompletedTask;
     }
 
     protected override void Initialize()

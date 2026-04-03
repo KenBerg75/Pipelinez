@@ -24,6 +24,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\..\Pipelinez\Pipelinez.csproj" />
+      <ProjectReference Include="..\..\Pipelinez.Kafka\Pipelinez.Kafka.csproj" />
     </ItemGroup>
 
 </Project>

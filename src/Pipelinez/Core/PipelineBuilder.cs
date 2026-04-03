@@ -1,7 +1,7 @@
 using Ardalis.GuardClauses;
-using Confluent.Kafka;
 using Microsoft.Extensions.Logging;
 using Pipelinez.Core.Destination;
+using Pipelinez.Core.ErrorHandling;
 using Pipelinez.Core.Logging;
 using Pipelinez.Core.Record;
 using Pipelinez.Core.Segment;
@@ -9,31 +9,32 @@ using Pipelinez.Core.Source;
 
 namespace Pipelinez.Core;
 
-public partial class PipelineBuilder<T>(string pipelineName)
+public class PipelineBuilder<T>(string pipelineName)
     where T : PipelineRecord
 {
+    public string PipelineName { get; } = Guard.Against.NullOrWhiteSpace(pipelineName, nameof(pipelineName));
+
     #region Pipeline Components
 
-    private IPipelineSource<T> _source;
+    private IPipelineSource<T>? _source;
     private IList<IPipelineSegment<T>> _segments = new List<IPipelineSegment<T>>();
-    private IPipelineDestination<T> _destination;
+    private IPipelineDestination<T>? _destination;
+    private PipelineErrorHandler<T>? _errorHandler;
     
     #endregion
     
     #region Sources
+
+    public PipelineBuilder<T> WithSource(IPipelineSource<T> source)
+    {
+        _source = Guard.Against.Null(source, nameof(source));
+        return this;
+    }
     
     public PipelineBuilder<T> WithInMemorySource(object config)
     {
-        _source = new InMemoryPipelineSource<T>();
-        return this;
+        return WithSource(new InMemoryPipelineSource<T>());
     }
-    /*
-    public PipelineBuilder<T> WithKafkaSource<TRecordKey, TRecordValue>(string config,
-        Func<TRecordKey, TRecordValue, T> map)
-    {
-        throw new NotImplementedException();
-    }
-    */
     
     #endregion
 
@@ -48,18 +49,16 @@ public partial class PipelineBuilder<T>(string pipelineName)
     #endregion
 
     #region Destinations
-    
-    public PipelineBuilder<T> WithInMemoryDestination(string config)
+
+    public PipelineBuilder<T> WithDestination(IPipelineDestination<T> destination)
     {
-        _destination = new InMemoryPipelineDestination<T>();
+        _destination = Guard.Against.Null(destination, nameof(destination));
         return this;
     }
     
-    
-    public PipelineBuilder<T> WithKafkaDestination<TRecordKey, TRecordValue>(string config,
-        Func<T, Message<TRecordKey, TRecordValue>> map)
+    public PipelineBuilder<T> WithInMemoryDestination(string config)
     {
-        throw new NotImplementedException();
+        return WithDestination(new InMemoryPipelineDestination<T>());
     }
     
     #endregion
@@ -76,9 +75,17 @@ public partial class PipelineBuilder<T>(string pipelineName)
     
     #region Error Handling
     
-    public PipelineBuilder<T> WithErrorHandler(Func<Exception, PipelineContainer<T>, bool> errorHandler)
+    public PipelineBuilder<T> WithErrorHandler(PipelineErrorHandler<T> errorHandler)
     {
-        throw new NotImplementedException();
+        _errorHandler = Guard.Against.Null(errorHandler, nameof(errorHandler));
+        return this;
+    }
+
+    public PipelineBuilder<T> WithErrorHandler(Func<PipelineErrorContext<T>, PipelineErrorAction> errorHandler)
+    {
+        Guard.Against.Null(errorHandler, nameof(errorHandler));
+        _errorHandler = context => Task.FromResult(errorHandler(context));
+        return this;
     }
     
     #endregion
@@ -93,7 +100,7 @@ public partial class PipelineBuilder<T>(string pipelineName)
         
         // Create a 'Pipeline' object passing all components and linking them
         // i.e. build the pipeline by linking source->segments->destination
-        var pipeline = new Pipeline<T>(pipelineName, this._source, this._destination, this._segments);
+        var pipeline = new Pipeline<T>(pipelineName, this._source, this._destination, this._segments, _errorHandler);
         pipeline.LinkPipeline();
         pipeline.InitializePipeline();
         //return the pipeline

@@ -11,7 +11,7 @@ namespace Pipelinez.Core.Source;
 public abstract class PipelineSourceBase<T> : IPipelineSource<T> where T : PipelineRecord
 {
     private readonly BufferBlock<PipelineContainer<T>> _messageBuffer;
-    private Pipeline<T> _parentPipeline;
+    private Pipeline<T>? _parentPipeline;
 
     protected ILogger<PipelineSourceBase<T>> Logger { get; }
 
@@ -38,12 +38,13 @@ public abstract class PipelineSourceBase<T> : IPipelineSource<T> where T : Pipel
         try
         {
             Logger.LogInformation("Starting up pipeline source");
-            await MainLoop(cancellationToken);
+            await MainLoop(cancellationToken).ConfigureAwait(false);
         }
         catch (Exception e)
         {
             Logger.LogError(e, "Error in the PipelineSource MainLoop()");
             Complete();
+            throw;
         }
     }
 
@@ -52,7 +53,7 @@ public abstract class PipelineSourceBase<T> : IPipelineSource<T> where T : Pipel
         // ToDo: Needs to be refactored - maybe move to a factory
         var container = new PipelineContainer<T>(record);
         
-        await _messageBuffer.SendAsync(container);
+        await _messageBuffer.SendAsync(container).ConfigureAwait(false);
         
         #region Old Implementation - left in case SendAsync doesn't support buffer full
         /*
@@ -81,7 +82,7 @@ public abstract class PipelineSourceBase<T> : IPipelineSource<T> where T : Pipel
         // ToDo: Needs to be refactored - maybe move to a factory
         var container = new PipelineContainer<T>(record, metadata);
         
-        await _messageBuffer.SendAsync(container);
+        await _messageBuffer.SendAsync(container).ConfigureAwait(false);
     }
 
     public void Complete()
@@ -95,11 +96,11 @@ public abstract class PipelineSourceBase<T> : IPipelineSource<T> where T : Pipel
 
     public void Initialize(Pipeline<T> parentPipeline)
     {
-        this._parentPipeline = parentPipeline;
-        this._parentPipeline.OnPipelineContainerCompelted += OnPipelineContainerComplete;
+        _parentPipeline = parentPipeline;
+        _parentPipeline.OnPipelineContainerCompelted += OnPipelineContainerComplete;
         
         // Give a chance for inheritors to initialize
-        this.Initialize();
+        Initialize();
     }
 
     public virtual void OnPipelineContainerComplete(object sender,

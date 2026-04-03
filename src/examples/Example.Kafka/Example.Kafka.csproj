@@ -9,13 +9,21 @@
 
     <ItemGroup>
       <ProjectReference Include="..\..\Pipelinez\Pipelinez.csproj" />
+      <ProjectReference Include="..\..\Pipelinez.Kafka\Pipelinez.Kafka.csproj" />
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="Confluent.Kafka" Version="2.4.0" />
       <PackageReference Include="Serilog" Version="3.1.1" />
       <PackageReference Include="Serilog.Extensions.Logging" Version="8.0.0" />
       <PackageReference Include="Serilog.Sinks.Async" Version="1.5.0" />
       <PackageReference Include="Serilog.Sinks.Console" Version="5.0.1" />
+      <PackageReference Include="Testcontainers.Kafka" Version="4.11.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Include="..\Shared\KafkaExampleCluster.cs" Link="Infrastructure\KafkaExampleCluster.cs" />
+      <Compile Include="..\Shared\KafkaExampleSettings.cs" Link="Infrastructure\KafkaExampleSettings.cs" />
     </ItemGroup>
 
 </Project>

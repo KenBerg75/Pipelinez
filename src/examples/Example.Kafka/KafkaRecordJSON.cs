@@ -4,6 +4,6 @@ namespace Example.Kafka;
 
 public class KafkaRecordJSON : PipelineRecord
 {
-    public string RecordKey { get; set; }
-    public string RecordValue { get; set; }
+    public required string RecordKey { get; set; }
+    public required string RecordValue { get; set; }
 }
