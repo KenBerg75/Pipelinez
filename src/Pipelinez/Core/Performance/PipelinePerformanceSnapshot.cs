@@ -11,6 +11,10 @@ public sealed class PipelinePerformanceSnapshot
         long totalRetryCount,
         long successfulRetryRecoveries,
         long retryExhaustions,
+        long totalPublishWaitCount,
+        TimeSpan averagePublishWaitDuration,
+        long totalPublishRejectedCount,
+        int peakBufferedCount,
         double recordsPerSecond,
         TimeSpan averageEndToEndLatency,
         IReadOnlyList<PipelineComponentPerformanceSnapshot> components)
@@ -23,6 +27,10 @@ public sealed class PipelinePerformanceSnapshot
         TotalRetryCount = totalRetryCount;
         SuccessfulRetryRecoveries = successfulRetryRecoveries;
         RetryExhaustions = retryExhaustions;
+        TotalPublishWaitCount = totalPublishWaitCount;
+        AveragePublishWaitDuration = averagePublishWaitDuration;
+        TotalPublishRejectedCount = totalPublishRejectedCount;
+        PeakBufferedCount = peakBufferedCount;
         RecordsPerSecond = recordsPerSecond;
         AverageEndToEndLatency = averageEndToEndLatency;
         Components = components;
@@ -43,6 +51,14 @@ public sealed class PipelinePerformanceSnapshot
     public long SuccessfulRetryRecoveries { get; }
 
     public long RetryExhaustions { get; }
+
+    public long TotalPublishWaitCount { get; }
+
+    public TimeSpan AveragePublishWaitDuration { get; }
+
+    public long TotalPublishRejectedCount { get; }
+
+    public int PeakBufferedCount { get; }
 
     public double RecordsPerSecond { get; }
 

@@ -16,5 +16,11 @@ internal interface IPipelinePerformanceCollector
 
     void RecordRetryExhausted();
 
+    void RecordPublishWait(TimeSpan waitDuration);
+
+    void RecordPublishRejected();
+
+    void ObserveBufferedCount(int totalBufferedCount);
+
     PipelinePerformanceSnapshot CreateSnapshot();
 }

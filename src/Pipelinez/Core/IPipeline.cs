@@ -1,5 +1,6 @@
 using Pipelinez.Core.Distributed;
 using Pipelinez.Core.Eventing;
+using Pipelinez.Core.FlowControl;
 using Pipelinez.Core.Performance;
 using Pipelinez.Core.Record;
 using Pipelinez.Core.Status;
@@ -20,6 +21,11 @@ public interface IPipeline<T> where T : PipelineRecord
     /// </summary>
     /// <returns></returns>
     Task PublishAsync(T record);
+
+    /// <summary>
+    /// Publishes a record into the pipeline with explicit flow-control behavior.
+    /// </summary>
+    Task<PipelinePublishResult> PublishAsync(T record, PipelinePublishOptions options);
 
     /// <summary>
     /// Completes and shuts down the pipeline.
@@ -52,6 +58,16 @@ public interface IPipeline<T> where T : PipelineRecord
     /// Event that is raised when a record is scheduled for retry after a transient failure.
     /// </summary>
     event PipelineRecordRetryingEventHandler<T> OnPipelineRecordRetrying;
+
+    /// <summary>
+    /// Event that is raised when pipeline saturation state changes.
+    /// </summary>
+    event PipelineSaturationChangedEventHandler OnSaturationChanged;
+
+    /// <summary>
+    /// Event that is raised when a publish request is rejected.
+    /// </summary>
+    event PipelinePublishRejectedEventHandler<T> OnPublishRejected;
 
     /// <summary>
     /// Event that is raised when the pipeline transitions into a faulted state.

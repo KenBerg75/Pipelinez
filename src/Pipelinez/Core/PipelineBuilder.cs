@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Pipelinez.Core.Distributed;
 using Pipelinez.Core.Destination;
 using Pipelinez.Core.ErrorHandling;
+using Pipelinez.Core.FlowControl;
 using Pipelinez.Core.Logging;
 using Pipelinez.Core.Performance;
 using Pipelinez.Core.Record;
@@ -32,6 +33,7 @@ public class PipelineBuilder<T>(string pipelineName)
     private PipelineRetryPolicy<T>? _destinationRetryPolicy;
     private PipelineErrorHandler<T>? _errorHandler;
     private PipelineHostOptions _hostOptions = new();
+    private PipelineFlowControlOptions _flowControlOptions = new();
     private PipelinePerformanceOptions _performanceOptions = new();
     private PipelineRetryOptions<T> _retryOptions = new();
 
@@ -174,6 +176,16 @@ public class PipelineBuilder<T>(string pipelineName)
 
     #endregion
 
+    #region Flow Control
+
+    public PipelineBuilder<T> UseFlowControlOptions(PipelineFlowControlOptions options)
+    {
+        _flowControlOptions = Guard.Against.Null(options, nameof(options)).Validate();
+        return this;
+    }
+
+    #endregion
+
     #region Performance
 
     public PipelineBuilder<T> UsePerformanceOptions(PipelinePerformanceOptions options)
@@ -276,6 +288,7 @@ public class PipelineBuilder<T>(string pipelineName)
             _segments.Select(registration => registration.Segment).ToList(),
             _errorHandler,
             _hostOptions,
+            _flowControlOptions,
             performanceCollector,
             _retryOptions.EmitRetryEvents);
         pipeline.LinkPipeline();

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Pipelinez.Core.ErrorHandling;
 using Pipelinez.Core.Eventing;
 using Pipelinez.Core.FaultHandling;
+using Pipelinez.Core.FlowControl;
 using Pipelinez.Core.Logging;
 using Pipelinez.Core.Performance;
 using Pipelinez.Core.Record;
@@ -13,7 +14,7 @@ using Pipelinez.Core.Retry;
 
 namespace Pipelinez.Core.Destination;
 
-public abstract class PipelineDestination<T> : IPipelineDestination<T>, IPipelineExecutionConfigurable, IPipelinePerformanceAware, IPipelineBatchingAware, IPipelineRetryConfigurable<T>
+public abstract class PipelineDestination<T> : IPipelineDestination<T>, IPipelineExecutionConfigurable, IPipelinePerformanceAware, IPipelineBatchingAware, IPipelineRetryConfigurable<T>, IPipelineFlowStatusProvider
     where T : PipelineRecord
 {
     private BufferBlock<PipelineContainer<T>>? _messageBuffer;
@@ -118,6 +119,7 @@ public abstract class PipelineDestination<T> : IPipelineDestination<T>, IPipelin
             try
             {
                 sourceRecord = await MessageBuffer.ReceiveAsync(cancellationToken.Token).ConfigureAwait(false);
+                ParentPipeline.ObserveFlowControlState();
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -155,6 +157,7 @@ public abstract class PipelineDestination<T> : IPipelineDestination<T>, IPipelin
                 try
                 {
                     nextContainer = await MessageBuffer.ReceiveAsync(cancellationToken.Token).ConfigureAwait(false);
+                    ParentPipeline.ObserveFlowControlState();
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
@@ -339,6 +342,8 @@ public abstract class PipelineDestination<T> : IPipelineDestination<T>, IPipelin
                     new PipelineContainerCompletedEventHandlerArgs<PipelineContainer<T>>(container));
             }
 
+            ParentPipeline.ObserveFlowControlState();
+
             return true;
         }
         catch (Exception e)
@@ -363,6 +368,8 @@ public abstract class PipelineDestination<T> : IPipelineDestination<T>, IPipelin
                     return false;
                 }
             }
+
+            ParentPipeline.ObserveFlowControlState();
 
             return true;
         }
@@ -408,6 +415,18 @@ public abstract class PipelineDestination<T> : IPipelineDestination<T>, IPipelin
             BoundedCapacity = _executionOptions.BoundedCapacity,
             EnsureOrdered = _executionOptions.EnsureOrdered
         });
+
+    int IPipelineFlowStatusProvider.GetApproximateQueueDepth()
+    {
+        return MessageBuffer.Count;
+    }
+
+    int? IPipelineFlowStatusProvider.GetBoundedCapacity()
+    {
+        return _executionOptions.BoundedCapacity == DataflowBlockOptions.Unbounded
+            ? null
+            : _executionOptions.BoundedCapacity;
+    }
 
     private void EnsureExecutionOptionsCanBeChanged()
     {

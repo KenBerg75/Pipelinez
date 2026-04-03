@@ -22,6 +22,10 @@ internal sealed class PipelinePerformanceCollector : IPipelinePerformanceCollect
     private long _retryCount;
     private long _retryRecoveries;
     private long _retryExhaustions;
+    private long _publishWaitCount;
+    private long _publishRejectedCount;
+    private long _totalPublishWaitDurationTicks;
+    private int _peakBufferedCount;
     private long _totalEndToEndLatencyTicks;
 
     public PipelinePerformanceCollector(PipelineMetricsOptions metricsOptions)
@@ -134,6 +138,49 @@ internal sealed class PipelinePerformanceCollector : IPipelinePerformanceCollect
         }
     }
 
+    public void RecordPublishWait(TimeSpan waitDuration)
+    {
+        if (!_metricsOptions.EnableRuntimeMetrics || waitDuration <= TimeSpan.Zero)
+        {
+            return;
+        }
+
+        lock (_syncLock)
+        {
+            _publishWaitCount++;
+            _totalPublishWaitDurationTicks += waitDuration.Ticks;
+        }
+    }
+
+    public void RecordPublishRejected()
+    {
+        if (!_metricsOptions.EnableRuntimeMetrics)
+        {
+            return;
+        }
+
+        lock (_syncLock)
+        {
+            _publishRejectedCount++;
+        }
+    }
+
+    public void ObserveBufferedCount(int totalBufferedCount)
+    {
+        if (!_metricsOptions.EnableRuntimeMetrics)
+        {
+            return;
+        }
+
+        lock (_syncLock)
+        {
+            if (totalBufferedCount > _peakBufferedCount)
+            {
+                _peakBufferedCount = totalBufferedCount;
+            }
+        }
+    }
+
     public PipelinePerformanceSnapshot CreateSnapshot()
     {
         lock (_syncLock)
@@ -163,6 +210,9 @@ internal sealed class PipelinePerformanceCollector : IPipelinePerformanceCollect
             var averageLatency = totalFinished == 0
                 ? TimeSpan.Zero
                 : TimeSpan.FromTicks(_totalEndToEndLatencyTicks / totalFinished);
+            var averagePublishWait = _publishWaitCount == 0
+                ? TimeSpan.Zero
+                : TimeSpan.FromTicks(_totalPublishWaitDurationTicks / _publishWaitCount);
 
             return new PipelinePerformanceSnapshot(
                 _startedAtUtc,
@@ -173,6 +223,10 @@ internal sealed class PipelinePerformanceCollector : IPipelinePerformanceCollect
                 _retryCount,
                 _retryRecoveries,
                 _retryExhaustions,
+                _publishWaitCount,
+                averagePublishWait,
+                _publishRejectedCount,
+                _peakBufferedCount,
                 totalFinished / elapsedSeconds,
                 averageLatency,
                 componentSnapshots);
