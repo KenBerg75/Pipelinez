@@ -11,7 +11,7 @@ namespace Pipelinez.Core.Source;
 public abstract class PipelineSourceBase<T> : IPipelineSource<T> where T : PipelineRecord
 {
     private readonly BufferBlock<PipelineContainer<T>> _messageBuffer;
-    private Pipeline<T> _parentPipeline;
+    private Pipeline<T>? _parentPipeline;
 
     protected ILogger<PipelineSourceBase<T>> Logger { get; }
 
@@ -96,11 +96,11 @@ public abstract class PipelineSourceBase<T> : IPipelineSource<T> where T : Pipel
 
     public void Initialize(Pipeline<T> parentPipeline)
     {
-        this._parentPipeline = parentPipeline;
-        this._parentPipeline.OnPipelineContainerCompelted += OnPipelineContainerComplete;
+        _parentPipeline = parentPipeline;
+        _parentPipeline.OnPipelineContainerCompelted += OnPipelineContainerComplete;
         
         // Give a chance for inheritors to initialize
-        this.Initialize();
+        Initialize();
     }
 
     public virtual void OnPipelineContainerComplete(object sender,

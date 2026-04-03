@@ -16,7 +16,7 @@ public class KafkaPipelineDestination<T, TRecordKey, TRecordValue> : PipelineDes
     private readonly KafkaDestinationOptions _config;
     private readonly Func<T, Message<TRecordKey, TRecordValue>> _messageMapper;
     private readonly ILogger<KafkaPipelineDestination<T, TRecordKey, TRecordValue>> _logger;
-    private IKafkaProducer<TRecordKey, TRecordValue> _producer;
+    private IKafkaProducer<TRecordKey, TRecordValue>? _producer;
     
     public KafkaPipelineDestination(string pipelineName, KafkaDestinationOptions config, Func<T, Message<TRecordKey, TRecordValue>> messageMapper)
     {
@@ -36,32 +36,28 @@ public class KafkaPipelineDestination<T, TRecordKey, TRecordValue> : PipelineDes
         Guard.Against.Null(_producer, nameof(_producer), "No Kafka Producer was created in the destination. Cannot proceed.");
     }
     
-    protected override void ExecuteAsync(T record)
+    protected override async Task ExecuteAsync(T record, CancellationToken cancellationToken)
     {
-        #region Delivery Handler
-        // This is executed after the Producer successfully produces the message, thus ending the pipeline for the record
-        // This is inline because it needs access to the PipelineRecord<T,V>
-        void DeliveryHandler(DeliveryReport<TRecordKey, TRecordValue> r)
-        {
-            if (r.Error.IsError)
-            {
-                _logger.LogError("KafkaPipelineDestination Delivery Error: {ErrorReason}", r.Error.Reason);
-                //throw new DestinationException(r.Error.Reason);
-            }
-        }
-        #endregion
-                
-                
         _logger.LogTrace("Publishing: {S}", record.ToString());
 
         var message = _messageMapper(record);
+        message.Headers ??= new Headers();
 
         foreach (var header in record.Headers)
         {
             message.Headers.Add(header.ToKafkaHeader());
         }
-                
-        _producer.Produce(_config.TopicName, message, DeliveryHandler);
+
+        var deliveryResult = await Producer
+            .ProduceAsync(_config.TopicName, message, cancellationToken)
+            .ConfigureAwait(false);
+
+        _logger.LogTrace(
+            "Kafka message delivered to {TopicPartitionOffset}",
+            deliveryResult.TopicPartitionOffset);
     }
+
+    private IKafkaProducer<TRecordKey, TRecordValue> Producer =>
+        _producer ?? throw new InvalidOperationException("Kafka producer has not been initialized.");
 
 }

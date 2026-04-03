@@ -33,7 +33,7 @@ public class PipelineLoggingTests
     {
         Assert.Throws<ArgumentNullException>(() => 
             Pipeline<TestLoggingModel>.New("Pipeline_Segment_Logging_Throws_With_Null")
-            .UseLogger(null)
+            .UseLogger(null!)
             .WithInMemorySource("config")
             .WithInMemoryDestination("config").Build());
 

@@ -11,9 +11,8 @@ using Microsoft.Extensions.Logging;
 internal class LoggingManager : ILoggerFactory
 {
     #region Singleton
-    
-    private static LoggingManager _instance;
-    private static object syncRoot = new Object();
+
+    private static readonly Lazy<LoggingManager> _instance = new(() => new LoggingManager());
     private ILoggerFactory _logFactory = new NullLoggerFactory();
 
     private LoggingManager()
@@ -25,21 +24,7 @@ internal class LoggingManager : ILoggerFactory
     /// </summary>
     public static LoggingManager Instance
     {
-        get
-        {
-            if (_instance == null)
-            {
-                lock (syncRoot)
-                {
-                    if (_instance == null)
-                    {
-                        _instance = new LoggingManager();
-                    }
-                }
-            }
-
-            return _instance;
-        }
+        get { return _instance.Value; }
     }
     
     #endregion
@@ -73,7 +58,7 @@ internal class LoggingManager : ILoggerFactory
 
     public void Dispose()
     {
-        _logFactory?.Dispose();
+        _logFactory.Dispose();
     }
     
     #endregion

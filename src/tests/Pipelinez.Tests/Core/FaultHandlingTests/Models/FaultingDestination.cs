@@ -7,7 +7,7 @@ public sealed class FaultingDestination : PipelineDestination<TestPipelineRecord
 {
     public const string FailureMessage = "Destination failed intentionally.";
 
-    protected override void ExecuteAsync(TestPipelineRecord record)
+    protected override Task ExecuteAsync(TestPipelineRecord record, CancellationToken cancellationToken)
     {
         throw new InvalidOperationException(FailureMessage);
     }

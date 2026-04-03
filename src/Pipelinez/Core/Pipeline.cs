@@ -2,6 +2,7 @@ using System.Threading.Tasks.Dataflow;
 using Ardalis.GuardClauses;
 using Microsoft.Extensions.Logging;
 using Pipelinez.Core.Destination;
+using Pipelinez.Core.ErrorHandling;
 using Pipelinez.Core.Eventing;
 using Pipelinez.Core.FaultHandling;
 using Pipelinez.Core.Logging;
@@ -45,6 +46,7 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
     private readonly IPipelineSource<TPipelineRecord> _source;
     private readonly IList<IPipelineSegment<TPipelineRecord>> _segments;
     private readonly IPipelineDestination<TPipelineRecord> _destination;
+    private readonly PipelineErrorHandler<TPipelineRecord>? _errorHandler;
     private readonly object _stateLock = new();
     private readonly TaskCompletionSource _completionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -104,7 +106,7 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
         OnPipelineRecordCompleted?.Invoke(this, new PipelineRecordCompletedEventHandlerArgs<TPipelineRecord>(evt.Container.Record));
     }
 
-    internal void HandleFaultedContainer(PipelineContainer<TPipelineRecord> container)
+    internal async Task<PipelineErrorAction> HandleFaultedContainerAsync(PipelineContainer<TPipelineRecord> container)
     {
         Guard.Against.Null(container, nameof(container));
 
@@ -117,7 +119,25 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
             this,
             new PipelineRecordFaultedEventArgs<TPipelineRecord>(container.Record, container, container.Fault));
 
-        FaultPipeline(container.Fault);
+        var action = await ResolveErrorActionAsync(container, container.Fault).ConfigureAwait(false);
+
+        switch (action)
+        {
+            case PipelineErrorAction.SkipRecord:
+                Logger.LogInformation(
+                    "Skipping faulted record in pipeline {PipelineName}. Component: {ComponentName}",
+                    _name,
+                    container.Fault.ComponentName);
+                return PipelineErrorAction.SkipRecord;
+            case PipelineErrorAction.StopPipeline:
+                FaultPipeline(container.Fault);
+                return PipelineErrorAction.StopPipeline;
+            case PipelineErrorAction.Rethrow:
+                FaultPipeline(container.Fault);
+                return PipelineErrorAction.Rethrow;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(action), action, "Unknown pipeline error action.");
+        }
     }
 
     #endregion
@@ -125,7 +145,7 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
     #region Construction
     
     internal Pipeline(string name, IPipelineSource<TPipelineRecord> source, IPipelineDestination<TPipelineRecord> destination, 
-        IList<IPipelineSegment<TPipelineRecord>> segments)
+        IList<IPipelineSegment<TPipelineRecord>> segments, PipelineErrorHandler<TPipelineRecord>? errorHandler = null)
     {
         Guard.Against.NullOrEmpty(name, message: "Pipeline must have a name");
         Guard.Against.Null(source, message: "Pipeline must have a valid source");
@@ -137,6 +157,7 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
         this._source = source;
         this._destination = destination;
         this._segments = segments;
+        this._errorHandler = errorHandler;
     }
 
     internal void LinkPipeline()
@@ -413,6 +434,38 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
         catch (ObjectDisposedException)
         {
             // The pipeline has already cleaned up its runtime cancellation source.
+        }
+    }
+
+    private async Task<PipelineErrorAction> ResolveErrorActionAsync(
+        PipelineContainer<TPipelineRecord> container,
+        PipelineFaultState fault)
+    {
+        if (_errorHandler is null)
+        {
+            return PipelineErrorAction.StopPipeline;
+        }
+
+        try
+        {
+            var context = new PipelineErrorContext<TPipelineRecord>(
+                fault.Exception,
+                container,
+                fault,
+                _runtimeCancellationTokenSource?.Token ?? CancellationToken.None);
+
+            return await _errorHandler(context).ConfigureAwait(false);
+        }
+        catch (Exception exception)
+        {
+            var handlerFault = CreatePipelineFaultState(
+                exception,
+                "PipelineErrorHandler",
+                PipelineComponentKind.Pipeline,
+                exception.Message);
+
+            FaultPipeline(handlerFault);
+            throw;
         }
     }
 

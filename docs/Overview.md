@@ -2,116 +2,201 @@
 
 ## What Pipelinez Is
 
-Pipelinez is a .NET 8 library for building typed data-processing pipelines around a small set of abstractions:
+Pipelinez is a .NET 8 pipeline framework for moving typed records through a consistent runtime model:
 
-- `PipelineRecord`: the base type for any payload that moves through a pipeline.
-- `IPipelineSource<T>`: publishes records into the flow.
-- `IPipelineSegment<T>`: transforms records in the middle of the flow.
-- `IPipelineDestination<T>`: consumes records at the end of the flow.
+- `PipelineRecord`
+  the user-defined payload base type
+- `IPipelineSource<T>`
+  introduces records into the pipeline
+- `IPipelineSegment<T>`
+  transforms records in the middle of the pipeline
+- `IPipelineDestination<T>`
+  consumes records at the end of the pipeline
 
 The runtime is built on `System.Threading.Tasks.Dataflow`. A pipeline is linked as:
 
 `source -> segment 1 -> segment 2 -> ... -> destination`
 
-Every record is wrapped in a `PipelineContainer<T>` so the framework can carry both the user-defined record and framework metadata together.
+Each record flows through the runtime inside a `PipelineContainer<T>`, which lets the framework carry payload, metadata, fault state, and execution history together.
 
 ## Solution Layout
 
 - `src/Pipelinez.sln`
-  The main solution file. It includes the core library, tests, and two examples.
+  the main solution containing the core library, Kafka extension library, tests, and examples
 - `src/Pipelinez`
-  The primary library project. This contains the core pipeline runtime and, at the moment, the Kafka implementation as well.
+  the transport-agnostic pipeline runtime
 - `src/Pipelinez.Kafka`
-  A separate project file intended for Kafka support, but it currently contains only `Pipelinez.Kafka.csproj` and is not included in the solution. The Kafka source files actually live under `src/Pipelinez/Kafka`, so Kafka functionality currently ships from the main `Pipelinez` assembly rather than a separate Kafka assembly.
+  the Kafka transport extension assembly
 - `src/tests/Pipelinez.Tests`
-  xUnit tests covering pipeline construction, execution, segment behavior, ordering, and logger integration.
+  unit and runtime tests for core pipeline behavior
+- `src/tests/Pipelinez.Kafka.Tests`
+  Docker-backed Kafka integration tests using Testcontainers
 - `src/examples/Example.Kafka`
-  A sample app showing the intended fluent builder experience for a Kafka-backed pipeline.
+  sample application that builds a Kafka-backed pipeline
 - `src/examples/Example.Kafka.DataGen`
-  A simple utility for publishing test data to Kafka.
+  simple Kafka publisher used to generate example traffic
 
 ## Core Runtime Design
 
-### 1. Pipeline construction
+### Pipeline Construction
 
 The entry point is `Pipeline<T>.New("name")`, which returns `PipelineBuilder<T>`.
 
-The builder currently supports:
+The core builder currently supports:
 
+- `WithSource(...)`
 - `WithInMemorySource(...)`
 - `AddSegment(...)`
+- `WithDestination(...)`
 - `WithInMemoryDestination(...)`
 - `UseLogger(...)`
-- Kafka builder extensions through a partial `PipelineBuilder<T>` in `src/Pipelinez/Kafka/PipelineBuilder.cs`
+- `WithErrorHandler(...)`
 
-`Build()` validates that a source and destination exist, creates a `Pipeline<T>`, links all blocks together, and initializes the source and destination.
+Kafka integrates through extension methods in `Pipelinez.Kafka`, not through partial builder types. The Kafka assembly adds:
 
-### 2. Record model
+- `WithKafkaSource(...)`
+- `WithKafkaDestination(...)`
 
-`PipelineRecord` is the base class for pipeline payloads. It only includes a list of `PipelineRecordHeader`, leaving record shape entirely up to consumers of the library.
+`Build()` validates that a source and destination exist, creates a `Pipeline<T>`, links all blocks, and initializes the source and destination.
 
-Each record is wrapped in `PipelineContainer<T>`:
+### Record Model
 
-- `Record`: the typed payload being processed
-- `Metadata`: a `MetadataCollection` used by framework integrations such as Kafka offset tracking
+`PipelineRecord` is the base class for all pipeline payloads. It only carries `Headers`, leaving payload shape entirely to the caller.
 
-This wrapper is central to the design because pipeline infrastructure needs more than just the payload itself.
+`PipelineContainer<T>` wraps each record and carries:
 
-### 3. Source behavior
+- `Record`
+  the current typed payload
+- `Metadata`
+  integration metadata such as Kafka topic, partition, and offset
+- `Fault`
+  a `PipelineFaultState` when execution has faulted
+- `HasFault`
+  convenience flag for fault checks
+- `SegmentHistory`
+  ordered `PipelineSegmentExecution` entries that capture segment execution results
 
-Sources inherit from `PipelineSourceBase<T>`, which owns a `BufferBlock<PipelineContainer<T>>`.
+This container is the runtime boundary object shared by sources, segments, destinations, error handling, and transport adapters.
+
+### Source Behavior
+
+Sources derive from `PipelineSourceBase<T>`, which owns a `BufferBlock<PipelineContainer<T>>`.
 
 Responsibilities:
 
-- accept manual publishes through `PublishAsync`
-- optionally create records from an external system in `MainLoop(...)`
+- publish records manually through `PublishAsync`
+- optionally produce records from an external system inside `MainLoop(...)`
 - link to the next pipeline component
-- subscribe to pipeline completion events via `OnPipelineContainerComplete(...)`
+- observe completed containers through `OnPipelineContainerComplete(...)`
 
-`InMemoryPipelineSource<T>` is effectively a passive/manual source. Its main loop only waits until cancellation, and records enter the pipeline through `PublishAsync`.
+`InMemoryPipelineSource<T>` is effectively a passive source. Kafka-backed sources actively consume from Kafka and publish into the pipeline.
 
-### 4. Segment behavior
+### Segment Behavior
 
-Segments inherit from `PipelineSegment<T>`, which wraps a `TransformBlock<PipelineContainer<T>, PipelineContainer<T>>`.
+Segments derive from `PipelineSegment<T>`, which wraps a `TransformBlock<PipelineContainer<T>, PipelineContainer<T>>`.
 
 For each container:
 
-1. the segment calls the user-defined `ExecuteAsync(T arg)`
-2. the returned record is written back to `PipelineContainer<T>.Record`
-3. the container continues to the next block
+1. the segment checks whether the container already has a fault
+2. the segment executes `ExecuteAsync(T arg)`
+3. the returned record replaces `PipelineContainer<T>.Record`
+4. the segment appends a `PipelineSegmentExecution` entry to `SegmentHistory`
+5. if an exception occurs, the segment marks the container faulted and allows downstream error handling to decide what to do
 
-This gives segments a simple authoring model: developers work with their record type directly instead of with dataflow primitives.
+This keeps the segment authoring model simple while still preserving runtime-level observability.
 
-### 5. Destination behavior
+### Destination Behavior
 
-Destinations inherit from `PipelineDestination<T>`, which owns a `BufferBlock<PipelineContainer<T>>`.
+Destinations derive from `PipelineDestination<T>`, which owns a `BufferBlock<PipelineContainer<T>>`.
 
-The destination:
+The destination loop:
 
-1. receives completed containers from the final upstream block
-2. executes its destination-specific logic through `ExecuteAsync(T record)`
-3. raises a pipeline completion event for the container and then for the record
+1. receives completed containers from upstream
+2. checks for pre-faulted containers
+3. delegates fault-policy decisions back to the pipeline when needed
+4. executes `ExecuteAsync(T record, CancellationToken cancellationToken)` for successful containers
+5. raises container-completed and record-completed events only after successful destination execution
 
-`InMemoryPipelineDestination<T>` is a sink that only logs receipt of the record.
+Destination execution is fully async, and destination `Completion` now represents the full destination work lifecycle rather than only message-buffer completion.
 
 ## Execution Lifecycle
 
-The runtime lifecycle for a typical in-memory pipeline is:
+The runtime lifecycle is:
 
-1. Build the pipeline with a source, optional segments, and a destination.
-2. Call `StartPipelineAsync(CancellationTokenSource)`.
-3. Publish one or more records through `PublishAsync`.
-4. Call `CompleteAsync()` to complete the source and wait for completion to propagate to the destination.
-5. Optionally await `pipeline.Completion`.
+1. build the pipeline
+2. call `StartPipelineAsync(CancellationToken)`
+3. publish records or let the source run
+4. call `CompleteAsync()` when no more records should enter the pipeline
+5. optionally await `pipeline.Completion`
 
-When a record reaches the destination, the pipeline raises:
+Important current semantics:
 
-- an internal container-completed event for framework use
-- a public `OnPipelineRecordCompleted` event for consumers
+- `StartPipelineAsync(...)` returns `Task`
+- starting twice throws
+- publishing before start throws
+- completing before start throws
+- `Completion` represents the pipeline run, not just one internal block
+- `CompleteAsync()` waits for downstream destination work before final completion
 
-That public event is the main extension point for callers who want to observe successful record completion.
+`Pipeline<T>` also tracks runtime state explicitly:
 
-## Status and Observability
+- `NotStarted`
+- `Starting`
+- `Running`
+- `Completing`
+- `Completed`
+- `Faulted`
+
+## Fault Handling And Error Policies
+
+Fault handling is now a first-class part of the runtime.
+
+### Fault State
+
+When a source, segment, destination, or pipeline-level operation faults, the runtime captures a `PipelineFaultState` containing:
+
+- the exception
+- the component name
+- the component kind
+- the timestamp
+- a human-readable message
+
+Segment-level execution history is preserved separately in `SegmentHistory`.
+
+### Events
+
+The pipeline exposes:
+
+- `OnPipelineRecordCompleted`
+  raised after a record successfully completes the entire pipeline
+- `OnPipelineRecordFaulted`
+  raised when a record faults and enters policy handling
+- `OnPipelineFaulted`
+  raised when the pipeline transitions into a faulted runtime state
+
+There is also an internal container-completed event used by integrations such as Kafka offset storage.
+
+### Error Handler
+
+The builder supports `WithErrorHandler(...)` with sync or async handlers. The handler receives `PipelineErrorContext<T>`, which includes:
+
+- the exception
+- the `PipelineContainer<T>`
+- the captured `PipelineFaultState`
+- the runtime cancellation token
+
+The handler returns a `PipelineErrorAction`:
+
+- `SkipRecord`
+  skip the faulted record and continue processing
+- `StopPipeline`
+  mark the pipeline faulted and stop processing
+- `Rethrow`
+  mark the pipeline faulted and surface the original exception path
+
+If no handler is configured, the default behavior is to stop the pipeline on fault.
+
+## Status And Observability
 
 `Pipeline<T>.GetStatus()` returns a `PipelineStatus` composed of `PipelineComponentStatus` entries for:
 
@@ -119,111 +204,136 @@ That public event is the main extension point for callers who want to observe su
 - each segment
 - the destination
 
-Task states are translated into:
+Reported execution status is derived from task state and runtime fault state:
 
 - `Healthy`
 - `Completed`
 - `Faulted`
 - `Unknown`
 
-Logging is managed through the internal singleton `LoggingManager`, which wraps an `ILoggerFactory`. If the caller never supplies a logger factory, the library falls back to `NullLoggerFactory`.
+Logging is managed through the internal `LoggingManager`, which wraps an `ILoggerFactory`. If the caller never supplies a logger factory, the runtime falls back to a null logger factory.
 
 ## Kafka Integration
 
-Kafka support is implemented inside `src/Pipelinez/Kafka`.
+Kafka support lives in the separate `Pipelinez.Kafka` assembly under `src/Pipelinez.Kafka/Kafka`.
 
-### Source side
+### Builder Surface
+
+Kafka extends the builder through `KafkaPipelineBuilderExtensions`:
+
+- `WithKafkaSource(...)`
+- `WithKafkaDestination(...)`
+
+This keeps `PipelineBuilder<T>` owned by the core assembly and keeps Kafka-specific construction behavior owned by the Kafka assembly.
+
+### Kafka Source
 
 `KafkaPipelineSource<T, TRecordKey, TRecordValue>`:
 
-- creates a Kafka consumer through `KafkaClientFactory`
-- subscribes to a topic
-- consumes Kafka messages in a loop
-- maps Kafka key/value pairs into a pipeline record using a caller-provided mapper
+- creates a Kafka consumer via `KafkaClientFactory`
+- subscribes to the configured topic
+- consumes messages in a loop
+- maps Kafka key/value pairs into a pipeline record
 - copies Kafka headers into `PipelineRecord.Headers`
-- stores topic, partition, and offset metadata in the `PipelineContainer`
+- stores source topic, partition, and offset in container metadata
 
-Once a record completes the pipeline, the Kafka source handles the internal completion event and stores the next offset with `_consumer.StoreOffset(...)`.
+When a record completes successfully, the source handles the internal container-completed event and stores the next Kafka offset.
 
-Important detail:
+Important consumer behavior:
 
-- consumer config sets `EnableAutoCommit = true`
-- consumer config also sets `EnableAutoOffsetStore = false`
+- `EnableAutoCommit = true`
+- `EnableAutoOffsetStore = false`
 
-So the pipeline is trying to defer offset storage until the record has finished the pipeline, which is the right direction for "process then commit" behavior.
+So completion is tied to explicit offset storage rather than immediate consume-time storage.
 
-### Destination side
+### Kafka Destination
 
 `KafkaPipelineDestination<T, TRecordKey, TRecordValue>`:
 
 - creates a Kafka producer
-- maps a pipeline record to a Kafka `Message<TKey, TValue>`
-- copies `PipelineRecord.Headers` into Kafka headers
-- produces to the configured topic
+- maps a pipeline record into a Kafka `Message<TKey, TValue>`
+- ensures message headers exist
+- copies pipeline headers into Kafka headers
+- awaits `ProduceAsync(...)`
 
-Schema-registry-backed JSON and Avro serializers/deserializers are supported through `KafkaSchemaRegistryOptions`.
+The destination only treats the record as complete after broker delivery has been awaited successfully.
 
-### Factory and configuration
+### Configuration
 
-Kafka client creation is centralized in `KafkaClientFactory`, with separate wrappers for:
-
-- admin client
-- consumer
-- producer
-
-Configuration classes:
+Kafka configuration types include:
 
 - `KafkaOptions`
 - `KafkaSourceOptions`
 - `KafkaDestinationOptions`
 - `KafkaSchemaRegistryOptions`
 
-These are straightforward POCOs that the caller supplies to the builder.
+The Kafka config path now supports both:
+
+- secured SASL-based broker connections
+- plain local broker connections for Docker-backed integration tests
+
+Schema-registry-backed JSON and Avro serializer/deserializer configuration remains part of the public Kafka surface.
 
 ## Examples
 
 ### `Example.Kafka`
 
-Demonstrates the intended fluent setup:
+Demonstrates:
 
-- configure logging with Serilog
-- build a pipeline with a Kafka source
-- add a custom segment (`GoogleSegment`)
-- send the transformed record to a Kafka destination
-- observe completion through `OnPipelineRecordCompleted`
-
-`GoogleSegment` shows the expected programming model for custom segments: inherit `PipelineSegment<T>` and implement `ExecuteAsync`.
+- configuring logging with Serilog
+- building a pipeline with Kafka source and destination
+- adding a custom segment
+- awaiting pipeline startup and completion correctly
+- observing successful completion through `OnPipelineRecordCompleted`
 
 ### `Example.Kafka.DataGen`
 
-Publishes simple string messages to Kafka to generate test traffic for the example pipeline.
+Provides a minimal Kafka producer for generating example traffic.
 
 ## Test Coverage
 
-The current tests validate the main in-memory behavior:
+The solution now includes two test layers.
 
-- pipeline builds with source + destination
-- pipeline builds with source + multiple segments + destination
-- records can be published and observed through `OnPipelineRecordCompleted`
-- multiple records flow through the pipeline
-- segments mutate records as expected
-- multiple segments execute in order
-- logger integration is invoked
-- null logger factories are rejected
+### Core Tests
 
-All existing tests pass with `dotnet test src\\Pipelinez.sln`.
+`src/tests/Pipelinez.Tests` covers:
 
-## Current Implementation Notes
+- pipeline construction
+- startup and completion lifecycle guards
+- segment ordering and mutation
+- async destination behavior
+- fault tracking and pipeline fault events
+- error-handler policies
+- logger integration
+- builder-surface expectations
 
-The codebase is functional for its in-memory path and demonstrates the intended Kafka extension model, but several parts are still early-stage or incomplete:
+### Kafka Integration Tests
 
-- `StartPipelineAsync` is declared `async void` and does not await anything. It currently fires source and destination tasks and returns immediately.
-- `WithErrorHandler(...)` is not implemented.
-- the older string-based Kafka builder methods in `PipelineBuilder<T>` remain as `NotImplementedException` stubs, while the actual Kafka builder support lives in the partial builder under `src/Pipelinez/Kafka/PipelineBuilder.cs`.
-- `PipelineDestination<T>.ExecuteAsync` is synchronous despite its name.
-- several nullable warnings remain throughout the solution.
-- error handling inside segments and destinations logs failures, but the fault-handling story is not fully implemented yet.
-- the separate `Pipelinez.Kafka` project structure does not yet match the actual source layout.
+`src/tests/Pipelinez.Kafka.Tests` uses Docker and `Testcontainers.Kafka` to run broker-backed integration tests that validate:
+
+- source-topic to destination-topic flow
+- header propagation through Kafka and the pipeline runtime
+- segment fault handling with `SkipRecord`, `StopPipeline`, and `Rethrow`
+- destination fault handling
+- record-fault and pipeline-fault event behavior
+- offset commit and replay behavior across pipeline runs
+
+At the time of this overview update, `dotnet test src\\Pipelinez.sln` passes with both the core and Kafka integration suites green.
+
+## Current State
+
+The major architectural work called out in the earlier planning docs has been implemented:
+
+- async pipeline startup and guarded lifecycle semantics
+- container-level fault state and segment execution history
+- configurable error-handler policies
+- async destination execution
+- Kafka builder consolidation through extension methods
+- nullability cleanup in production code
+- Kafka split into a real `Pipelinez.Kafka` assembly
+- Docker-backed Kafka integration tests
+
+The remaining work is mostly future evolution work rather than foundational cleanup. Likely areas include broader transport coverage, schema-registry integration tests, and further runtime ergonomics.
 
 ## Mental Model For Future Readers
 
@@ -233,6 +343,14 @@ The simplest way to think about Pipelinez is:
 2. choose where records come from
 3. chain one or more `PipelineSegment<T>` transforms
 4. choose where processed records end up
-5. use the completion event to observe successful end-to-end processing
+5. optionally configure fault policy through `WithErrorHandler(...)`
+6. observe success or failure through the public pipeline events
 
-Under the hood, the library is a light framework over TPL Dataflow that standardizes record wrapping, metadata propagation, logging, and transport-specific adapters such as Kafka.
+Under the hood, Pipelinez is a thin framework over TPL Dataflow that standardizes:
+
+- record wrapping
+- metadata flow
+- fault capture
+- completion semantics
+- logging
+- transport-specific adapters such as Kafka

@@ -1,9 +1,11 @@
 using System.Threading.Tasks.Dataflow;
 using Microsoft.Extensions.Logging;
 using Pipelinez.Core.Eventing;
+using Pipelinez.Core.ErrorHandling;
 using Pipelinez.Core.FaultHandling;
 using Pipelinez.Core.Logging;
 using Pipelinez.Core.Record;
+using System.Runtime.ExceptionServices;
 
 namespace Pipelinez.Core.Destination;
 
@@ -11,6 +13,8 @@ namespace Pipelinez.Core.Destination;
 public abstract class PipelineDestination<T> : IPipelineDestination<T> where T : PipelineRecord
 {
     private readonly BufferBlock<PipelineContainer<T>> _messageBuffer;
+    private readonly TaskCompletionSource _completionSource =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
     private Pipeline<T>? _parentPipeline;
     protected ILogger<PipelineDestination<T>> Logger { get; }
 
@@ -26,7 +30,7 @@ public abstract class PipelineDestination<T> : IPipelineDestination<T> where T :
     
     #region IPipelineDestination
     
-    public Task Completion => _messageBuffer.Completion;
+    public Task Completion => _completionSource.Task;
     
     public ITargetBlock<PipelineContainer<T>> AsTargetBlock()
     {
@@ -38,12 +42,14 @@ public abstract class PipelineDestination<T> : IPipelineDestination<T> where T :
         try
         {
             await ExecuteInternal(cancellationToken).ConfigureAwait(false);
+            _completionSource.TrySetResult();
         }
         catch (Exception e)
         {
             // Exceptions on Destinations can be un-recoverable
             // hence any exceptions shut down the pipeline
             Logger.LogError(e, "Error in the PipelineDestination");
+            _completionSource.TrySetException(e);
             throw;
         }
         finally
@@ -88,13 +94,24 @@ public abstract class PipelineDestination<T> : IPipelineDestination<T> where T :
 
             if (sourceRecord.HasFault)
             {
-                ParentPipeline.HandleFaultedContainer(sourceRecord);
+                var action = await ParentPipeline.HandleFaultedContainerAsync(sourceRecord).ConfigureAwait(false);
+
+                if (action == PipelineErrorAction.SkipRecord)
+                {
+                    continue;
+                }
+
+                if (action == PipelineErrorAction.Rethrow)
+                {
+                    ExceptionDispatchInfo.Capture(sourceRecord.Fault!.Exception).Throw();
+                }
+
                 break;
             }
 
             try
             {
-                ExecuteAsync(sourceRecord.Record);
+                await ExecuteAsync(sourceRecord.Record, cancellationToken.Token).ConfigureAwait(false);
 
                 // Let the pipeline know that the container record has completed the pipeline
                 ParentPipeline.TriggerPipelineCompletedEvent(
@@ -109,7 +126,19 @@ public abstract class PipelineDestination<T> : IPipelineDestination<T> where T :
                     PipelineComponentKind.Destination,
                     DateTimeOffset.UtcNow,
                     e.Message));
-                ParentPipeline.HandleFaultedContainer(sourceRecord);
+
+                var action = await ParentPipeline.HandleFaultedContainerAsync(sourceRecord).ConfigureAwait(false);
+
+                if (action == PipelineErrorAction.SkipRecord)
+                {
+                    continue;
+                }
+
+                if (action == PipelineErrorAction.Rethrow)
+                {
+                    ExceptionDispatchInfo.Capture(sourceRecord.Fault!.Exception).Throw();
+                }
+
                 break;
             }
         }
@@ -125,7 +154,7 @@ public abstract class PipelineDestination<T> : IPipelineDestination<T> where T :
     /// Execution logic of the destination
     /// </summary>
     /// <param name="record">Record coming through the pipeline</param>
-    protected abstract void ExecuteAsync(T record);
+    protected abstract Task ExecuteAsync(T record, CancellationToken cancellationToken);
 
     /// <summary>
     /// Method to provide an opportunity for the destination to initialize

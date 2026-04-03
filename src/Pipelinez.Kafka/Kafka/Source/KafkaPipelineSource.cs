@@ -15,8 +15,8 @@ public class KafkaPipelineSource<T, TRecordKey, TRecordValue> : PipelineSourceBa
 {
     private readonly string _pipelineName;
     private readonly KafkaSourceOptions _options;
-    private readonly Func<TRecordKey, TRecordValue, T> _recordMapper;// The Kafka Consumer
-    private IKafkaConsumer<TRecordKey, TRecordValue> _consumer;
+    private readonly Func<TRecordKey, TRecordValue, T> _recordMapper; // Maps Kafka key/value into a pipeline record.
+    private IKafkaConsumer<TRecordKey, TRecordValue>? _consumer;
     private readonly ILogger<KafkaPipelineSource<T, TRecordKey, TRecordValue>> _logger;
     
     public KafkaPipelineSource(string pipelineName, KafkaSourceOptions options, 
@@ -40,17 +40,17 @@ public class KafkaPipelineSource<T, TRecordKey, TRecordValue> : PipelineSourceBa
         
         await Task.Run(async () =>
         {
-            _consumer.Subscribe(_options.TopicName);
+            Consumer.Subscribe(_options.TopicName);
             _logger.LogInformation("KafkaPipelineSource Consumer subscribed to topic [{Topic}]", _options.TopicName);
             
             while (!cancellationToken.IsCancellationRequested && Completion.IsCompleted == false)
             {
-                var consumeResult = new ConsumeResult<TRecordKey, TRecordValue>();
+                ConsumeResult<TRecordKey, TRecordValue>? consumeResult;
                 
                 try
                 {
-                    _logger.LogTrace("Consume Heartbeat: Name[{@Name}], Sub[{@Subscription}], Id[{@MemberId}]", _consumer.Name, _consumer.Subscription, _consumer.MemberId);
-                    consumeResult = _consumer.Consume(TimeSpan.FromSeconds(5));
+                    _logger.LogTrace("Consume Heartbeat: Name[{@Name}], Sub[{@Subscription}], Id[{@MemberId}]", Consumer.Name, Consumer.Subscription, Consumer.MemberId);
+                    consumeResult = Consumer.Consume(TimeSpan.FromSeconds(5));
                 }
                 catch (ConsumeException exception)
                 {
@@ -80,7 +80,7 @@ public class KafkaPipelineSource<T, TRecordKey, TRecordValue> : PipelineSourceBa
                 
                     // Note: that if the time spent in this section exceeds the max.poll.timeout
                     // this consumer will get removed from the group and a rebalance will occur
-                    await PublishAsync(record, consumeResult.TopicPartitionOffset.ExtractMetadata());
+                    await PublishAsync(record, consumeResult.TopicPartitionOffset.ExtractMetadata()).ConfigureAwait(false);
                 }
                 catch (Exception e)
                 {
@@ -103,32 +103,41 @@ public class KafkaPipelineSource<T, TRecordKey, TRecordValue> : PipelineSourceBa
     
     public override void OnPipelineContainerComplete(object sender, PipelineContainerCompletedEventHandlerArgs<PipelineContainer<T>> e)
     {
-        // If we don't have the data to commit the transaction, then we must do nothing
-        if (e.Container.Metadata.HasKey(KafkaMetadataKeys.SOURCE_TOPIC_NAME) &&
-            e.Container.Metadata.HasKey(KafkaMetadataKeys.SOURCE_PARTITION) &&
-            e.Container.Metadata.HasKey(KafkaMetadataKeys.SOURCE_OFFSET))
-
+        var topicPartitionOffset = TryGetSourceTopicPartitionOffset(e.Container.Metadata);
+        if (topicPartitionOffset is null)
         {
-            // TODO: add better support for exception handling in null cases
-            string topicName = e.Container.Metadata.GetByKey(KafkaMetadataKeys.SOURCE_TOPIC_NAME)?.Value;
-            long offset = long.Parse(e.Container.Metadata.GetByKey(KafkaMetadataKeys.SOURCE_OFFSET)?.Value);
-            int partition = int.Parse(e.Container.Metadata.GetByKey(KafkaMetadataKeys.SOURCE_PARTITION)?.Value);
-
-
-            var topicPartition = new TopicPartition(topicName, new Partition(partition));
-            var topicPartitionOffset = new TopicPartitionOffset(topicPartition, new Offset(offset) + 1); // increment
-            
-            // Store the offset
-            _consumer.StoreOffset(topicPartitionOffset);
-            OffsetTracker[topicPartitionOffset.Partition.Value] = topicPartitionOffset.Offset.Value;
-            
-            if (++OffsetStored % OffsetsStoredReportInterval == 0)
-            {
-                _logger.LogInformation("{OffsetStored} records successfully processed and corresponding offsets committed", OffsetStored);
-                var offsetReport = OffsetTracker.Aggregate("", (current, kv) => 
-                    current + $"partition:{kv.Key}->offset[{kv.Value}], ");
-                _logger.LogInformation("{Report}", offsetReport.TrimEnd(',', ' '));
-            }
+            return;
         }
+
+        Consumer.StoreOffset(topicPartitionOffset);
+        OffsetTracker[topicPartitionOffset.Partition.Value] = topicPartitionOffset.Offset.Value;
+        
+        if (++OffsetStored % OffsetsStoredReportInterval == 0)
+        {
+            _logger.LogInformation("{OffsetStored} records successfully processed and corresponding offsets committed", OffsetStored);
+            var offsetReport = OffsetTracker.Aggregate("", (current, kv) => 
+                current + $"partition:{kv.Key}->offset[{kv.Value}], ");
+            _logger.LogInformation("{Report}", offsetReport.TrimEnd(',', ' '));
+        }
+    }
+
+    private IKafkaConsumer<TRecordKey, TRecordValue> Consumer =>
+        _consumer ?? throw new InvalidOperationException("Kafka consumer has not been initialized.");
+
+    private static TopicPartitionOffset? TryGetSourceTopicPartitionOffset(MetadataCollection metadata)
+    {
+        var topicName = metadata.GetByKey(KafkaMetadataKeys.SOURCE_TOPIC_NAME)?.Value;
+        var partitionValue = metadata.GetByKey(KafkaMetadataKeys.SOURCE_PARTITION)?.Value;
+        var offsetValue = metadata.GetByKey(KafkaMetadataKeys.SOURCE_OFFSET)?.Value;
+
+        if (string.IsNullOrWhiteSpace(topicName) ||
+            !int.TryParse(partitionValue, out var partition) ||
+            !long.TryParse(offsetValue, out var offset))
+        {
+            return null;
+        }
+
+        var topicPartition = new TopicPartition(topicName, new Partition(partition));
+        return new TopicPartitionOffset(topicPartition, new Offset(offset) + 1);
     }
 }

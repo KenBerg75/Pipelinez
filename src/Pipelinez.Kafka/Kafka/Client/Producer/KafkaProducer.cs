@@ -12,8 +12,8 @@ public class KafkaProducer<TRecordKey, TRecordValue> : IKafkaProducer<TRecordKey
 {
     private readonly KafkaDestinationOptions _options;
     private readonly string _pipelineName;
-    private IProducer<TRecordKey, TRecordValue> _producer;
-    private ILogger<KafkaProducer<TRecordKey, TRecordValue>> _logger;
+    private IProducer<TRecordKey, TRecordValue>? _producer;
+    private readonly ILogger<KafkaProducer<TRecordKey, TRecordValue>> _logger;
     
     public KafkaProducer(string pipelineName, KafkaDestinationOptions options)
     {
@@ -37,17 +37,7 @@ public class KafkaProducer<TRecordKey, TRecordValue> : IKafkaProducer<TRecordKey
 
     private void InitializeProducer()
     {
-        var finalConfig = new ProducerConfig()
-        {
-            BootstrapServers = _options.BootstrapServers,
-            SaslUsername = _options.BootstrapUser,
-            SaslPassword = _options.BootstrapPassword,
-            SaslMechanism = SaslMechanism.Plain, 
-            SecurityProtocol = SecurityProtocol.SaslSsl,
-            ClientId = $"{_pipelineName}-pub",
-            Partitioner = Partitioner.Murmur2Random
-        };
-        
+        var finalConfig = _options.ToProducerConfig(_pipelineName);
         var builder = new ProducerBuilder<TRecordKey, TRecordValue>(finalConfig);
         builder = SetProducerSerializers(builder, _options.Schema);
         builder = SetProducerHandlers(builder);
@@ -64,8 +54,13 @@ public class KafkaProducer<TRecordKey, TRecordValue> : IKafkaProducer<TRecordKey
     /// <typeparam name="TValue">Type for the Value</typeparam>
     /// <returns></returns>
     private static ProducerBuilder<TRecordKey, TRecordValue> SetProducerSerializers(ProducerBuilder<TRecordKey, TRecordValue> builder,
-        KafkaSchemaRegistryOptions options)
+        KafkaSchemaRegistryOptions? options)
     {
+        if (options is null)
+        {
+            return builder;
+        }
+
         var keySerializationType = options.GetKeySerializationType();
         var valueSerializationType = options.GetValueSerializationType();
         
@@ -117,10 +112,12 @@ public class KafkaProducer<TRecordKey, TRecordValue> : IKafkaProducer<TRecordKey
 
     #region IKafkaProducer
     
-    public void Produce(string topicName, Message<TRecordKey, TRecordValue> message, 
-        Action<DeliveryReport<TRecordKey, TRecordValue>> deliveryHandler)
+    public Task<DeliveryResult<TRecordKey, TRecordValue>> ProduceAsync(
+        string topicName,
+        Message<TRecordKey, TRecordValue> message,
+        CancellationToken cancellationToken)
     {
-        _producer.Produce(topicName, message, deliveryHandler);
+        return Producer.ProduceAsync(topicName, message, cancellationToken);
     }
     
     #endregion
@@ -132,6 +129,9 @@ public class KafkaProducer<TRecordKey, TRecordValue> : IKafkaProducer<TRecordKey
         producerBuilder.SetErrorHandler((_, e) => _logger.LogError("Produce Error: {Reason}", e.Reason)); // TODO: Revisit
         return producerBuilder;
     }
+
+    private IProducer<TRecordKey, TRecordValue> Producer =>
+        _producer ?? throw new InvalidOperationException("Kafka producer has not been initialized.");
     
     #endregion
 }

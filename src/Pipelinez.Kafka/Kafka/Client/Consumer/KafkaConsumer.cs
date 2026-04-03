@@ -13,7 +13,7 @@ internal class KafkaConsumer<TMessageKey, TMessageValue> : IKafkaConsumer<TMessa
 {
     private readonly KafkaSourceOptions _options;
     private readonly string _pipelineName;
-    private IConsumer<TMessageKey, TMessageValue> _consumer;
+    private IConsumer<TMessageKey, TMessageValue>? _consumer;
     private readonly ILogger<KafkaConsumer<TMessageKey, TMessageValue>> _logger;
 
     internal KafkaConsumer(string pipelineName, KafkaSourceOptions kafkaSourceOptions)
@@ -88,6 +88,11 @@ internal class KafkaConsumer<TMessageKey, TMessageValue> : IKafkaConsumer<TMessa
         ConsumerBuilder<TKey, TValue> builder,
         KafkaSchemaRegistryOptions? options) where TKey : class where TValue : class
     {
+        if (options is null)
+        {
+            return builder;
+        }
+
         var keyDeserializationType = options.GetKeyDeserializationType();
         var valueDeserializationType = options.GetValueDeserializationType();
 
@@ -143,33 +148,36 @@ internal class KafkaConsumer<TMessageKey, TMessageValue> : IKafkaConsumer<TMessa
 
     public string Name
     {
-        get { return _consumer.Name; }
+        get { return Consumer.Name; }
     }
 
     public List<string> Subscription 
     {
-        get { return _consumer.Subscription; }
+        get { return Consumer.Subscription; }
     }
     public string MemberId 
     {
-        get { return _consumer.MemberId; }
+        get { return Consumer.MemberId; }
     }
 
     public void Subscribe(string topicName)
     {
-        _consumer.Subscribe(topicName);
+        Consumer.Subscribe(topicName);
     }
 
     public ConsumeResult<TMessageKey, TMessageValue> Consume(TimeSpan timeout)
     {
-        return _consumer.Consume(timeout);
+        return Consumer.Consume(timeout);
     }
 
     public void StoreOffset(TopicPartitionOffset topicPartitionOffset)
     {
-        _consumer.StoreOffset(topicPartitionOffset);
+        Consumer.StoreOffset(topicPartitionOffset);
     }
 
     #endregion
+
+    private IConsumer<TMessageKey, TMessageValue> Consumer =>
+        _consumer ?? throw new InvalidOperationException("Kafka consumer has not been initialized.");
 
 }
