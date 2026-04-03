@@ -10,5 +10,11 @@ internal interface IPipelinePerformanceCollector
 
     void RecordComponentExecution(string componentName, TimeSpan duration, bool succeeded);
 
+    void RecordRetryAttempt();
+
+    void RecordRetryRecovery();
+
+    void RecordRetryExhausted();
+
     PipelinePerformanceSnapshot CreateSnapshot();
 }

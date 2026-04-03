@@ -6,6 +6,7 @@ using Pipelinez.Core.ErrorHandling;
 using Pipelinez.Core.Logging;
 using Pipelinez.Core.Performance;
 using Pipelinez.Core.Record;
+using Pipelinez.Core.Retry;
 using Pipelinez.Core.Segment;
 using Pipelinez.Core.Source;
 
@@ -16,7 +17,8 @@ public class PipelineBuilder<T>(string pipelineName)
 {
     private sealed record PipelineSegmentRegistration(
         IPipelineSegment<T> Segment,
-        PipelineExecutionOptions? ExecutionOptions);
+        PipelineExecutionOptions? ExecutionOptions,
+        PipelineRetryPolicy<T>? RetryPolicy);
 
     public string PipelineName { get; } = Guard.Against.NullOrWhiteSpace(pipelineName, nameof(pipelineName));
 
@@ -27,9 +29,11 @@ public class PipelineBuilder<T>(string pipelineName)
     private readonly IList<PipelineSegmentRegistration> _segments = new List<PipelineSegmentRegistration>();
     private IPipelineDestination<T>? _destination;
     private PipelineExecutionOptions? _destinationExecutionOptions;
+    private PipelineRetryPolicy<T>? _destinationRetryPolicy;
     private PipelineErrorHandler<T>? _errorHandler;
     private PipelineHostOptions _hostOptions = new();
     private PipelinePerformanceOptions _performanceOptions = new();
+    private PipelineRetryOptions<T> _retryOptions = new();
 
     #endregion
 
@@ -62,6 +66,7 @@ public class PipelineBuilder<T>(string pipelineName)
     {
         _segments.Add(new PipelineSegmentRegistration(
             Guard.Against.Null(segment, nameof(segment)),
+            null,
             null));
         return this;
     }
@@ -73,7 +78,33 @@ public class PipelineBuilder<T>(string pipelineName)
     {
         _segments.Add(new PipelineSegmentRegistration(
             Guard.Against.Null(segment, nameof(segment)),
-            Guard.Against.Null(executionOptions, nameof(executionOptions)).Validate()));
+            Guard.Against.Null(executionOptions, nameof(executionOptions)).Validate(),
+            null));
+        return this;
+    }
+
+    public PipelineBuilder<T> AddSegment(
+        IPipelineSegment<T> segment,
+        object config,
+        PipelineRetryPolicy<T> retryPolicy)
+    {
+        _segments.Add(new PipelineSegmentRegistration(
+            Guard.Against.Null(segment, nameof(segment)),
+            null,
+            Guard.Against.Null(retryPolicy, nameof(retryPolicy))));
+        return this;
+    }
+
+    public PipelineBuilder<T> AddSegment(
+        IPipelineSegment<T> segment,
+        object config,
+        PipelineExecutionOptions executionOptions,
+        PipelineRetryPolicy<T> retryPolicy)
+    {
+        _segments.Add(new PipelineSegmentRegistration(
+            Guard.Against.Null(segment, nameof(segment)),
+            Guard.Against.Null(executionOptions, nameof(executionOptions)).Validate(),
+            Guard.Against.Null(retryPolicy, nameof(retryPolicy))));
         return this;
     }
 
@@ -85,6 +116,7 @@ public class PipelineBuilder<T>(string pipelineName)
     {
         _destination = Guard.Against.Null(destination, nameof(destination));
         _destinationExecutionOptions = null;
+        _destinationRetryPolicy = null;
         return this;
     }
 
@@ -92,6 +124,26 @@ public class PipelineBuilder<T>(string pipelineName)
     {
         _destination = Guard.Against.Null(destination, nameof(destination));
         _destinationExecutionOptions = Guard.Against.Null(executionOptions, nameof(executionOptions)).Validate();
+        _destinationRetryPolicy = null;
+        return this;
+    }
+
+    public PipelineBuilder<T> WithDestination(IPipelineDestination<T> destination, PipelineRetryPolicy<T> retryPolicy)
+    {
+        _destination = Guard.Against.Null(destination, nameof(destination));
+        _destinationExecutionOptions = null;
+        _destinationRetryPolicy = Guard.Against.Null(retryPolicy, nameof(retryPolicy));
+        return this;
+    }
+
+    public PipelineBuilder<T> WithDestination(
+        IPipelineDestination<T> destination,
+        PipelineExecutionOptions executionOptions,
+        PipelineRetryPolicy<T> retryPolicy)
+    {
+        _destination = Guard.Against.Null(destination, nameof(destination));
+        _destinationExecutionOptions = Guard.Against.Null(executionOptions, nameof(executionOptions)).Validate();
+        _destinationRetryPolicy = Guard.Against.Null(retryPolicy, nameof(retryPolicy));
         return this;
     }
 
@@ -127,6 +179,16 @@ public class PipelineBuilder<T>(string pipelineName)
     public PipelineBuilder<T> UsePerformanceOptions(PipelinePerformanceOptions options)
     {
         _performanceOptions = Guard.Against.Null(options, nameof(options)).Validate();
+        return this;
+    }
+
+    #endregion
+
+    #region Retry
+
+    public PipelineBuilder<T> UseRetryOptions(PipelineRetryOptions<T> options)
+    {
+        _retryOptions = Guard.Against.Null(options, nameof(options));
         return this;
     }
 
@@ -183,6 +245,10 @@ public class PipelineBuilder<T>(string pipelineName)
                 "segment",
                 registration.Segment,
                 registration.ExecutionOptions ?? _performanceOptions.DefaultSegmentExecution);
+            ApplyRetryOptions(
+                "segment",
+                registration.Segment,
+                registration.RetryPolicy ?? _retryOptions.DefaultSegmentPolicy);
             ApplyPerformanceCollector(
                 registration.Segment,
                 performanceCollector,
@@ -193,6 +259,10 @@ public class PipelineBuilder<T>(string pipelineName)
             "destination",
             _destination,
             _destinationExecutionOptions ?? _performanceOptions.DestinationExecution);
+        ApplyRetryOptions(
+            "destination",
+            _destination,
+            _destinationRetryPolicy ?? _retryOptions.DestinationPolicy);
         ApplyBatchingOptions(_destination, _performanceOptions.DestinationBatching);
         ApplyPerformanceCollector(
             _destination,
@@ -206,7 +276,8 @@ public class PipelineBuilder<T>(string pipelineName)
             _segments.Select(registration => registration.Segment).ToList(),
             _errorHandler,
             _hostOptions,
-            performanceCollector);
+            performanceCollector,
+            _retryOptions.EmitRetryEvents);
         pipeline.LinkPipeline();
         pipeline.InitializePipeline();
         return pipeline;
@@ -236,6 +307,26 @@ public class PipelineBuilder<T>(string pipelineName)
         {
             performanceAware.ConfigurePerformanceCollector(performanceCollector, componentName);
         }
+    }
+
+    private static void ApplyRetryOptions<TComponent>(
+        string componentRole,
+        TComponent component,
+        PipelineRetryPolicy<T>? retryPolicy)
+    {
+        if (retryPolicy is null)
+        {
+            return;
+        }
+
+        if (component is IPipelineRetryConfigurable<T> configurable)
+        {
+            configurable.ConfigureRetryPolicy(retryPolicy);
+            return;
+        }
+
+        throw new InvalidOperationException(
+            $"Pipeline {componentRole} '{component?.GetType().Name}' does not support retry policies.");
     }
 
     private static void ApplyBatchingOptions<TComponent>(

@@ -9,10 +9,11 @@ using Pipelinez.Core.FaultHandling;
 using Pipelinez.Core.Logging;
 using Pipelinez.Core.Performance;
 using Pipelinez.Core.Record;
+using Pipelinez.Core.Retry;
 
 namespace Pipelinez.Core.Destination;
 
-public abstract class PipelineDestination<T> : IPipelineDestination<T>, IPipelineExecutionConfigurable, IPipelinePerformanceAware, IPipelineBatchingAware
+public abstract class PipelineDestination<T> : IPipelineDestination<T>, IPipelineExecutionConfigurable, IPipelinePerformanceAware, IPipelineBatchingAware, IPipelineRetryConfigurable<T>
     where T : PipelineRecord
 {
     private BufferBlock<PipelineContainer<T>>? _messageBuffer;
@@ -21,6 +22,7 @@ public abstract class PipelineDestination<T> : IPipelineDestination<T>, IPipelin
     private Pipeline<T>? _parentPipeline;
     private PipelineExecutionOptions _executionOptions = PipelineExecutionOptions.CreateDefaultDestinationOptions();
     private PipelineBatchingOptions? _batchingOptions;
+    private PipelineRetryPolicy<T>? _retryPolicy;
     private IPipelinePerformanceCollector? _performanceCollector;
     private string _componentName = "Destination";
 
@@ -73,6 +75,17 @@ public abstract class PipelineDestination<T> : IPipelineDestination<T>, IPipelin
     public PipelineExecutionOptions GetExecutionOptions()
     {
         return _executionOptions;
+    }
+
+    public void ConfigureRetryPolicy(PipelineRetryPolicy<T>? retryPolicy)
+    {
+        EnsureExecutionOptionsCanBeChanged();
+        _retryPolicy = retryPolicy;
+    }
+
+    public PipelineRetryPolicy<T>? GetRetryPolicy()
+    {
+        return _retryPolicy;
     }
 
     void IPipelinePerformanceAware.ConfigurePerformanceCollector(
@@ -221,14 +234,39 @@ public abstract class PipelineDestination<T> : IPipelineDestination<T>, IPipelin
     {
         if (sourceRecord.HasFault)
         {
-            return await HandleFaultedContainerAsync(sourceRecord).ConfigureAwait(false);
+            return await HandleFaultedContainerAsync(sourceRecord, throwOnStopPipeline: true).ConfigureAwait(false);
         }
 
         var stopwatch = Stopwatch.StartNew();
 
         try
         {
-            await ExecuteAsync(sourceRecord.Record, cancellationToken).ConfigureAwait(false);
+            await PipelineRetryExecutor.ExecuteAsync(
+                    sourceRecord,
+                    _retryPolicy,
+                    GetType().Name,
+                    PipelineComponentKind.Destination,
+                    () => ParentPipeline.GetRuntimeCancellationToken(),
+                    async (retryAttempt, exception) =>
+                    {
+                        sourceRecord.AddRetryAttempt(retryAttempt);
+                        await ParentPipeline.NotifyRecordRetryingAsync(
+                            sourceRecord,
+                            retryAttempt,
+                            _retryPolicy?.MaxAttempts ?? 1,
+                            exception).ConfigureAwait(false);
+                    },
+                    () =>
+                    {
+                        ParentPipeline.NotifyRetryRecovered();
+                        return Task.CompletedTask;
+                    },
+                    async token =>
+                    {
+                        await ExecuteAsync(sourceRecord.Record, token).ConfigureAwait(false);
+                        return sourceRecord;
+                    })
+                .ConfigureAwait(false);
             stopwatch.Stop();
             _performanceCollector?.RecordComponentExecution(_componentName, stopwatch.Elapsed, succeeded: true);
 
@@ -262,7 +300,35 @@ public abstract class PipelineDestination<T> : IPipelineDestination<T>, IPipelin
 
         try
         {
-            await batchedDestination.ExecuteBatchAsync(batch, cancellationToken).ConfigureAwait(false);
+            await PipelineRetryExecutor.ExecuteAsync(
+                    batch[0],
+                    _retryPolicy,
+                    GetType().Name,
+                    PipelineComponentKind.Destination,
+                    () => ParentPipeline.GetRuntimeCancellationToken(),
+                    async (retryAttempt, exception) =>
+                    {
+                        foreach (var container in batch)
+                        {
+                            container.AddRetryAttempt(retryAttempt);
+                            await ParentPipeline.NotifyRecordRetryingAsync(
+                                container,
+                                retryAttempt,
+                                _retryPolicy?.MaxAttempts ?? 1,
+                                exception).ConfigureAwait(false);
+                        }
+                    },
+                    () =>
+                    {
+                        ParentPipeline.NotifyRetryRecovered();
+                        return Task.CompletedTask;
+                    },
+                    async token =>
+                    {
+                        await batchedDestination.ExecuteBatchAsync(batch, token).ConfigureAwait(false);
+                        return true;
+                    })
+                .ConfigureAwait(false);
             stopwatch.Stop();
 
             var durationPerRecord = GetPerRecordDuration(stopwatch.Elapsed, batch.Count);
@@ -292,7 +358,7 @@ public abstract class PipelineDestination<T> : IPipelineDestination<T>, IPipelin
                     DateTimeOffset.UtcNow,
                     e.Message));
 
-                if (!await HandleFaultedContainerAsync(container).ConfigureAwait(false))
+                if (!await HandleFaultedContainerAsync(container, throwOnStopPipeline: true).ConfigureAwait(false))
                 {
                     return false;
                 }
@@ -302,7 +368,9 @@ public abstract class PipelineDestination<T> : IPipelineDestination<T>, IPipelin
         }
     }
 
-    private async Task<bool> HandleFaultedContainerAsync(PipelineContainer<T> sourceRecord)
+    private async Task<bool> HandleFaultedContainerAsync(
+        PipelineContainer<T> sourceRecord,
+        bool throwOnStopPipeline = false)
     {
         var action = await ParentPipeline.HandleFaultedContainerAsync(sourceRecord).ConfigureAwait(false);
 
@@ -312,6 +380,11 @@ public abstract class PipelineDestination<T> : IPipelineDestination<T>, IPipelin
         }
 
         if (action == PipelineErrorAction.Rethrow)
+        {
+            ExceptionDispatchInfo.Capture(sourceRecord.Fault!.Exception).Throw();
+        }
+
+        if (throwOnStopPipeline)
         {
             ExceptionDispatchInfo.Capture(sourceRecord.Fault!.Exception).Throw();
         }

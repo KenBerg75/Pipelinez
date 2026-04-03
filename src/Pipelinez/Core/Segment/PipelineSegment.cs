@@ -7,13 +7,16 @@ using Pipelinez.Core.Flow;
 using Pipelinez.Core.Logging;
 using Pipelinez.Core.Performance;
 using Pipelinez.Core.Record;
+using Pipelinez.Core.Retry;
 
 namespace Pipelinez.Core.Segment;
 
-public abstract class PipelineSegment<T> : IPipelineSegment<T>, IPipelineExecutionConfigurable, IPipelinePerformanceAware where T : PipelineRecord
+public abstract class PipelineSegment<T> : IPipelineSegment<T>, IPipelineExecutionConfigurable, IPipelinePerformanceAware, IPipelineRetryConfigurable<T> where T : PipelineRecord
 {
     private TransformBlock<PipelineContainer<T>, PipelineContainer<T>>? _transformBlock;
+    private Pipeline<T>? _parentPipeline;
     private PipelineExecutionOptions _executionOptions = PipelineExecutionOptions.CreateDefaultSegmentOptions();
+    private PipelineRetryPolicy<T>? _retryPolicy;
     private IPipelinePerformanceCollector? _performanceCollector;
     private string _componentName = "Segment";
 
@@ -93,9 +96,29 @@ public abstract class PipelineSegment<T> : IPipelineSegment<T>, IPipelineExecuti
         try
         {
             Logger.LogTrace("Executing Segment");
-            
-            // Execute the worker method
-            var finalResult = await transformMethod(arg.Record).ConfigureAwait(false);
+
+            var finalResult = await PipelineRetryExecutor.ExecuteAsync(
+                    arg,
+                    _retryPolicy,
+                    segmentName,
+                    PipelineComponentKind.Segment,
+                    () => ParentPipeline.GetRuntimeCancellationToken(),
+                    async (retryAttempt, exception) =>
+                    {
+                        arg.AddRetryAttempt(retryAttempt);
+                        await ParentPipeline.NotifyRecordRetryingAsync(
+                            arg,
+                            retryAttempt,
+                            _retryPolicy?.MaxAttempts ?? 1,
+                            exception).ConfigureAwait(false);
+                    },
+                    () =>
+                    {
+                        ParentPipeline.NotifyRetryRecovered();
+                        return Task.CompletedTask;
+                    },
+                    _ => transformMethod(arg.Record))
+                .ConfigureAwait(false);
 
             if (finalResult is null)
             {
@@ -161,6 +184,17 @@ public abstract class PipelineSegment<T> : IPipelineSegment<T>, IPipelineExecuti
         return _executionOptions;
     }
 
+    public void ConfigureRetryPolicy(PipelineRetryPolicy<T>? retryPolicy)
+    {
+        EnsureExecutionOptionsCanBeChanged();
+        _retryPolicy = retryPolicy;
+    }
+
+    public PipelineRetryPolicy<T>? GetRetryPolicy()
+    {
+        return _retryPolicy;
+    }
+
     void IPipelinePerformanceAware.ConfigurePerformanceCollector(
         IPipelinePerformanceCollector performanceCollector,
         string componentName)
@@ -190,4 +224,12 @@ public abstract class PipelineSegment<T> : IPipelineSegment<T>, IPipelineExecuti
                 $"Execution options for segment '{GetType().Name}' must be configured before the segment is linked or used.");
         }
     }
+
+    internal void Initialize(Pipeline<T> parentPipeline)
+    {
+        _parentPipeline = Guard.Against.Null(parentPipeline, nameof(parentPipeline));
+    }
+
+    private Pipeline<T> ParentPipeline =>
+        _parentPipeline ?? throw new InvalidOperationException("Pipeline segment has not been initialized.");
 }

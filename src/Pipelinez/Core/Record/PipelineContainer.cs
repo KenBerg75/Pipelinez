@@ -1,6 +1,7 @@
 using Ardalis.GuardClauses;
 using Pipelinez.Core.FaultHandling;
 using Pipelinez.Core.Record.Metadata;
+using Pipelinez.Core.Retry;
 
 namespace Pipelinez.Core.Record;
 
@@ -32,6 +33,8 @@ public sealed class PipelineContainer<T> where T : PipelineRecord
 
     public IList<PipelineSegmentExecution> SegmentHistory { get; } = new List<PipelineSegmentExecution>();
 
+    public IList<PipelineRetryAttempt> RetryHistory { get; } = new List<PipelineRetryAttempt>();
+
     public void MarkFaulted(PipelineFaultState fault)
     {
         Fault ??= Guard.Against.Null(fault, nameof(fault));
@@ -40,5 +43,10 @@ public sealed class PipelineContainer<T> where T : PipelineRecord
     public void AddSegmentExecution(PipelineSegmentExecution segmentExecution)
     {
         SegmentHistory.Add(Guard.Against.Null(segmentExecution, nameof(segmentExecution)));
+    }
+
+    public void AddRetryAttempt(PipelineRetryAttempt retryAttempt)
+    {
+        RetryHistory.Add(Guard.Against.Null(retryAttempt, nameof(retryAttempt)));
     }
 }

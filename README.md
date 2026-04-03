@@ -8,6 +8,7 @@ Pipelinez is a small .NET 8 framework for building record-processing pipelines w
 - pluggable sources, segments, and destinations
 - async startup and completion
 - fault tracking and configurable error policies
+- configurable retry policies for segments and destinations
 - optional distributed execution for transport-backed sources
 - explicit performance tuning and runtime performance snapshots
 - transport extensions such as Kafka
@@ -33,6 +34,7 @@ Each record is wrapped in a `PipelineContainer<T>` so the framework can carry:
 - metadata
 - fault state
 - segment execution history
+- retry history
 
 ## Quick Example
 
@@ -194,6 +196,55 @@ Console.WriteLine(snapshot.RecordsPerSecond);
 
 Increasing parallelism or disabling ordering can improve throughput, but it can also change observable processing order. Those settings should be treated as explicit tradeoffs rather than passive defaults.
 
+## Retry Policies
+
+Pipelinez supports explicit retry policies for transient failures in segments and destinations.
+
+Retry configuration can be applied:
+
+- pipeline-wide through `UseRetryOptions(...)`
+- per segment through `AddSegment(..., retryPolicy)`
+- per destination through `WithDestination(..., retryPolicy)`
+
+Available policy styles include:
+
+- `PipelineRetryPolicy<T>.None()`
+- `PipelineRetryPolicy<T>.FixedDelay(...)`
+- `PipelineRetryPolicy<T>.ExponentialBackoff(...)`
+
+Example shape:
+
+```csharp
+using Pipelinez.Core.Retry;
+
+var pipeline = Pipeline<MyRecord>.New("orders")
+    .UseRetryOptions(new PipelineRetryOptions<MyRecord>
+    {
+        DefaultSegmentPolicy = PipelineRetryPolicy<MyRecord>
+            .ExponentialBackoff(
+                maxAttempts: 5,
+                initialDelay: TimeSpan.FromMilliseconds(100),
+                maxDelay: TimeSpan.FromSeconds(3),
+                useJitter: true)
+            .Handle<TimeoutException>(),
+        DestinationPolicy = PipelineRetryPolicy<MyRecord>.FixedDelay(
+            maxAttempts: 3,
+            delay: TimeSpan.FromSeconds(1))
+    })
+    .WithInMemorySource(new object())
+    .AddSegment(new MySegment(), new object())
+    .WithInMemoryDestination("config")
+    .Build();
+
+pipeline.OnPipelineRecordRetrying += (_, args) =>
+{
+    Console.WriteLine(
+        $"{args.ComponentName} retry {args.AttemptNumber}/{args.MaxAttempts} for {args.Record.Id}");
+};
+```
+
+Retry exhaustion flows into the existing `WithErrorHandler(...)` path, so consumers can still decide whether to skip, stop, or rethrow once the configured retry policy has been exhausted.
+
 ## Error Handling
 
 Pipelinez supports explicit fault handling through `WithErrorHandler(...)`.
@@ -209,6 +260,7 @@ Available actions:
 
 Public events include:
 
+- `OnPipelineRecordRetrying`
 - `OnPipelineRecordCompleted`
 - `OnPipelineRecordFaulted`
 - `OnPipelineFaulted`
@@ -274,6 +326,7 @@ Current implemented capabilities include:
 - fault-aware record containers
 - segment execution history
 - configurable error policies
+- configurable retry policies with retry events and retry history
 - async destination execution
 - distributed runtime mode and worker/partition observability
 - performance tuning options, batching support, and runtime performance snapshots
