@@ -49,6 +49,7 @@ The core builder currently supports:
 - `AddSegment(...)`
 - `WithDestination(...)`
 - `WithInMemoryDestination(...)`
+- `UseHostOptions(...)`
 - `UseLogger(...)`
 - `WithErrorHandler(...)`
 
@@ -58,6 +59,7 @@ Kafka integrates through extension methods in `Pipelinez.Kafka`, not through par
 - `WithKafkaDestination(...)`
 
 `Build()` validates that a source and destination exist, creates a `Pipeline<T>`, links all blocks, and initializes the source and destination.
+If distributed execution is requested, `Build()` also validates that the configured source implements the distributed source contract.
 
 ### Record Model
 
@@ -147,6 +149,78 @@ Important current semantics:
 - `Completed`
 - `Faulted`
 
+## Distributed Execution Model
+
+Pipelinez now has an explicit distributed execution model for transport-backed sources.
+
+### Host Options
+
+Distributed behavior is enabled through `UseHostOptions(...)` and `PipelineHostOptions`.
+
+Supported execution modes:
+
+- `SingleProcess`
+- `Distributed`
+
+The runtime resolves and stores:
+
+- `ExecutionMode`
+- `InstanceId`
+- `WorkerId`
+
+If a caller does not supply instance or worker identity, the runtime generates reasonable defaults so logs, status output, and event payloads still identify the active worker.
+
+### Runtime Context
+
+`Pipeline<T>.GetRuntimeContext()` returns a `PipelineRuntimeContext` containing:
+
+- pipeline name
+- execution mode
+- instance ID
+- worker ID
+- currently owned transport partitions or leases
+
+This gives host applications a simple way to understand what the current worker owns without having to parse transport-specific client objects.
+
+### Distributed Source Contract
+
+Sources that support distributed ownership implement `IDistributedPipelineSource<T>`.
+
+The contract lets the core runtime:
+
+- validate distributed-mode compatibility at build time
+- surface current ownership through transport-agnostic `PipelinePartitionLease` objects
+- keep the core runtime free of Kafka-specific public types
+
+Kafka is the first source implementation that fully supports this model.
+
+### Distributed Events
+
+The public event surface now includes worker lifecycle and rebalance hooks:
+
+- `OnWorkerStarted`
+- `OnPartitionsAssigned`
+- `OnPartitionsRevoked`
+- `OnWorkerStopping`
+
+These events carry `PipelineRuntimeContext` and lease data so host applications can log worker startup, assignment changes, drain behavior, and shutdown explicitly.
+
+### Record-Level Distribution Context
+
+`OnPipelineRecordCompleted` and `OnPipelineRecordFaulted` now include `PipelineRecordDistributionContext`.
+
+For Kafka-backed distributed execution, that context includes:
+
+- instance ID
+- worker ID
+- transport name
+- lease ID
+- partition key
+- partition ID
+- offset
+
+This makes per-record ownership and replay diagnostics available directly to consumers without forcing them to inspect raw metadata collections.
+
 ## Fault Handling And Error Policies
 
 Fault handling is now a first-class part of the runtime.
@@ -211,6 +285,15 @@ Reported execution status is derived from task state and runtime fault state:
 - `Faulted`
 - `Unknown`
 
+`PipelineStatus` now also carries `DistributedStatus`, which includes:
+
+- execution mode
+- instance ID
+- worker ID
+- currently owned partitions or leases
+
+For distributed sources, this status reflects live ownership while the worker is active. For Kafka specifically, owned partitions are cleared on shutdown when the consumer leaves the group and revocation is observed.
+
 Logging is managed through the internal `LoggingManager`, which wraps an `ILoggerFactory`. If the caller never supplies a logger factory, the runtime falls back to a null logger factory.
 
 ## Kafka Integration
@@ -236,6 +319,9 @@ This keeps `PipelineBuilder<T>` owned by the core assembly and keeps Kafka-speci
 - maps Kafka key/value pairs into a pipeline record
 - copies Kafka headers into `PipelineRecord.Headers`
 - stores source topic, partition, and offset in container metadata
+- maps topic/partition ownership into `PipelinePartitionLease` values
+- reports partition assignment and revocation back into the core runtime
+- populates record-level distribution metadata for completed and faulted events
 
 When a record completes successfully, the source handles the internal container-completed event and stores the next Kafka offset.
 
@@ -245,6 +331,7 @@ Important consumer behavior:
 - `EnableAutoOffsetStore = false`
 
 So completion is tied to explicit offset storage rather than immediate consume-time storage.
+The Kafka consumer now relies on the broker's normal consumer-group offset behavior: committed offsets are resumed when they exist, while `StartOffsetFromBeginning` controls the `AutoOffsetReset` behavior for new groups without stored offsets.
 
 ### Kafka Destination
 
@@ -317,6 +404,9 @@ The solution now includes two test layers.
 - destination fault handling
 - record-fault and pipeline-fault event behavior
 - offset commit and replay behavior across pipeline runs
+- distributed worker startup, rebalance, and shutdown behavior across multiple pipeline instances
+- record-level worker and partition context on successful and faulted records
+- partition reassignment when one distributed worker leaves the consumer group
 
 At the time of this overview update, `dotnet test src\\Pipelinez.sln` passes with both the core and Kafka integration suites green.
 
@@ -332,6 +422,7 @@ The major architectural work called out in the earlier planning docs has been im
 - nullability cleanup in production code
 - Kafka split into a real `Pipelinez.Kafka` assembly
 - Docker-backed Kafka integration tests
+- explicit distributed execution mode with worker identity, partition ownership, and rebalance events
 
 The remaining work is mostly future evolution work rather than foundational cleanup. Likely areas include broader transport coverage, schema-registry integration tests, and further runtime ergonomics.
 

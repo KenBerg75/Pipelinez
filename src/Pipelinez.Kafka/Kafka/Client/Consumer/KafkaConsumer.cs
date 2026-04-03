@@ -47,11 +47,12 @@ internal class KafkaConsumer<TMessageKey, TMessageValue> : IKafkaConsumer<TMessa
         builder.SetPartitionsRevokedHandler((c, partitions) =>
             {
                 _logger.LogInformation("consumer {MemberId} had partitions {Partitions} revoked", c.MemberId, string.Join(",", partitions));
+                PartitionsRevoked?.Invoke(partitions.Select(partition => partition.TopicPartition).ToArray());
             })
             .SetPartitionsAssignedHandler((c, partitions) =>
             {
                 _logger.LogInformation("consumer {MemberId} had partitions {Partitions} assigned", c.MemberId, string.Join(",", partitions));
-                return partitions.Select(tp => new TopicPartitionOffset(tp, _options.StartOffsetFromBeginning ? Offset.Beginning : Offset.Stored));
+                PartitionsAssigned?.Invoke(partitions.ToArray());
             })
             .SetOffsetsCommittedHandler((c, committedOffsets) =>
             {
@@ -146,6 +147,10 @@ internal class KafkaConsumer<TMessageKey, TMessageValue> : IKafkaConsumer<TMessa
 
     #region IKafkaConsumer
 
+    public event Action<IReadOnlyList<TopicPartition>>? PartitionsAssigned;
+
+    public event Action<IReadOnlyList<TopicPartition>>? PartitionsRevoked;
+
     public string Name
     {
         get { return Consumer.Name; }
@@ -173,6 +178,11 @@ internal class KafkaConsumer<TMessageKey, TMessageValue> : IKafkaConsumer<TMessa
     public void StoreOffset(TopicPartitionOffset topicPartitionOffset)
     {
         Consumer.StoreOffset(topicPartitionOffset);
+    }
+
+    public void Close()
+    {
+        Consumer.Close();
     }
 
     #endregion

@@ -29,7 +29,9 @@ internal static class KafkaConfigurationExtensions
             ClientId = $"{pipelineName}-con",
             EnableAutoCommit = true,
             EnableAutoOffsetStore = false,
-            AutoOffsetReset = AutoOffsetReset.Earliest
+            AutoOffsetReset = options.StartOffsetFromBeginning
+                ? AutoOffsetReset.Earliest
+                : AutoOffsetReset.Latest
         };
 
         if (options.AutoCommitIntervalMs.HasValue)

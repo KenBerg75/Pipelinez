@@ -126,4 +126,7 @@ public abstract class PipelineSourceBase<T> : IPipelineSource<T> where T : Pipel
     protected abstract void Initialize();
     
     #endregion
+
+    protected Pipeline<T> ParentPipeline =>
+        _parentPipeline ?? throw new InvalidOperationException("Pipeline source has not been initialized.");
 }

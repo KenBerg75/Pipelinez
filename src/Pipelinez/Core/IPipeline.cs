@@ -1,3 +1,4 @@
+using Pipelinez.Core.Distributed;
 using Pipelinez.Core.Eventing;
 using Pipelinez.Core.Record;
 using Pipelinez.Core.Status;
@@ -29,6 +30,8 @@ public interface IPipeline<T> where T : PipelineRecord
     Task Completion { get; }
 
     PipelineStatus GetStatus();
+
+    PipelineRuntimeContext GetRuntimeContext();
     
     #region Eventing
     
@@ -46,6 +49,26 @@ public interface IPipeline<T> where T : PipelineRecord
     /// Event that is raised when the pipeline transitions into a faulted state.
     /// </summary>
     event PipelineFaultedEventHandler OnPipelineFaulted;
+
+    /// <summary>
+    /// Event that is raised when a distributed worker starts.
+    /// </summary>
+    event PipelineWorkerStartedEventHandler OnWorkerStarted;
+
+    /// <summary>
+    /// Event that is raised when partitions are assigned to the current worker.
+    /// </summary>
+    event PipelinePartitionsAssignedEventHandler OnPartitionsAssigned;
+
+    /// <summary>
+    /// Event that is raised when partitions are revoked from the current worker.
+    /// </summary>
+    event PipelinePartitionsRevokedEventHandler OnPartitionsRevoked;
+
+    /// <summary>
+    /// Event that is raised when a distributed worker is stopping.
+    /// </summary>
+    event PipelineWorkerStoppingEventHandler OnWorkerStopping;
 
     #endregion
 }

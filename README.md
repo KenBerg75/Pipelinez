@@ -8,6 +8,7 @@ Pipelinez is a small .NET 8 framework for building record-processing pipelines w
 - pluggable sources, segments, and destinations
 - async startup and completion
 - fault tracking and configurable error policies
+- optional distributed execution for transport-backed sources
 - transport extensions such as Kafka
 
 ## How It Works
@@ -118,6 +119,42 @@ The repo also includes:
 - a Kafka data generator in [`src/examples/Example.Kafka.DataGen`](src/examples/Example.Kafka.DataGen)
 - Docker-backed Kafka integration tests in [`src/tests/Pipelinez.Kafka.Tests`](src/tests/Pipelinez.Kafka.Tests)
 
+## Distributed Execution
+
+Pipelinez can run in `SingleProcess` mode or in explicit `Distributed` mode for distributed-capable sources such as Kafka.
+
+In distributed mode, the runtime surfaces:
+
+- worker identity through `PipelineHostOptions`
+- current owned partitions through `GetRuntimeContext()`
+- worker lifecycle and rebalance events
+- record-level distribution context on completion and fault events
+
+Example shape:
+
+```csharp
+using Pipelinez.Core.Distributed;
+
+var pipeline = Pipeline<MyRecord>.New("orders")
+    .UseHostOptions(new PipelineHostOptions
+    {
+        ExecutionMode = PipelineExecutionMode.Distributed,
+        InstanceId = Environment.MachineName,
+        WorkerId = $"orders-{Guid.NewGuid():N}"
+    })
+    .WithKafkaSource(...)
+    .WithKafkaDestination(...)
+    .Build();
+
+pipeline.OnPartitionsAssigned += (_, args) =>
+{
+    Console.WriteLine(
+        $"Worker {args.RuntimeContext.WorkerId} now owns {args.RuntimeContext.OwnedPartitions.Count} partitions.");
+};
+```
+
+Kafka-backed distributed execution is validated by multi-worker integration tests that scale workers in and out against a real Docker-hosted broker.
+
 ## Error Handling
 
 Pipelinez supports explicit fault handling through `WithErrorHandler(...)`.
@@ -136,6 +173,10 @@ Public events include:
 - `OnPipelineRecordCompleted`
 - `OnPipelineRecordFaulted`
 - `OnPipelineFaulted`
+- `OnWorkerStarted`
+- `OnPartitionsAssigned`
+- `OnPartitionsRevoked`
+- `OnWorkerStopping`
 
 ## Project Layout
 
@@ -187,8 +228,9 @@ Current implemented capabilities include:
 - segment execution history
 - configurable error policies
 - async destination execution
+- distributed runtime mode and worker/partition observability
 - Kafka source and destination support
-- Docker-backed Kafka integration coverage
+- Docker-backed Kafka integration coverage, including multi-worker distributed tests
 
 ## License
 
