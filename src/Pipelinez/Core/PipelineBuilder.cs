@@ -4,6 +4,7 @@ using Pipelinez.Core.Distributed;
 using Pipelinez.Core.Destination;
 using Pipelinez.Core.ErrorHandling;
 using Pipelinez.Core.Logging;
+using Pipelinez.Core.Performance;
 using Pipelinez.Core.Record;
 using Pipelinez.Core.Segment;
 using Pipelinez.Core.Source;
@@ -13,41 +14,69 @@ namespace Pipelinez.Core;
 public class PipelineBuilder<T>(string pipelineName)
     where T : PipelineRecord
 {
+    private sealed record PipelineSegmentRegistration(
+        IPipelineSegment<T> Segment,
+        PipelineExecutionOptions? ExecutionOptions);
+
     public string PipelineName { get; } = Guard.Against.NullOrWhiteSpace(pipelineName, nameof(pipelineName));
 
     #region Pipeline Components
 
     private IPipelineSource<T>? _source;
-    private IList<IPipelineSegment<T>> _segments = new List<IPipelineSegment<T>>();
+    private PipelineExecutionOptions? _sourceExecutionOptions;
+    private readonly IList<PipelineSegmentRegistration> _segments = new List<PipelineSegmentRegistration>();
     private IPipelineDestination<T>? _destination;
+    private PipelineExecutionOptions? _destinationExecutionOptions;
     private PipelineErrorHandler<T>? _errorHandler;
     private PipelineHostOptions _hostOptions = new();
-    
+    private PipelinePerformanceOptions _performanceOptions = new();
+
     #endregion
-    
+
     #region Sources
 
     public PipelineBuilder<T> WithSource(IPipelineSource<T> source)
     {
         _source = Guard.Against.Null(source, nameof(source));
+        _sourceExecutionOptions = null;
         return this;
     }
-    
+
+    public PipelineBuilder<T> WithSource(IPipelineSource<T> source, PipelineExecutionOptions executionOptions)
+    {
+        _source = Guard.Against.Null(source, nameof(source));
+        _sourceExecutionOptions = Guard.Against.Null(executionOptions, nameof(executionOptions)).Validate();
+        return this;
+    }
+
     public PipelineBuilder<T> WithInMemorySource(object config)
     {
         return WithSource(new InMemoryPipelineSource<T>());
     }
-    
+
     #endregion
 
     #region Segments
-    
-    public PipelineBuilder<T> AddSegment(IPipelineSegment<T> segment, object config) 
+
+    public PipelineBuilder<T> AddSegment(IPipelineSegment<T> segment, object config)
     {
-        _segments.Add(segment);
+        _segments.Add(new PipelineSegmentRegistration(
+            Guard.Against.Null(segment, nameof(segment)),
+            null));
         return this;
     }
-    
+
+    public PipelineBuilder<T> AddSegment(
+        IPipelineSegment<T> segment,
+        object config,
+        PipelineExecutionOptions executionOptions)
+    {
+        _segments.Add(new PipelineSegmentRegistration(
+            Guard.Against.Null(segment, nameof(segment)),
+            Guard.Against.Null(executionOptions, nameof(executionOptions)).Validate()));
+        return this;
+    }
+
     #endregion
 
     #region Destinations
@@ -55,24 +84,32 @@ public class PipelineBuilder<T>(string pipelineName)
     public PipelineBuilder<T> WithDestination(IPipelineDestination<T> destination)
     {
         _destination = Guard.Against.Null(destination, nameof(destination));
+        _destinationExecutionOptions = null;
         return this;
     }
-    
+
+    public PipelineBuilder<T> WithDestination(IPipelineDestination<T> destination, PipelineExecutionOptions executionOptions)
+    {
+        _destination = Guard.Against.Null(destination, nameof(destination));
+        _destinationExecutionOptions = Guard.Against.Null(executionOptions, nameof(executionOptions)).Validate();
+        return this;
+    }
+
     public PipelineBuilder<T> WithInMemoryDestination(string config)
     {
         return WithDestination(new InMemoryPipelineDestination<T>());
     }
-    
+
     #endregion
-    
+
     #region Logging
-    
+
     public PipelineBuilder<T> UseLogger(ILoggerFactory logFactory)
     {
         LoggingManager.Instance.AssignLogFactory(logFactory);
         return this;
     }
-    
+
     #endregion
 
     #region Hosting
@@ -84,9 +121,19 @@ public class PipelineBuilder<T>(string pipelineName)
     }
 
     #endregion
-    
+
+    #region Performance
+
+    public PipelineBuilder<T> UsePerformanceOptions(PipelinePerformanceOptions options)
+    {
+        _performanceOptions = Guard.Against.Null(options, nameof(options)).Validate();
+        return this;
+    }
+
+    #endregion
+
     #region Error Handling
-    
+
     public PipelineBuilder<T> WithErrorHandler(PipelineErrorHandler<T> errorHandler)
     {
         _errorHandler = Guard.Against.Null(errorHandler, nameof(errorHandler));
@@ -99,16 +146,15 @@ public class PipelineBuilder<T>(string pipelineName)
         _errorHandler = context => Task.FromResult(errorHandler(context));
         return this;
     }
-    
+
     #endregion
-    
+
     #region Build
 
     public IPipeline<T> Build()
     {
-        // Validate that we have at least a source and destination
-        Guard.Against.Null(this._source, message: "Pipeline must have a source defined before it is built");
-        Guard.Against.Null(this._destination, message: "Pipeline must have a destination defined before it is built");
+        Guard.Against.Null(_source, message: "Pipeline must have a source defined before it is built");
+        Guard.Against.Null(_destination, message: "Pipeline must have a destination defined before it is built");
 
         if (_hostOptions.ExecutionMode == PipelineExecutionMode.Distributed)
         {
@@ -118,17 +164,100 @@ public class PipelineBuilder<T>(string pipelineName)
                     $"Pipeline '{PipelineName}' is configured for distributed execution, but source '{_source.GetType().Name}' does not support distributed ownership.");
             }
         }
-        
-        // Create a 'Pipeline' object passing all components and linking them
-        // i.e. build the pipeline by linking source->segments->destination
-        var pipeline = new Pipeline<T>(pipelineName, this._source, this._destination, this._segments, _errorHandler, _hostOptions);
+
+        var performanceCollector = new PipelinePerformanceCollector(_performanceOptions.Metrics);
+
+        ApplyExecutionOptions(
+            "source",
+            _source,
+            _sourceExecutionOptions ?? _performanceOptions.SourceExecution);
+        ApplyPerformanceCollector(
+            _source,
+            performanceCollector,
+            $"Source:{_source.GetType().Name}");
+
+        for (var i = 0; i < _segments.Count; i++)
+        {
+            var registration = _segments[i];
+            ApplyExecutionOptions(
+                "segment",
+                registration.Segment,
+                registration.ExecutionOptions ?? _performanceOptions.DefaultSegmentExecution);
+            ApplyPerformanceCollector(
+                registration.Segment,
+                performanceCollector,
+                $"Segment[{i}]:{registration.Segment.GetType().Name}");
+        }
+
+        ApplyExecutionOptions(
+            "destination",
+            _destination,
+            _destinationExecutionOptions ?? _performanceOptions.DestinationExecution);
+        ApplyBatchingOptions(_destination, _performanceOptions.DestinationBatching);
+        ApplyPerformanceCollector(
+            _destination,
+            performanceCollector,
+            $"Destination:{_destination.GetType().Name}");
+
+        var pipeline = new Pipeline<T>(
+            pipelineName,
+            _source,
+            _destination,
+            _segments.Select(registration => registration.Segment).ToList(),
+            _errorHandler,
+            _hostOptions,
+            performanceCollector);
         pipeline.LinkPipeline();
         pipeline.InitializePipeline();
-        //return the pipeline
         return pipeline;
     }
-    
+
+    private static void ApplyExecutionOptions<TComponent>(
+        string componentRole,
+        TComponent component,
+        PipelineExecutionOptions executionOptions)
+    {
+        if (component is IPipelineExecutionConfigurable configurable)
+        {
+            configurable.ConfigureExecutionOptions(executionOptions);
+            return;
+        }
+
+        throw new InvalidOperationException(
+            $"Pipeline {componentRole} '{component?.GetType().Name}' does not support execution tuning.");
+    }
+
+    private static void ApplyPerformanceCollector<TComponent>(
+        TComponent component,
+        IPipelinePerformanceCollector performanceCollector,
+        string componentName)
+    {
+        if (component is IPipelinePerformanceAware performanceAware)
+        {
+            performanceAware.ConfigurePerformanceCollector(performanceCollector, componentName);
+        }
+    }
+
+    private static void ApplyBatchingOptions<TComponent>(
+        TComponent component,
+        PipelineBatchingOptions? batchingOptions)
+    {
+        if (batchingOptions is null)
+        {
+            return;
+        }
+
+        if (component is not IBatchedPipelineDestination<T>)
+        {
+            throw new InvalidOperationException(
+                $"Destination '{component?.GetType().Name}' does not support batch execution, but destination batching was configured.");
+        }
+
+        if (component is IPipelineBatchingAware batchingAware)
+        {
+            batchingAware.ConfigureBatchingOptions(batchingOptions.Validate());
+        }
+    }
+
     #endregion
 }
-
-

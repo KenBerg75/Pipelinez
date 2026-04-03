@@ -1,0 +1,231 @@
+// Validating benchmarks:
+// ***** BenchmarkRunner: Start   *****
+// ***** Found 2 benchmark(s) in total *****
+// ***** Building 1 exe(s) in Parallel: Start   *****
+Unable to find .sln or .csproj file. Will use current directory C:\source\Pipelinez to search for project file. If you don't use .sln file on purpose it should not be a problem.
+// start dotnet  restore /p:UseSharedCompilation=false /p:BuildInParallel=false /m:1 /p:Deterministic=true /p:Optimize=true /p:IntermediateOutputPath="C:\source\Pipelinez\src\benchmarks\Pipelinez.Benchmarks\bin\Release\net8.0\ded9ddb4-e5d7-487c-a5fe-1ff804ae634e\obj\Release\net8.0/" /p:OutDir="C:\source\Pipelinez\src\benchmarks\Pipelinez.Benchmarks\bin\Release\net8.0\ded9ddb4-e5d7-487c-a5fe-1ff804ae634e\bin\Release\net8.0/" /p:OutputPath="C:\source\Pipelinez\src\benchmarks\Pipelinez.Benchmarks\bin\Release\net8.0\ded9ddb4-e5d7-487c-a5fe-1ff804ae634e\bin\Release\net8.0/" in C:\source\Pipelinez\src\benchmarks\Pipelinez.Benchmarks\bin\Release\net8.0\ded9ddb4-e5d7-487c-a5fe-1ff804ae634e
+// command took 0.74 sec and exited with 0
+// start dotnet  build -c Release --no-restore /p:UseSharedCompilation=false /p:BuildInParallel=false /m:1 /p:Deterministic=true /p:Optimize=true /p:IntermediateOutputPath="C:\source\Pipelinez\src\benchmarks\Pipelinez.Benchmarks\bin\Release\net8.0\ded9ddb4-e5d7-487c-a5fe-1ff804ae634e\obj\Release\net8.0/" /p:OutDir="C:\source\Pipelinez\src\benchmarks\Pipelinez.Benchmarks\bin\Release\net8.0\ded9ddb4-e5d7-487c-a5fe-1ff804ae634e\bin\Release\net8.0/" /p:OutputPath="C:\source\Pipelinez\src\benchmarks\Pipelinez.Benchmarks\bin\Release\net8.0\ded9ddb4-e5d7-487c-a5fe-1ff804ae634e\bin\Release\net8.0/" --output "C:\source\Pipelinez\src\benchmarks\Pipelinez.Benchmarks\bin\Release\net8.0\ded9ddb4-e5d7-487c-a5fe-1ff804ae634e\bin\Release\net8.0/" in C:\source\Pipelinez\src\benchmarks\Pipelinez.Benchmarks\bin\Release\net8.0\ded9ddb4-e5d7-487c-a5fe-1ff804ae634e
+// command took 4.61 sec and exited with 0
+// ***** Done, took 00:00:05 (5.4 sec)   *****
+// Found 2 benchmarks:
+//   InMemoryPipelineBenchmarks.DefaultPipeline: DefaultJob [RecordCount=1000]
+//   InMemoryPipelineBenchmarks.TunedParallelPipeline: DefaultJob [RecordCount=1000]
+
+Setup power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// **************************
+// Benchmark: InMemoryPipelineBenchmarks.DefaultPipeline: DefaultJob [RecordCount=1000]
+// *** Execute ***
+// Launch: 1 / 1
+// Execute: dotnet ded9ddb4-e5d7-487c-a5fe-1ff804ae634e.dll --anonymousPipes 1908 1344 --benchmarkName "Pipelinez.Benchmarks.InMemoryPipelineBenchmarks.DefaultPipeline(RecordCount: 1000)" --job Default --benchmarkId 0 in C:\source\Pipelinez\src\benchmarks\Pipelinez.Benchmarks\bin\Release\net8.0\ded9ddb4-e5d7-487c-a5fe-1ff804ae634e\bin\Release\net8.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.14.0
+// Runtime=.NET 8.0.24 (8.0.2426.7010), X64 RyuJIT AVX2
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX2,AES,BMI1,BMI2,FMA,LZCNT,PCLMUL,POPCNT,AvxVnni,SERIALIZE VectorSize=256
+// Job: DefaultJob
+
+OverheadJitting  1: 1 op, 133800.00 ns, 133.8000 us/op
+WorkloadJitting  1: 1 op, 1042639400.00 ns, 1.0426 s/op
+
+OverheadJitting  2: 1 op, 400.00 ns, 400.0000 ns/op
+WorkloadJitting  2: 1 op, 1007537500.00 ns, 1.0075 s/op
+
+WorkloadWarmup   1: 1 op, 1001447700.00 ns, 1.0014 s/op
+WorkloadWarmup   2: 1 op, 1001972300.00 ns, 1.0020 s/op
+WorkloadWarmup   3: 1 op, 1012469100.00 ns, 1.0125 s/op
+WorkloadWarmup   4: 1 op, 1005859300.00 ns, 1.0059 s/op
+WorkloadWarmup   5: 1 op, 1009466400.00 ns, 1.0095 s/op
+WorkloadWarmup   6: 1 op, 1010666500.00 ns, 1.0107 s/op
+WorkloadWarmup   7: 1 op, 1005433300.00 ns, 1.0054 s/op
+
+// BeforeActualRun
+WorkloadActual   1: 1 op, 1008856900.00 ns, 1.0089 s/op
+WorkloadActual   2: 1 op, 1010997600.00 ns, 1.0110 s/op
+WorkloadActual   3: 1 op, 1006456700.00 ns, 1.0065 s/op
+WorkloadActual   4: 1 op, 1012358900.00 ns, 1.0124 s/op
+WorkloadActual   5: 1 op, 1005621900.00 ns, 1.0056 s/op
+WorkloadActual   6: 1 op, 1007226000.00 ns, 1.0072 s/op
+WorkloadActual   7: 1 op, 1010155100.00 ns, 1.0102 s/op
+WorkloadActual   8: 1 op, 1004417000.00 ns, 1.0044 s/op
+WorkloadActual   9: 1 op, 1013461300.00 ns, 1.0135 s/op
+WorkloadActual  10: 1 op, 1007137400.00 ns, 1.0071 s/op
+WorkloadActual  11: 1 op, 1004189200.00 ns, 1.0042 s/op
+WorkloadActual  12: 1 op, 1006491900.00 ns, 1.0065 s/op
+WorkloadActual  13: 1 op, 1007321800.00 ns, 1.0073 s/op
+WorkloadActual  14: 1 op, 1007539900.00 ns, 1.0075 s/op
+WorkloadActual  15: 1 op, 1008246700.00 ns, 1.0082 s/op
+
+// AfterActualRun
+WorkloadResult   1: 1 op, 1008856900.00 ns, 1.0089 s/op
+WorkloadResult   2: 1 op, 1010997600.00 ns, 1.0110 s/op
+WorkloadResult   3: 1 op, 1006456700.00 ns, 1.0065 s/op
+WorkloadResult   4: 1 op, 1012358900.00 ns, 1.0124 s/op
+WorkloadResult   5: 1 op, 1005621900.00 ns, 1.0056 s/op
+WorkloadResult   6: 1 op, 1007226000.00 ns, 1.0072 s/op
+WorkloadResult   7: 1 op, 1010155100.00 ns, 1.0102 s/op
+WorkloadResult   8: 1 op, 1004417000.00 ns, 1.0044 s/op
+WorkloadResult   9: 1 op, 1013461300.00 ns, 1.0135 s/op
+WorkloadResult  10: 1 op, 1007137400.00 ns, 1.0071 s/op
+WorkloadResult  11: 1 op, 1004189200.00 ns, 1.0042 s/op
+WorkloadResult  12: 1 op, 1006491900.00 ns, 1.0065 s/op
+WorkloadResult  13: 1 op, 1007321800.00 ns, 1.0073 s/op
+WorkloadResult  14: 1 op, 1007539900.00 ns, 1.0075 s/op
+WorkloadResult  15: 1 op, 1008246700.00 ns, 1.0082 s/op
+// GC:  0 0 0 1204776 1
+// Threading:  593 0 1
+
+// AfterAll
+// Benchmark Process 35120 has exited with code 0.
+
+Mean = 1.008 s, StdErr = 0.001 s (0.07%), N = 15, StdDev = 0.003 s
+Min = 1.004 s, Q1 = 1.006 s, Median = 1.007 s, Q3 = 1.010 s, Max = 1.013 s
+IQR = 0.003 s, LowerFence = 1.002 s, UpperFence = 1.014 s
+ConfidenceInterval = [1.005 s; 1.011 s] (CI 99.9%), Margin = 0.003 s (0.29% of Mean)
+Skewness = 0.5, Kurtosis = 2.16, MValue = 2
+
+// ** Remained 1 (50.0%) benchmark(s) to run. Estimated finish 2026-04-03 15:42 (0h 0m from now) **
+Setup power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// **************************
+// Benchmark: InMemoryPipelineBenchmarks.TunedParallelPipeline: DefaultJob [RecordCount=1000]
+// *** Execute ***
+// Launch: 1 / 1
+// Execute: dotnet ded9ddb4-e5d7-487c-a5fe-1ff804ae634e.dll --anonymousPipes 1692 1828 --benchmarkName "Pipelinez.Benchmarks.InMemoryPipelineBenchmarks.TunedParallelPipeline(RecordCount: 1000)" --job Default --benchmarkId 1 in C:\source\Pipelinez\src\benchmarks\Pipelinez.Benchmarks\bin\Release\net8.0\ded9ddb4-e5d7-487c-a5fe-1ff804ae634e\bin\Release\net8.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.14.0
+// Runtime=.NET 8.0.24 (8.0.2426.7010), X64 RyuJIT AVX2
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX2,AES,BMI1,BMI2,FMA,LZCNT,PCLMUL,POPCNT,AvxVnni,SERIALIZE VectorSize=256
+// Job: DefaultJob
+
+OverheadJitting  1: 1 op, 121500.00 ns, 121.5000 us/op
+WorkloadJitting  1: 1 op, 1016803300.00 ns, 1.0168 s/op
+
+OverheadJitting  2: 1 op, 400.00 ns, 400.0000 ns/op
+WorkloadJitting  2: 1 op, 1006737600.00 ns, 1.0067 s/op
+
+WorkloadWarmup   1: 1 op, 1008662000.00 ns, 1.0087 s/op
+WorkloadWarmup   2: 1 op, 1010429100.00 ns, 1.0104 s/op
+WorkloadWarmup   3: 1 op, 1012415700.00 ns, 1.0124 s/op
+WorkloadWarmup   4: 1 op, 1004831700.00 ns, 1.0048 s/op
+WorkloadWarmup   5: 1 op, 1012277000.00 ns, 1.0123 s/op
+WorkloadWarmup   6: 1 op, 1011288300.00 ns, 1.0113 s/op
+
+// BeforeActualRun
+WorkloadActual   1: 1 op, 1013322700.00 ns, 1.0133 s/op
+WorkloadActual   2: 1 op, 1008895000.00 ns, 1.0089 s/op
+WorkloadActual   3: 1 op, 1007666400.00 ns, 1.0077 s/op
+WorkloadActual   4: 1 op, 1010827300.00 ns, 1.0108 s/op
+WorkloadActual   5: 1 op, 1009922700.00 ns, 1.0099 s/op
+WorkloadActual   6: 1 op, 1009838700.00 ns, 1.0098 s/op
+WorkloadActual   7: 1 op, 1010631700.00 ns, 1.0106 s/op
+WorkloadActual   8: 1 op, 1009606200.00 ns, 1.0096 s/op
+WorkloadActual   9: 1 op, 1010399900.00 ns, 1.0104 s/op
+WorkloadActual  10: 1 op, 1013418100.00 ns, 1.0134 s/op
+WorkloadActual  11: 1 op, 1007902700.00 ns, 1.0079 s/op
+WorkloadActual  12: 1 op, 1011648200.00 ns, 1.0116 s/op
+WorkloadActual  13: 1 op, 1011233200.00 ns, 1.0112 s/op
+WorkloadActual  14: 1 op, 1005166200.00 ns, 1.0052 s/op
+WorkloadActual  15: 1 op, 1002355500.00 ns, 1.0024 s/op
+
+// AfterActualRun
+WorkloadResult   1: 1 op, 1013322700.00 ns, 1.0133 s/op
+WorkloadResult   2: 1 op, 1008895000.00 ns, 1.0089 s/op
+WorkloadResult   3: 1 op, 1007666400.00 ns, 1.0077 s/op
+WorkloadResult   4: 1 op, 1010827300.00 ns, 1.0108 s/op
+WorkloadResult   5: 1 op, 1009922700.00 ns, 1.0099 s/op
+WorkloadResult   6: 1 op, 1009838700.00 ns, 1.0098 s/op
+WorkloadResult   7: 1 op, 1010631700.00 ns, 1.0106 s/op
+WorkloadResult   8: 1 op, 1009606200.00 ns, 1.0096 s/op
+WorkloadResult   9: 1 op, 1010399900.00 ns, 1.0104 s/op
+WorkloadResult  10: 1 op, 1013418100.00 ns, 1.0134 s/op
+WorkloadResult  11: 1 op, 1007902700.00 ns, 1.0079 s/op
+WorkloadResult  12: 1 op, 1011648200.00 ns, 1.0116 s/op
+WorkloadResult  13: 1 op, 1011233200.00 ns, 1.0112 s/op
+WorkloadResult  14: 1 op, 1005166200.00 ns, 1.0052 s/op
+WorkloadResult  15: 1 op, 1002355500.00 ns, 1.0024 s/op
+// GC:  0 0 0 1196840 1
+// Threading:  105 4 1
+
+// AfterAll
+// Benchmark Process 39224 has exited with code 0.
+
+Mean = 1.010 s, StdErr = 0.001 s (0.07%), N = 15, StdDev = 0.003 s
+Min = 1.002 s, Q1 = 1.008 s, Median = 1.010 s, Q3 = 1.011 s, Max = 1.013 s
+IQR = 0.003 s, LowerFence = 1.004 s, UpperFence = 1.015 s
+ConfidenceInterval = [1.006 s; 1.013 s] (CI 99.9%), Margin = 0.003 s (0.31% of Mean)
+Skewness = -0.9, Kurtosis = 3.28, MValue = 2
+
+// ** Remained 0 (0.0%) benchmark(s) to run. Estimated finish 2026-04-03 15:42 (0h 0m from now) **
+Successfully reverted power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// ***** BenchmarkRunner: Finish  *****
+
+// * Export *
+  BenchmarkDotNet.Artifacts\results\Pipelinez.Benchmarks.InMemoryPipelineBenchmarks-report.csv
+  BenchmarkDotNet.Artifacts\results\Pipelinez.Benchmarks.InMemoryPipelineBenchmarks-report-github.md
+  BenchmarkDotNet.Artifacts\results\Pipelinez.Benchmarks.InMemoryPipelineBenchmarks-report.html
+
+// * Detailed results *
+InMemoryPipelineBenchmarks.DefaultPipeline: DefaultJob [RecordCount=1000]
+Runtime = .NET 8.0.24 (8.0.2426.7010), X64 RyuJIT AVX2; GC = Concurrent Workstation
+Mean = 1.008 s, StdErr = 0.001 s (0.07%), N = 15, StdDev = 0.003 s
+Min = 1.004 s, Q1 = 1.006 s, Median = 1.007 s, Q3 = 1.010 s, Max = 1.013 s
+IQR = 0.003 s, LowerFence = 1.002 s, UpperFence = 1.014 s
+ConfidenceInterval = [1.005 s; 1.011 s] (CI 99.9%), Margin = 0.003 s (0.29% of Mean)
+Skewness = 0.5, Kurtosis = 2.16, MValue = 2
+-------------------- Histogram --------------------
+[1.003 s ; 1.015 s) | @@@@@@@@@@@@@@@
+---------------------------------------------------
+
+InMemoryPipelineBenchmarks.TunedParallelPipeline: DefaultJob [RecordCount=1000]
+Runtime = .NET 8.0.24 (8.0.2426.7010), X64 RyuJIT AVX2; GC = Concurrent Workstation
+Mean = 1.010 s, StdErr = 0.001 s (0.07%), N = 15, StdDev = 0.003 s
+Min = 1.002 s, Q1 = 1.008 s, Median = 1.010 s, Q3 = 1.011 s, Max = 1.013 s
+IQR = 0.003 s, LowerFence = 1.004 s, UpperFence = 1.015 s
+ConfidenceInterval = [1.006 s; 1.013 s] (CI 99.9%), Margin = 0.003 s (0.31% of Mean)
+Skewness = -0.9, Kurtosis = 3.28, MValue = 2
+-------------------- Histogram --------------------
+[1.001 s ; 1.015 s) | @@@@@@@@@@@@@@@
+---------------------------------------------------
+
+// * Summary *
+
+BenchmarkDotNet v0.14.0, Windows 11 (10.0.26200.8037)
+12th Gen Intel Core i9-12900K, 1 CPU, 24 logical and 16 physical cores
+.NET SDK 9.0.311
+  [Host]     : .NET 8.0.24 (8.0.2426.7010), X64 RyuJIT AVX2
+  DefaultJob : .NET 8.0.24 (8.0.2426.7010), X64 RyuJIT AVX2
+
+
+| Method                | RecordCount | Mean    | Error    | StdDev   | Ratio | Allocated | Alloc Ratio |
+|---------------------- |------------ |--------:|---------:|---------:|------:|----------:|------------:|
+| DefaultPipeline       | 1000        | 1.008 s | 0.0029 s | 0.0027 s |  1.00 |   1.15 MB |        1.00 |
+| TunedParallelPipeline | 1000        | 1.010 s | 0.0031 s | 0.0029 s |  1.00 |   1.14 MB |        0.99 |
+
+// * Hints *
+Outliers
+  InMemoryPipelineBenchmarks.TunedParallelPipeline: Default -> 1 outlier  was  detected (1.00 s)
+
+// * Legends *
+  RecordCount : Value of the 'RecordCount' parameter
+  Mean        : Arithmetic mean of all measurements
+  Error       : Half of 99.9% confidence interval
+  StdDev      : Standard deviation of all measurements
+  Ratio       : Mean of the ratio distribution ([Current]/[Baseline])
+  Allocated   : Allocated memory per single operation (managed only, inclusive, 1KB = 1024B)
+  Alloc Ratio : Allocated memory ratio distribution ([Current]/[Baseline])
+  1 s         : 1 Second (1 sec)
+
+// * Diagnostic Output - MemoryDiagnoser *
+
+
+// ***** BenchmarkRunner: End *****
+Run time: 00:00:50 (50.73 sec), executed benchmarks: 2
+
+Global total time: 00:00:56 (56.5 sec), executed benchmarks: 2
+// * Artifacts cleanup *
+Artifacts cleanup is finished

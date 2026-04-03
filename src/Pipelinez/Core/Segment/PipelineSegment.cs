@@ -1,16 +1,21 @@
 using System.Diagnostics;
 using System.Threading.Tasks.Dataflow;
+using Ardalis.GuardClauses;
 using Microsoft.Extensions.Logging;
 using Pipelinez.Core.FaultHandling;
 using Pipelinez.Core.Flow;
 using Pipelinez.Core.Logging;
+using Pipelinez.Core.Performance;
 using Pipelinez.Core.Record;
 
 namespace Pipelinez.Core.Segment;
 
-public abstract class PipelineSegment<T> : IPipelineSegment<T> where T : PipelineRecord
+public abstract class PipelineSegment<T> : IPipelineSegment<T>, IPipelineExecutionConfigurable, IPipelinePerformanceAware where T : PipelineRecord
 {
-    private TransformBlock<PipelineContainer<T>, PipelineContainer<T>> _transformBlock = null!;
+    private TransformBlock<PipelineContainer<T>, PipelineContainer<T>>? _transformBlock;
+    private PipelineExecutionOptions _executionOptions = PipelineExecutionOptions.CreateDefaultSegmentOptions();
+    private IPipelinePerformanceCollector? _performanceCollector;
+    private string _componentName = "Segment";
 
     /// <summary>
     /// Logger for the segment
@@ -20,10 +25,6 @@ public abstract class PipelineSegment<T> : IPipelineSegment<T> where T : Pipelin
     public PipelineSegment()
     {
         Logger = LoggingManager.Instance.CreateLogger<PipelineSegment<T>>();
-        var finalOptions = new ExecutionDataflowBlockOptions() { BoundedCapacity = 10_000 };
-        // _errorProvider = errorHandlerProvider;
-        // InitializeErrorHandling(finalOptions);
-        InitializeTransformBlock(finalOptions);
     }
     
     #region Initialization
@@ -32,11 +33,18 @@ public abstract class PipelineSegment<T> : IPipelineSegment<T> where T : Pipelin
     /// Initialize the TransformBlock
     /// </summary>
     /// <param name="options"></param>
-    private void InitializeTransformBlock(ExecutionDataflowBlockOptions options)
+    private void InitializeTransformBlock()
     {
         Logger.LogTrace("Initializing Segment");
         Func<PipelineContainer<T>, Task<PipelineContainer<T>>> wrapper = ExecuteInternal;
-        _transformBlock =  new TransformBlock<PipelineContainer<T>, PipelineContainer<T>>(wrapper, options);
+        _transformBlock =  new TransformBlock<PipelineContainer<T>, PipelineContainer<T>>(
+            wrapper,
+            new ExecutionDataflowBlockOptions
+            {
+                BoundedCapacity = _executionOptions.BoundedCapacity,
+                MaxDegreeOfParallelism = _executionOptions.DegreeOfParallelism,
+                EnsureOrdered = _executionOptions.EnsureOrdered
+            });
     }
 
     
@@ -54,12 +62,12 @@ public abstract class PipelineSegment<T> : IPipelineSegment<T> where T : Pipelin
     public IDisposable ConnectTo(IFlowDestination<PipelineContainer<T>> target, DataflowLinkOptions? options = null)
     {
         options ??= new DataflowLinkOptions() { MaxMessages = DataflowBlockOptions.Unbounded };
-        return _transformBlock.LinkTo(target.AsTargetBlock(), options);
+        return TransformBlock.LinkTo(target.AsTargetBlock(), options);
     }
 
     public ITargetBlock<PipelineContainer<T>> AsTargetBlock()
     {
-        return _transformBlock;
+        return TransformBlock;
     }
 
     
@@ -120,6 +128,7 @@ public abstract class PipelineSegment<T> : IPipelineSegment<T> where T : Pipelin
                 startedAtUtc.Add(stopwatch.Elapsed),
                 succeeded,
                 failureMessage));
+            _performanceCollector?.RecordComponentExecution(_componentName, stopwatch.Elapsed, succeeded);
         }
 
         return arg;
@@ -138,5 +147,47 @@ public abstract class PipelineSegment<T> : IPipelineSegment<T> where T : Pipelin
     
     #endregion
 
-    public Task Completion => _transformBlock.Completion;
+    public Task Completion => TransformBlock.Completion;
+
+    public void ConfigureExecutionOptions(PipelineExecutionOptions options)
+    {
+        var validated = Guard.Against.Null(options, nameof(options)).Validate();
+        EnsureExecutionOptionsCanBeChanged();
+        _executionOptions = validated;
+    }
+
+    public PipelineExecutionOptions GetExecutionOptions()
+    {
+        return _executionOptions;
+    }
+
+    void IPipelinePerformanceAware.ConfigurePerformanceCollector(
+        IPipelinePerformanceCollector performanceCollector,
+        string componentName)
+    {
+        _performanceCollector = Guard.Against.Null(performanceCollector, nameof(performanceCollector));
+        _componentName = Guard.Against.NullOrWhiteSpace(componentName, nameof(componentName));
+    }
+
+    private TransformBlock<PipelineContainer<T>, PipelineContainer<T>> TransformBlock
+    {
+        get
+        {
+            if (_transformBlock is null)
+            {
+                InitializeTransformBlock();
+            }
+
+            return _transformBlock!;
+        }
+    }
+
+    private void EnsureExecutionOptionsCanBeChanged()
+    {
+        if (_transformBlock is not null)
+        {
+            throw new InvalidOperationException(
+                $"Execution options for segment '{GetType().Name}' must be configured before the segment is linked or used.");
+        }
+    }
 }

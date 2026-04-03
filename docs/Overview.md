@@ -31,6 +31,8 @@ Each record flows through the runtime inside a `PipelineContainer<T>`, which let
   unit and runtime tests for core pipeline behavior
 - `src/tests/Pipelinez.Kafka.Tests`
   Docker-backed Kafka integration tests using Testcontainers
+- `src/benchmarks/Pipelinez.Benchmarks`
+  BenchmarkDotNet project for repeatable in-memory performance measurements
 - `src/examples/Example.Kafka`
   sample application that builds a Kafka-backed pipeline
 - `src/examples/Example.Kafka.DataGen`
@@ -50,6 +52,7 @@ The core builder currently supports:
 - `WithDestination(...)`
 - `WithInMemoryDestination(...)`
 - `UseHostOptions(...)`
+- `UsePerformanceOptions(...)`
 - `UseLogger(...)`
 - `WithErrorHandler(...)`
 
@@ -60,6 +63,7 @@ Kafka integrates through extension methods in `Pipelinez.Kafka`, not through par
 
 `Build()` validates that a source and destination exist, creates a `Pipeline<T>`, links all blocks, and initializes the source and destination.
 If distributed execution is requested, `Build()` also validates that the configured source implements the distributed source contract.
+Performance options are resolved at build time and applied to sources, segments, and destinations before the dataflow blocks are linked.
 
 ### Record Model
 
@@ -90,6 +94,8 @@ Responsibilities:
 - optionally produce records from an external system inside `MainLoop(...)`
 - link to the next pipeline component
 - observe completed containers through `OnPipelineContainerComplete(...)`
+- accept configurable bounded-capacity execution options
+- record source-side publish metrics for performance snapshots
 
 `InMemoryPipelineSource<T>` is effectively a passive source. Kafka-backed sources actively consume from Kafka and publish into the pipeline.
 
@@ -106,6 +112,7 @@ For each container:
 5. if an exception occurs, the segment marks the container faulted and allows downstream error handling to decide what to do
 
 This keeps the segment authoring model simple while still preserving runtime-level observability.
+Segments now also support configurable `DegreeOfParallelism`, `BoundedCapacity`, and `EnsureOrdered` behavior through `PipelineExecutionOptions`.
 
 ### Destination Behavior
 
@@ -120,6 +127,7 @@ The destination loop:
 5. raises container-completed and record-completed events only after successful destination execution
 
 Destination execution is fully async, and destination `Completion` now represents the full destination work lifecycle rather than only message-buffer completion.
+Destinations also support optional batched execution when they implement `IBatchedPipelineDestination<T>` and batching is enabled through `PipelinePerformanceOptions`.
 
 ## Execution Lifecycle
 
@@ -148,6 +156,62 @@ Important current semantics:
 - `Completing`
 - `Completed`
 - `Faulted`
+
+## Performance Model
+
+Pipelinez now has a first-class runtime performance model.
+
+### Performance Options
+
+`UsePerformanceOptions(...)` configures:
+
+- source execution options
+- default segment execution options
+- destination execution options
+- destination batching
+- runtime metrics collection behavior
+
+The core execution type is `PipelineExecutionOptions`, which controls:
+
+- `BoundedCapacity`
+- `DegreeOfParallelism`
+- `EnsureOrdered`
+
+Segment defaults remain conservative, but callers can now opt into higher-throughput settings explicitly.
+
+### Performance Snapshot
+
+`Pipeline<T>.GetPerformanceSnapshot()` returns a `PipelinePerformanceSnapshot` containing:
+
+- elapsed runtime
+- total published, completed, and faulted record counts
+- calculated records-per-second
+- average end-to-end latency
+- per-component performance snapshots
+
+Per-component snapshots expose:
+
+- component name
+- processed count
+- faulted count
+- records-per-second
+- average execution latency
+
+This gives consumers a lightweight built-in way to inspect pipeline behavior during testing, demos, or hosted execution.
+
+### Destination Batching
+
+Batch-capable destinations can implement `IBatchedPipelineDestination<T>`.
+
+When batching is enabled:
+
+- records are accumulated up to the configured batch size
+- the batch is flushed early when the max batch delay is reached
+- remaining records are flushed on normal completion
+- completion events are only raised after the batch succeeds
+- batch failures are converted into per-record fault handling so the existing error-policy model remains in control
+
+This is intended for throughput-oriented destinations and should be used carefully because batching improves throughput at the cost of per-record latency.
 
 ## Distributed Execution Model
 
@@ -295,6 +359,7 @@ Reported execution status is derived from task state and runtime fault state:
 For distributed sources, this status reflects live ownership while the worker is active. For Kafka specifically, owned partitions are cleared on shutdown when the consumer leaves the group and revocation is observed.
 
 Logging is managed through the internal `LoggingManager`, which wraps an `ILoggerFactory`. If the caller never supplies a logger factory, the runtime falls back to a null logger factory.
+The runtime now also exposes additive performance metrics through `GetPerformanceSnapshot()` rather than relying only on logs for throughput diagnostics.
 
 ## Kafka Integration
 
@@ -393,6 +458,10 @@ The solution now includes two test layers.
 - error-handler policies
 - logger integration
 - builder-surface expectations
+- performance-option propagation and override precedence
+- runtime performance snapshot behavior
+- batched destination execution
+- segment parallelism behavior under configured throughput settings
 
 ### Kafka Integration Tests
 
@@ -423,6 +492,7 @@ The major architectural work called out in the earlier planning docs has been im
 - Kafka split into a real `Pipelinez.Kafka` assembly
 - Docker-backed Kafka integration tests
 - explicit distributed execution mode with worker identity, partition ownership, and rebalance events
+- explicit performance tuning controls, built-in performance snapshots, destination batching, and a benchmark project
 
 The remaining work is mostly future evolution work rather than foundational cleanup. Likely areas include broader transport coverage, schema-registry integration tests, and further runtime ergonomics.
 

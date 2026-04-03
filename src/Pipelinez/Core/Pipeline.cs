@@ -7,6 +7,7 @@ using Pipelinez.Core.ErrorHandling;
 using Pipelinez.Core.Eventing;
 using Pipelinez.Core.FaultHandling;
 using Pipelinez.Core.Logging;
+using Pipelinez.Core.Performance;
 using Pipelinez.Core.Record;
 using Pipelinez.Core.Segment;
 using Pipelinez.Core.Source;
@@ -49,6 +50,7 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
     private readonly IPipelineDestination<TPipelineRecord> _destination;
     private readonly PipelineErrorHandler<TPipelineRecord>? _errorHandler;
     private readonly PipelineHostOptions _hostOptions;
+    private readonly IPipelinePerformanceCollector _performanceCollector;
     private readonly string _instanceId;
     private readonly string _workerId;
     private readonly object _stateLock = new();
@@ -131,6 +133,7 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
         // 1 - lets the source know that the record has completed so it can apply any transactional commits if needed
         // 2 - lets pipeline users know that the record has completed
         OnPipelineContainerCompelted?.Invoke(this, evt);
+        _performanceCollector.RecordCompleted(evt.Container.CreatedAtUtc);
         OnPipelineRecordCompleted?.Invoke(
             this,
             new PipelineRecordCompletedEventHandlerArgs<TPipelineRecord>(
@@ -154,6 +157,7 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
                 container,
                 container.Fault,
                 BuildDistributionContext(container.Metadata)));
+        _performanceCollector.RecordFaulted(container.CreatedAtUtc);
 
         var action = await ResolveErrorActionAsync(container, container.Fault).ConfigureAwait(false);
 
@@ -186,7 +190,8 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
         IPipelineDestination<TPipelineRecord> destination,
         IList<IPipelineSegment<TPipelineRecord>> segments,
         PipelineErrorHandler<TPipelineRecord>? errorHandler = null,
-        PipelineHostOptions? hostOptions = null)
+        PipelineHostOptions? hostOptions = null,
+        IPipelinePerformanceCollector? performanceCollector = null)
     {
         Guard.Against.NullOrEmpty(name, message: "Pipeline must have a name");
         Guard.Against.Null(source, message: "Pipeline must have a valid source");
@@ -200,6 +205,7 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
         this._segments = segments;
         this._errorHandler = errorHandler;
         _hostOptions = hostOptions ?? new PipelineHostOptions();
+        _performanceCollector = performanceCollector ?? new PipelinePerformanceCollector(new PipelineMetricsOptions());
         _instanceId = string.IsNullOrWhiteSpace(_hostOptions.InstanceId)
             ? Environment.MachineName
             : _hostOptions.InstanceId;
@@ -384,6 +390,11 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
                 _workerId,
                 _ownedPartitions);
         }
+    }
+
+    public PipelinePerformanceSnapshot GetPerformanceSnapshot()
+    {
+        return _performanceCollector.CreateSnapshot();
     }
 
     private void EnsurePipelineStartedForPublish()
