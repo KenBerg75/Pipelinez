@@ -1,23 +1,27 @@
 using System.Threading.Tasks.Dataflow;
+using Ardalis.GuardClauses;
 using Microsoft.Extensions.Logging;
 using Pipelinez.Core.Eventing;
 using Pipelinez.Core.Flow;
 using Pipelinez.Core.Logging;
+using Pipelinez.Core.Performance;
 using Pipelinez.Core.Record;
 using Pipelinez.Core.Record.Metadata;
 
 namespace Pipelinez.Core.Source;
 
-public abstract class PipelineSourceBase<T> : IPipelineSource<T> where T : PipelineRecord
+public abstract class PipelineSourceBase<T> : IPipelineSource<T>, IPipelineExecutionConfigurable, IPipelinePerformanceAware where T : PipelineRecord
 {
-    private readonly BufferBlock<PipelineContainer<T>> _messageBuffer;
+    private BufferBlock<PipelineContainer<T>>? _messageBuffer;
     private Pipeline<T>? _parentPipeline;
+    private PipelineExecutionOptions _executionOptions = PipelineExecutionOptions.CreateDefaultSourceOptions();
+    private IPipelinePerformanceCollector? _performanceCollector;
+    private string _componentName = "Source";
 
     protected ILogger<PipelineSourceBase<T>> Logger { get; }
 
     public PipelineSourceBase()
     {
-        _messageBuffer = new BufferBlock<PipelineContainer<T>>();
         Logger = LoggingManager.Instance.CreateLogger<PipelineSourceBase<T>>();
     }
     
@@ -30,7 +34,7 @@ public abstract class PipelineSourceBase<T> : IPipelineSource<T> where T : Pipel
     public IDisposable ConnectTo(IFlowDestination<PipelineContainer<T>> target, DataflowLinkOptions? options = null)
     {
         options ??= new DataflowLinkOptions() { MaxMessages = DataflowBlockOptions.Unbounded };
-        return _messageBuffer.LinkTo(target.AsTargetBlock(), options);
+        return MessageBuffer.LinkTo(target.AsTargetBlock(), options);
     }
     
     public async Task StartAsync(CancellationTokenSource cancellationToken)
@@ -50,48 +54,27 @@ public abstract class PipelineSourceBase<T> : IPipelineSource<T> where T : Pipel
 
     public async Task PublishAsync(T record)
     {
-        // ToDo: Needs to be refactored - maybe move to a factory
         var container = new PipelineContainer<T>(record);
-        
-        await _messageBuffer.SendAsync(container).ConfigureAwait(false);
-        
-        #region Old Implementation - left in case SendAsync doesn't support buffer full
-        /*
-        // Processing loop - supporting the buffer being full. 
-        const int retryBackoff = 2000;
-        var wasBlocked = false;
-        
-        
-        while (!_messageBuffer.Post(container)) 
-        {
-            //Log.Logger.Warning("Pipeline source message buffer full, blocking until available");
-            wasBlocked = true;
-            Thread.Sleep(retryBackoff);
-        }
 
-        if (wasBlocked)
-        {
-            //Log.Logger.Information("Pipeline source message buffer accepting records again");
-            wasBlocked = false;
-        }*/
-        #endregion
+        await MessageBuffer.SendAsync(container).ConfigureAwait(false);
+        _performanceCollector?.RecordPublished(_componentName);
     }
 
     public async Task PublishAsync(T record, MetadataCollection metadata)
     {
-        // ToDo: Needs to be refactored - maybe move to a factory
         var container = new PipelineContainer<T>(record, metadata);
-        
-        await _messageBuffer.SendAsync(container).ConfigureAwait(false);
+
+        await MessageBuffer.SendAsync(container).ConfigureAwait(false);
+        _performanceCollector?.RecordPublished(_componentName);
     }
 
     public void Complete()
     {
         Logger.LogInformation("Completing pipeline source");
-        _messageBuffer.Complete();
+        MessageBuffer.Complete();
     }
 
-    public Task Completion => _messageBuffer.Completion;
+    public Task Completion => MessageBuffer.Completion;
 
 
     public void Initialize(Pipeline<T> parentPipeline)
@@ -108,6 +91,30 @@ public abstract class PipelineSourceBase<T> : IPipelineSource<T> where T : Pipel
     {
         // Nothing to do yet
         // should use to support transactional processing
+    }
+
+    #endregion
+
+    #region Performance
+
+    public void ConfigureExecutionOptions(PipelineExecutionOptions options)
+    {
+        var validated = Guard.Against.Null(options, nameof(options)).Validate();
+        EnsureExecutionOptionsCanBeChanged();
+        _executionOptions = validated;
+    }
+
+    public PipelineExecutionOptions GetExecutionOptions()
+    {
+        return _executionOptions;
+    }
+
+    void IPipelinePerformanceAware.ConfigurePerformanceCollector(
+        IPipelinePerformanceCollector performanceCollector,
+        string componentName)
+    {
+        _performanceCollector = Guard.Against.Null(performanceCollector, nameof(performanceCollector));
+        _componentName = Guard.Against.NullOrWhiteSpace(componentName, nameof(componentName));
     }
 
     #endregion
@@ -129,4 +136,20 @@ public abstract class PipelineSourceBase<T> : IPipelineSource<T> where T : Pipel
 
     protected Pipeline<T> ParentPipeline =>
         _parentPipeline ?? throw new InvalidOperationException("Pipeline source has not been initialized.");
+
+    private BufferBlock<PipelineContainer<T>> MessageBuffer =>
+        _messageBuffer ??= new BufferBlock<PipelineContainer<T>>(new DataflowBlockOptions
+        {
+            BoundedCapacity = _executionOptions.BoundedCapacity,
+            EnsureOrdered = _executionOptions.EnsureOrdered
+        });
+
+    private void EnsureExecutionOptionsCanBeChanged()
+    {
+        if (_messageBuffer is not null)
+        {
+            throw new InvalidOperationException(
+                $"Execution options for source '{GetType().Name}' must be configured before the source is linked or used.");
+        }
+    }
 }

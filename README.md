@@ -9,6 +9,7 @@ Pipelinez is a small .NET 8 framework for building record-processing pipelines w
 - async startup and completion
 - fault tracking and configurable error policies
 - optional distributed execution for transport-backed sources
+- explicit performance tuning and runtime performance snapshots
 - transport extensions such as Kafka
 
 ## How It Works
@@ -155,6 +156,44 @@ pipeline.OnPartitionsAssigned += (_, args) =>
 
 Kafka-backed distributed execution is validated by multi-worker integration tests that scale workers in and out against a real Docker-hosted broker.
 
+## Performance Tuning
+
+Pipelinez now exposes explicit throughput and execution controls through `UsePerformanceOptions(...)`.
+
+Available tuning areas include:
+
+- source, segment, and destination bounded capacity
+- segment degree of parallelism
+- ordered versus unordered segment execution
+- optional destination batching for batched destinations
+- runtime performance snapshots through `GetPerformanceSnapshot()`
+
+Example shape:
+
+```csharp
+using Pipelinez.Core.Performance;
+
+var pipeline = Pipeline<MyRecord>.New("high-throughput")
+    .UsePerformanceOptions(new PipelinePerformanceOptions
+    {
+        DefaultSegmentExecution = new PipelineExecutionOptions
+        {
+            BoundedCapacity = 10_000,
+            DegreeOfParallelism = Environment.ProcessorCount,
+            EnsureOrdered = false
+        }
+    })
+    .WithInMemorySource(new object())
+    .AddSegment(new MySegment(), new object())
+    .WithInMemoryDestination("config")
+    .Build();
+
+var snapshot = pipeline.GetPerformanceSnapshot();
+Console.WriteLine(snapshot.RecordsPerSecond);
+```
+
+Increasing parallelism or disabling ordering can improve throughput, but it can also change observable processing order. Those settings should be treated as explicit tradeoffs rather than passive defaults.
+
 ## Error Handling
 
 Pipelinez supports explicit fault handling through `WithErrorHandler(...)`.
@@ -188,6 +227,8 @@ Public events include:
   core tests
 - [`src/tests/Pipelinez.Kafka.Tests`](src/tests/Pipelinez.Kafka.Tests)
   Kafka integration tests
+- [`src/benchmarks/Pipelinez.Benchmarks`](src/benchmarks/Pipelinez.Benchmarks)
+  BenchmarkDotNet-based performance benchmarks
 - [`docs/Overview.md`](docs/Overview.md)
   deeper architectural overview
 
@@ -203,6 +244,12 @@ Run the full test suite:
 
 ```bash
 dotnet test src/Pipelinez.sln
+```
+
+Run the benchmark project:
+
+```bash
+dotnet run -c Release --project src/benchmarks/Pipelinez.Benchmarks
 ```
 
 Run the Kafka example:
@@ -229,6 +276,7 @@ Current implemented capabilities include:
 - configurable error policies
 - async destination execution
 - distributed runtime mode and worker/partition observability
+- performance tuning options, batching support, and runtime performance snapshots
 - Kafka source and destination support
 - Docker-backed Kafka integration coverage, including multi-worker distributed tests
 

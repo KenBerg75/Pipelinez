@@ -1,0 +1,14 @@
+namespace Pipelinez.Core.Performance;
+
+internal interface IPipelinePerformanceCollector
+{
+    void RecordPublished(string componentName);
+
+    void RecordCompleted(DateTimeOffset createdAtUtc);
+
+    void RecordFaulted(DateTimeOffset createdAtUtc);
+
+    void RecordComponentExecution(string componentName, TimeSpan duration, bool succeeded);
+
+    PipelinePerformanceSnapshot CreateSnapshot();
+}

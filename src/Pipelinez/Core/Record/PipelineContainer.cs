@@ -14,12 +14,15 @@ public sealed class PipelineContainer<T> where T : PipelineRecord
     {
         Record = Guard.Against.Null(record, nameof(record));
         Metadata = Guard.Against.Null(metadata, nameof(metadata));
+        CreatedAtUtc = DateTimeOffset.UtcNow;
     }
     
     /// <summary>
     /// Contains metadata relating to the record.
     /// </summary>
     public MetadataCollection Metadata { get; }
+
+    public DateTimeOffset CreatedAtUtc { get; }
     
     public T Record { get; set; }
 

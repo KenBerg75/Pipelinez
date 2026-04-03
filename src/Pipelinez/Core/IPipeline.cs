@@ -1,5 +1,6 @@
 using Pipelinez.Core.Distributed;
 using Pipelinez.Core.Eventing;
+using Pipelinez.Core.Performance;
 using Pipelinez.Core.Record;
 using Pipelinez.Core.Status;
 
@@ -32,6 +33,8 @@ public interface IPipeline<T> where T : PipelineRecord
     PipelineStatus GetStatus();
 
     PipelineRuntimeContext GetRuntimeContext();
+
+    PipelinePerformanceSnapshot GetPerformanceSnapshot();
     
     #region Eventing
     
