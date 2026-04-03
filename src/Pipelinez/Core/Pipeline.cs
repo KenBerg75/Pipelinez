@@ -1,4 +1,5 @@
 using System.Threading.Tasks.Dataflow;
+using System.Runtime.ExceptionServices;
 using Ardalis.GuardClauses;
 using Microsoft.Extensions.Logging;
 using Pipelinez.Core.Distributed;
@@ -9,6 +10,7 @@ using Pipelinez.Core.FaultHandling;
 using Pipelinez.Core.Logging;
 using Pipelinez.Core.Performance;
 using Pipelinez.Core.Record;
+using Pipelinez.Core.Retry;
 using Pipelinez.Core.Segment;
 using Pipelinez.Core.Source;
 using Pipelinez.Core.Status;
@@ -51,6 +53,7 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
     private readonly PipelineErrorHandler<TPipelineRecord>? _errorHandler;
     private readonly PipelineHostOptions _hostOptions;
     private readonly IPipelinePerformanceCollector _performanceCollector;
+    private readonly bool _emitRetryEvents;
     private readonly string _instanceId;
     private readonly string _workerId;
     private readonly object _stateLock = new();
@@ -92,6 +95,11 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
     /// Occurs when a record in the pipeline faults.
     /// </summary>
     public event PipelineRecordFaultedEventHandler<TPipelineRecord>? OnPipelineRecordFaulted;
+
+    /// <summary>
+    /// Occurs when a record is about to be retried after a transient failure.
+    /// </summary>
+    public event PipelineRecordRetryingEventHandler<TPipelineRecord>? OnPipelineRecordRetrying;
 
     /// <summary>
     /// Occurs when the pipeline transitions into a faulted state.
@@ -157,6 +165,10 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
                 container,
                 container.Fault,
                 BuildDistributionContext(container.Metadata)));
+        if (container.RetryHistory.Count > 0)
+        {
+            _performanceCollector.RecordRetryExhausted();
+        }
         _performanceCollector.RecordFaulted(container.CreatedAtUtc);
 
         var action = await ResolveErrorActionAsync(container, container.Fault).ConfigureAwait(false);
@@ -191,7 +203,8 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
         IList<IPipelineSegment<TPipelineRecord>> segments,
         PipelineErrorHandler<TPipelineRecord>? errorHandler = null,
         PipelineHostOptions? hostOptions = null,
-        IPipelinePerformanceCollector? performanceCollector = null)
+        IPipelinePerformanceCollector? performanceCollector = null,
+        bool emitRetryEvents = true)
     {
         Guard.Against.NullOrEmpty(name, message: "Pipeline must have a name");
         Guard.Against.Null(source, message: "Pipeline must have a valid source");
@@ -206,6 +219,7 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
         this._errorHandler = errorHandler;
         _hostOptions = hostOptions ?? new PipelineHostOptions();
         _performanceCollector = performanceCollector ?? new PipelinePerformanceCollector(new PipelineMetricsOptions());
+        _emitRetryEvents = emitRetryEvents;
         _instanceId = string.IsNullOrWhiteSpace(_hostOptions.InstanceId)
             ? Environment.MachineName
             : _hostOptions.InstanceId;
@@ -245,6 +259,11 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
     /// </summary>
     internal void InitializePipeline()
     {
+        foreach (var segment in _segments.OfType<PipelineSegment<TPipelineRecord>>())
+        {
+            segment.Initialize(this);
+        }
+
         // Allow for components of the pipeline to initialize
         _source.Initialize(this);
         _destination.Initialize(this);
@@ -361,6 +380,11 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
         }
 
         await completionTask.ConfigureAwait(false);
+
+        if (_state == PipelineRuntimeState.Faulted && _pipelineFault is not null)
+        {
+            ExceptionDispatchInfo.Capture(_pipelineFault.Exception).Throw();
+        }
     }
     
     /// <summary>Gets a <see cref="T:System.Threading.Tasks.Task" /> that represents the asynchronous operation and completion of the pipeline.</summary>
@@ -395,6 +419,54 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
     public PipelinePerformanceSnapshot GetPerformanceSnapshot()
     {
         return _performanceCollector.CreateSnapshot();
+    }
+
+    internal CancellationToken GetRuntimeCancellationToken()
+    {
+        return _runtimeCancellationTokenSource?.Token ?? CancellationToken.None;
+    }
+
+    internal Task NotifyRecordRetryingAsync(
+        PipelineContainer<TPipelineRecord> container,
+        PipelineRetryAttempt retryAttempt,
+        int maxAttempts,
+        Exception exception)
+    {
+        Guard.Against.Null(container, nameof(container));
+        Guard.Against.Null(retryAttempt, nameof(retryAttempt));
+        Guard.Against.NegativeOrZero(maxAttempts, nameof(maxAttempts));
+        Guard.Against.Null(exception, nameof(exception));
+
+        _performanceCollector.RecordRetryAttempt();
+
+        if (!_emitRetryEvents)
+        {
+            return Task.CompletedTask;
+        }
+
+        var fault = CreatePipelineFaultState(
+            exception,
+            retryAttempt.ComponentName,
+            retryAttempt.ComponentKind,
+            retryAttempt.Message);
+
+        OnPipelineRecordRetrying?.Invoke(
+            this,
+            new PipelineRecordRetryingEventArgs<TPipelineRecord>(
+                container.Record,
+                container,
+                fault,
+                retryAttempt.AttemptNumber,
+                maxAttempts,
+                retryAttempt.DelayBeforeNextAttempt,
+                BuildDistributionContext(container.Metadata)));
+
+        return Task.CompletedTask;
+    }
+
+    internal void NotifyRetryRecovered()
+    {
+        _performanceCollector.RecordRetryRecovery();
     }
 
     private void EnsurePipelineStartedForPublish()

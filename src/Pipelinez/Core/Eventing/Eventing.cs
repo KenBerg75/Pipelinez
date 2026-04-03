@@ -48,6 +48,10 @@ public delegate void PipelineRecordFaultedEventHandler<T>(
     object sender,
     PipelineRecordFaultedEventArgs<T> args) where T : PipelineRecord;
 
+public delegate void PipelineRecordRetryingEventHandler<T>(
+    object sender,
+    PipelineRecordRetryingEventArgs<T> args) where T : PipelineRecord;
+
 public sealed class PipelineRecordFaultedEventArgs<T> where T : PipelineRecord
 {
     public PipelineRecordFaultedEventArgs(
@@ -69,6 +73,47 @@ public sealed class PipelineRecordFaultedEventArgs<T> where T : PipelineRecord
     public PipelineFaultState Fault { get; }
 
     public PipelineRecordDistributionContext? Distribution { get; }
+}
+
+public sealed class PipelineRecordRetryingEventArgs<T> where T : PipelineRecord
+{
+    public PipelineRecordRetryingEventArgs(
+        T record,
+        PipelineContainer<T> container,
+        PipelineFaultState fault,
+        int attemptNumber,
+        int maxAttempts,
+        TimeSpan delay,
+        PipelineRecordDistributionContext? distribution = null)
+    {
+        Record = Guard.Against.Null(record, nameof(record));
+        Container = Guard.Against.Null(container, nameof(container));
+        Fault = Guard.Against.Null(fault, nameof(fault));
+        AttemptNumber = Guard.Against.NegativeOrZero(attemptNumber, nameof(attemptNumber));
+        MaxAttempts = Guard.Against.NegativeOrZero(maxAttempts, nameof(maxAttempts));
+        Delay = delay;
+        Distribution = distribution;
+    }
+
+    public T Record { get; }
+
+    public PipelineContainer<T> Container { get; }
+
+    public PipelineFaultState Fault { get; }
+
+    public int AttemptNumber { get; }
+
+    public int MaxAttempts { get; }
+
+    public TimeSpan Delay { get; }
+
+    public PipelineRecordDistributionContext? Distribution { get; }
+
+    public string ComponentName => Fault.ComponentName;
+
+    public PipelineComponentKind ComponentKind => Fault.ComponentKind;
+
+    public Exception Exception => Fault.Exception;
 }
 
 public delegate void PipelineFaultedEventHandler(object sender, PipelineFaultedEventArgs args);

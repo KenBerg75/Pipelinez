@@ -19,6 +19,9 @@ internal sealed class PipelinePerformanceCollector : IPipelinePerformanceCollect
     private long _publishedCount;
     private long _completedCount;
     private long _faultedCount;
+    private long _retryCount;
+    private long _retryRecoveries;
+    private long _retryExhaustions;
     private long _totalEndToEndLatencyTicks;
 
     public PipelinePerformanceCollector(PipelineMetricsOptions metricsOptions)
@@ -92,6 +95,45 @@ internal sealed class PipelinePerformanceCollector : IPipelinePerformanceCollect
         }
     }
 
+    public void RecordRetryAttempt()
+    {
+        if (!_metricsOptions.EnableRuntimeMetrics)
+        {
+            return;
+        }
+
+        lock (_syncLock)
+        {
+            _retryCount++;
+        }
+    }
+
+    public void RecordRetryRecovery()
+    {
+        if (!_metricsOptions.EnableRuntimeMetrics)
+        {
+            return;
+        }
+
+        lock (_syncLock)
+        {
+            _retryRecoveries++;
+        }
+    }
+
+    public void RecordRetryExhausted()
+    {
+        if (!_metricsOptions.EnableRuntimeMetrics)
+        {
+            return;
+        }
+
+        lock (_syncLock)
+        {
+            _retryExhaustions++;
+        }
+    }
+
     public PipelinePerformanceSnapshot CreateSnapshot()
     {
         lock (_syncLock)
@@ -128,6 +170,9 @@ internal sealed class PipelinePerformanceCollector : IPipelinePerformanceCollect
                 _publishedCount,
                 _completedCount,
                 _faultedCount,
+                _retryCount,
+                _retryRecoveries,
+                _retryExhaustions,
                 totalFinished / elapsedSeconds,
                 averageLatency,
                 componentSnapshots);

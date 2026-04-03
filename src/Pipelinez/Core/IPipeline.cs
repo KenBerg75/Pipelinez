@@ -49,6 +49,11 @@ public interface IPipeline<T> where T : PipelineRecord
     event PipelineRecordFaultedEventHandler<T> OnPipelineRecordFaulted;
 
     /// <summary>
+    /// Event that is raised when a record is scheduled for retry after a transient failure.
+    /// </summary>
+    event PipelineRecordRetryingEventHandler<T> OnPipelineRecordRetrying;
+
+    /// <summary>
     /// Event that is raised when the pipeline transitions into a faulted state.
     /// </summary>
     event PipelineFaultedEventHandler OnPipelineFaulted;

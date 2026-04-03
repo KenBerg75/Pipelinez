@@ -53,6 +53,7 @@ The core builder currently supports:
 - `WithInMemoryDestination(...)`
 - `UseHostOptions(...)`
 - `UsePerformanceOptions(...)`
+- `UseRetryOptions(...)`
 - `UseLogger(...)`
 - `WithErrorHandler(...)`
 
@@ -81,6 +82,8 @@ Performance options are resolved at build time and applied to sources, segments,
   convenience flag for fault checks
 - `SegmentHistory`
   ordered `PipelineSegmentExecution` entries that capture segment execution results
+- `RetryHistory`
+  ordered `PipelineRetryAttempt` entries that capture retry failures and scheduled delays before terminal success or exhaustion
 
 This container is the runtime boundary object shared by sources, segments, destinations, error handling, and transport adapters.
 
@@ -106,10 +109,11 @@ Segments derive from `PipelineSegment<T>`, which wraps a `TransformBlock<Pipelin
 For each container:
 
 1. the segment checks whether the container already has a fault
-2. the segment executes `ExecuteAsync(T arg)`
-3. the returned record replaces `PipelineContainer<T>.Record`
-4. the segment appends a `PipelineSegmentExecution` entry to `SegmentHistory`
-5. if an exception occurs, the segment marks the container faulted and allows downstream error handling to decide what to do
+2. the segment executes `ExecuteAsync(T arg)` under the configured retry policy, if one exists
+3. retry attempts are appended to `RetryHistory` and retry events are raised before each delayed retry
+4. the returned record replaces `PipelineContainer<T>.Record`
+5. the segment appends a `PipelineSegmentExecution` entry to `SegmentHistory`
+6. if execution still fails after retries are exhausted, the segment marks the container faulted and allows downstream error handling to decide what to do
 
 This keeps the segment authoring model simple while still preserving runtime-level observability.
 Segments now also support configurable `DegreeOfParallelism`, `BoundedCapacity`, and `EnsureOrdered` behavior through `PipelineExecutionOptions`.
@@ -123,8 +127,9 @@ The destination loop:
 1. receives completed containers from upstream
 2. checks for pre-faulted containers
 3. delegates fault-policy decisions back to the pipeline when needed
-4. executes `ExecuteAsync(T record, CancellationToken cancellationToken)` for successful containers
-5. raises container-completed and record-completed events only after successful destination execution
+4. executes `ExecuteAsync(T record, CancellationToken cancellationToken)` or batch execution for successful containers under the configured retry policy
+5. records retry attempts on the container when destination execution fails transiently
+6. raises container-completed and record-completed events only after successful destination execution
 
 Destination execution is fully async, and destination `Completion` now represents the full destination work lifecycle rather than only message-buffer completion.
 Destinations also support optional batched execution when they implement `IBatchedPipelineDestination<T>` and batching is enabled through `PipelinePerformanceOptions`.
@@ -185,6 +190,9 @@ Segment defaults remain conservative, but callers can now opt into higher-throug
 
 - elapsed runtime
 - total published, completed, and faulted record counts
+- total retry count
+- successful retry recovery count
+- retry exhaustion count
 - calculated records-per-second
 - average end-to-end latency
 - per-component performance snapshots
@@ -285,6 +293,56 @@ For Kafka-backed distributed execution, that context includes:
 
 This makes per-record ownership and replay diagnostics available directly to consumers without forcing them to inspect raw metadata collections.
 
+## Retry Model
+
+Pipelinez now has a first-class retry model for transient failures in segments and destinations.
+
+### Retry Configuration
+
+Retry behavior is configured through `UseRetryOptions(...)` and component-level overloads on the builder.
+
+`PipelineRetryOptions<T>` can provide:
+
+- `DefaultSegmentPolicy`
+- `DestinationPolicy`
+- `EmitRetryEvents`
+
+Component-specific policies can override those defaults when calling `AddSegment(...)` or `WithDestination(...)`.
+
+The built-in policy factories are:
+
+- `PipelineRetryPolicy<T>.None()`
+- `PipelineRetryPolicy<T>.FixedDelay(...)`
+- `PipelineRetryPolicy<T>.ExponentialBackoff(...)`
+
+Policies can then be narrowed with exception filters using `Handle<TException>()` or `Handle(...)`.
+
+### Retry Execution
+
+Retry execution is handled by a shared internal retry executor rather than duplicated independently in each component type.
+
+For each retry-aware execution path:
+
+1. the component attempts the operation
+2. the policy evaluates whether the exception is retryable
+3. a `PipelineRetryAttempt` is appended to `RetryHistory`
+4. `OnPipelineRecordRetrying` is raised when retry events are enabled
+5. the runtime waits for the configured delay, honoring pipeline cancellation
+6. the operation is attempted again
+7. if retries are exhausted, normal fault handling begins
+
+If a later attempt succeeds, the container is not marked faulted and normal processing continues.
+
+### Retry Observability
+
+Retry behavior is visible through:
+
+- `PipelineContainer<T>.RetryHistory`
+- `OnPipelineRecordRetrying`
+- retry counters in `PipelinePerformanceSnapshot`
+
+This makes the difference between transient recovery and terminal failure visible in both event handlers and runtime diagnostics.
+
 ## Fault Handling And Error Policies
 
 Fault handling is now a first-class part of the runtime.
@@ -305,6 +363,8 @@ Segment-level execution history is preserved separately in `SegmentHistory`.
 
 The pipeline exposes:
 
+- `OnPipelineRecordRetrying`
+  raised when a record is scheduled for another attempt after a retryable failure
 - `OnPipelineRecordCompleted`
   raised after a record successfully completes the entire pipeline
 - `OnPipelineRecordFaulted`
@@ -321,6 +381,9 @@ The builder supports `WithErrorHandler(...)` with sync or async handlers. The ha
 - the exception
 - the `PipelineContainer<T>`
 - the captured `PipelineFaultState`
+- `RetryHistory`
+- `RetryAttemptCount`
+- `RetryExhausted`
 - the runtime cancellation token
 
 The handler returns a `PipelineErrorAction`:
@@ -333,6 +396,7 @@ The handler returns a `PipelineErrorAction`:
   mark the pipeline faulted and surface the original exception path
 
 If no handler is configured, the default behavior is to stop the pipeline on fault.
+Retries always run before the error handler is invoked. If retry eventually succeeds, the error handler is never called. If retry is exhausted, the handler receives the populated retry context and can decide whether to skip, stop, or rethrow.
 
 ## Status And Observability
 
@@ -359,7 +423,7 @@ Reported execution status is derived from task state and runtime fault state:
 For distributed sources, this status reflects live ownership while the worker is active. For Kafka specifically, owned partitions are cleared on shutdown when the consumer leaves the group and revocation is observed.
 
 Logging is managed through the internal `LoggingManager`, which wraps an `ILoggerFactory`. If the caller never supplies a logger factory, the runtime falls back to a null logger factory.
-The runtime now also exposes additive performance metrics through `GetPerformanceSnapshot()` rather than relying only on logs for throughput diagnostics.
+The runtime now also exposes additive performance metrics through `GetPerformanceSnapshot()` rather than relying only on logs for throughput diagnostics, including retry counts and retry recovery/exhaustion totals.
 
 ## Kafka Integration
 
@@ -456,6 +520,7 @@ The solution now includes two test layers.
 - async destination behavior
 - fault tracking and pipeline fault events
 - error-handler policies
+- retry policy behavior, retry events, retry exhaustion, and retry-aware error handling
 - logger integration
 - builder-surface expectations
 - performance-option propagation and override precedence
@@ -472,6 +537,7 @@ The solution now includes two test layers.
 - segment fault handling with `SkipRecord`, `StopPipeline`, and `Rethrow`
 - destination fault handling
 - record-fault and pipeline-fault event behavior
+- transient segment failures that recover under retry
 - offset commit and replay behavior across pipeline runs
 - distributed worker startup, rebalance, and shutdown behavior across multiple pipeline instances
 - record-level worker and partition context on successful and faulted records
@@ -493,6 +559,7 @@ The major architectural work called out in the earlier planning docs has been im
 - Docker-backed Kafka integration tests
 - explicit distributed execution mode with worker identity, partition ownership, and rebalance events
 - explicit performance tuning controls, built-in performance snapshots, destination batching, and a benchmark project
+- explicit retry policies with retry history, retry events, and retry-aware performance counters
 
 The remaining work is mostly future evolution work rather than foundational cleanup. Likely areas include broader transport coverage, schema-registry integration tests, and further runtime ergonomics.
 
@@ -504,14 +571,16 @@ The simplest way to think about Pipelinez is:
 2. choose where records come from
 3. chain one or more `PipelineSegment<T>` transforms
 4. choose where processed records end up
-5. optionally configure fault policy through `WithErrorHandler(...)`
-6. observe success or failure through the public pipeline events
+5. optionally configure retry behavior through `UseRetryOptions(...)`
+6. optionally configure fault policy through `WithErrorHandler(...)`
+7. observe retry, success, or failure through the public pipeline events
 
 Under the hood, Pipelinez is a thin framework over TPL Dataflow that standardizes:
 
 - record wrapping
 - metadata flow
 - fault capture
+- retry execution
 - completion semantics
 - logging
 - transport-specific adapters such as Kafka

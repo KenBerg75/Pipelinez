@@ -1,6 +1,7 @@
 using Ardalis.GuardClauses;
 using Pipelinez.Core.FaultHandling;
 using Pipelinez.Core.Record;
+using Pipelinez.Core.Retry;
 
 namespace Pipelinez.Core.ErrorHandling;
 
@@ -31,4 +32,10 @@ public sealed class PipelineErrorContext<T> where T : PipelineRecord
     public PipelineComponentKind ComponentKind => Fault.ComponentKind;
 
     public CancellationToken CancellationToken { get; }
+
+    public IReadOnlyList<PipelineRetryAttempt> RetryHistory => Container.RetryHistory.ToArray();
+
+    public int RetryAttemptCount => Container.RetryHistory.Count;
+
+    public bool RetryExhausted => RetryAttemptCount > 0;
 }
