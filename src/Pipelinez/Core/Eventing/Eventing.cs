@@ -1,4 +1,5 @@
 using Ardalis.GuardClauses;
+using Pipelinez.Core.Distributed;
 using Pipelinez.Core.FaultHandling;
 using Pipelinez.Core.Record;
 
@@ -31,10 +32,15 @@ public delegate void PipelineRecordCompletedEventHandler<T>(object sender, Pipel
 public sealed class PipelineRecordCompletedEventHandlerArgs<T>
 {
     public T Record { get; }
-    
-    public PipelineRecordCompletedEventHandlerArgs(T record)
+
+    public PipelineRecordDistributionContext? Distribution { get; }
+
+    public PipelineRecordCompletedEventHandlerArgs(
+        T record,
+        PipelineRecordDistributionContext? distribution = null)
     {
         Record = record;
+        Distribution = distribution;
     }
 }
 
@@ -47,11 +53,13 @@ public sealed class PipelineRecordFaultedEventArgs<T> where T : PipelineRecord
     public PipelineRecordFaultedEventArgs(
         T record,
         PipelineContainer<T> container,
-        PipelineFaultState fault)
+        PipelineFaultState fault,
+        PipelineRecordDistributionContext? distribution = null)
     {
         Record = Guard.Against.Null(record, nameof(record));
         Container = Guard.Against.Null(container, nameof(container));
         Fault = Guard.Against.Null(fault, nameof(fault));
+        Distribution = distribution;
     }
 
     public T Record { get; }
@@ -59,6 +67,8 @@ public sealed class PipelineRecordFaultedEventArgs<T> where T : PipelineRecord
     public PipelineContainer<T> Container { get; }
 
     public PipelineFaultState Fault { get; }
+
+    public PipelineRecordDistributionContext? Distribution { get; }
 }
 
 public delegate void PipelineFaultedEventHandler(object sender, PipelineFaultedEventArgs args);
@@ -80,4 +90,66 @@ public sealed class PipelineFaultedEventArgs
     public string ComponentName => Fault.ComponentName;
 
     public PipelineComponentKind ComponentKind => Fault.ComponentKind;
+}
+
+public delegate void PipelineWorkerStartedEventHandler(object sender, PipelineWorkerStartedEventArgs args);
+
+public sealed class PipelineWorkerStartedEventArgs
+{
+    public PipelineWorkerStartedEventArgs(PipelineRuntimeContext runtimeContext)
+    {
+        RuntimeContext = Guard.Against.Null(runtimeContext, nameof(runtimeContext));
+    }
+
+    public PipelineRuntimeContext RuntimeContext { get; }
+}
+
+public delegate void PipelineWorkerStoppingEventHandler(object sender, PipelineWorkerStoppingEventArgs args);
+
+public sealed class PipelineWorkerStoppingEventArgs
+{
+    public PipelineWorkerStoppingEventArgs(PipelineRuntimeContext runtimeContext)
+    {
+        RuntimeContext = Guard.Against.Null(runtimeContext, nameof(runtimeContext));
+    }
+
+    public PipelineRuntimeContext RuntimeContext { get; }
+}
+
+public delegate void PipelinePartitionsAssignedEventHandler(object sender, PipelinePartitionsAssignedEventArgs args);
+
+public sealed class PipelinePartitionsAssignedEventArgs
+{
+    public PipelinePartitionsAssignedEventArgs(
+        PipelineRuntimeContext runtimeContext,
+        IReadOnlyList<PipelinePartitionLease> partitions)
+    {
+        RuntimeContext = Guard.Against.Null(runtimeContext, nameof(runtimeContext));
+        Partitions = Guard.Against.Null(partitions, nameof(partitions)).ToArray();
+    }
+
+    public PipelineRuntimeContext RuntimeContext { get; }
+
+    public string WorkerId => RuntimeContext.WorkerId;
+
+    public IReadOnlyList<PipelinePartitionLease> Partitions { get; }
+}
+
+public delegate void PipelinePartitionsRevokedEventHandler(object sender, PipelinePartitionsRevokedEventArgs args);
+
+public sealed class PipelinePartitionsRevokedEventArgs
+{
+    public PipelinePartitionsRevokedEventArgs(
+        PipelineRuntimeContext runtimeContext,
+        IReadOnlyList<PipelinePartitionLease> partitions)
+    {
+        RuntimeContext = Guard.Against.Null(runtimeContext, nameof(runtimeContext));
+        Partitions = Guard.Against.Null(partitions, nameof(partitions)).ToArray();
+    }
+
+    public PipelineRuntimeContext RuntimeContext { get; }
+
+    public string WorkerId => RuntimeContext.WorkerId;
+
+    public IReadOnlyList<PipelinePartitionLease> Partitions { get; }
 }

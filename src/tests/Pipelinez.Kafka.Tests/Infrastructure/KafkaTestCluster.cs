@@ -92,6 +92,19 @@ public sealed class KafkaTestCluster : IAsyncLifetime, IAsyncDisposable
         producer.Flush(TimeSpan.FromSeconds(10));
     }
 
+    public async Task ProduceToPartitionAsync(string topicName, int partition, IEnumerable<Message<string, string>> messages)
+    {
+        using var producer = new ProducerBuilder<string, string>(CreateProducerConfig()).Build();
+        var topicPartition = new TopicPartition(topicName, new Partition(partition));
+
+        foreach (var message in messages)
+        {
+            await producer.ProduceAsync(topicPartition, message).ConfigureAwait(false);
+        }
+
+        producer.Flush(TimeSpan.FromSeconds(10));
+    }
+
     public async Task<IReadOnlyList<ConsumeResult<string, string>>> ConsumeAsync(
         string topicName,
         int expectedCount,

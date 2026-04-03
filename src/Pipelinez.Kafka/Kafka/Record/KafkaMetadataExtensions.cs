@@ -1,4 +1,5 @@
 using Confluent.Kafka;
+using Pipelinez.Core.Distributed;
 using Pipelinez.Core.Record.Metadata;
 
 namespace Pipelinez.Kafka.Record;
@@ -14,12 +15,29 @@ public static class KafkaMetadataExtensions
     public static MetadataCollection ExtractMetadata(this TopicPartitionOffset topicPartitionOffset)
     {
         var metadata = new MetadataCollection();
+        var partitionKey = BuildPartitionKey(topicPartitionOffset.Topic, topicPartitionOffset.Partition.Value);
+        var leaseId = BuildLeaseId(topicPartitionOffset.Topic, topicPartitionOffset.Partition.Value);
         
         // Add the metadata records to support transactional processing
         metadata.Add(new MetadataRecord(KafkaMetadataKeys.SOURCE_TOPIC_NAME, topicPartitionOffset.Topic));
         metadata.Add(new MetadataRecord(KafkaMetadataKeys.SOURCE_PARTITION, Convert.ToString(topicPartitionOffset.Partition.Value)));
         metadata.Add(new MetadataRecord(KafkaMetadataKeys.SOURCE_OFFSET, Convert.ToString(topicPartitionOffset.Offset.Value)));
+        metadata.Add(new MetadataRecord(DistributedMetadataKeys.TransportName, "Kafka"));
+        metadata.Add(new MetadataRecord(DistributedMetadataKeys.LeaseId, leaseId));
+        metadata.Add(new MetadataRecord(DistributedMetadataKeys.PartitionKey, partitionKey));
+        metadata.Add(new MetadataRecord(DistributedMetadataKeys.PartitionId, Convert.ToString(topicPartitionOffset.Partition.Value)));
+        metadata.Add(new MetadataRecord(DistributedMetadataKeys.Offset, Convert.ToString(topicPartitionOffset.Offset.Value)));
 
         return metadata;
+    }
+
+    public static string BuildPartitionKey(string topicName, int partitionId)
+    {
+        return $"{topicName}:{partitionId}";
+    }
+
+    public static string BuildLeaseId(string topicName, int partitionId)
+    {
+        return $"kafka:{topicName}:{partitionId}";
     }
 }

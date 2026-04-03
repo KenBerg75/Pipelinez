@@ -1,5 +1,6 @@
 using Ardalis.GuardClauses;
 using Microsoft.Extensions.Logging;
+using Pipelinez.Core.Distributed;
 using Pipelinez.Core.Destination;
 using Pipelinez.Core.ErrorHandling;
 using Pipelinez.Core.Logging;
@@ -20,6 +21,7 @@ public class PipelineBuilder<T>(string pipelineName)
     private IList<IPipelineSegment<T>> _segments = new List<IPipelineSegment<T>>();
     private IPipelineDestination<T>? _destination;
     private PipelineErrorHandler<T>? _errorHandler;
+    private PipelineHostOptions _hostOptions = new();
     
     #endregion
     
@@ -72,6 +74,16 @@ public class PipelineBuilder<T>(string pipelineName)
     }
     
     #endregion
+
+    #region Hosting
+
+    public PipelineBuilder<T> UseHostOptions(PipelineHostOptions options)
+    {
+        _hostOptions = Guard.Against.Null(options, nameof(options));
+        return this;
+    }
+
+    #endregion
     
     #region Error Handling
     
@@ -97,10 +109,19 @@ public class PipelineBuilder<T>(string pipelineName)
         // Validate that we have at least a source and destination
         Guard.Against.Null(this._source, message: "Pipeline must have a source defined before it is built");
         Guard.Against.Null(this._destination, message: "Pipeline must have a destination defined before it is built");
+
+        if (_hostOptions.ExecutionMode == PipelineExecutionMode.Distributed)
+        {
+            if (_source is not IDistributedPipelineSource<T> distributedSource || !distributedSource.SupportsDistributedExecution)
+            {
+                throw new InvalidOperationException(
+                    $"Pipeline '{PipelineName}' is configured for distributed execution, but source '{_source.GetType().Name}' does not support distributed ownership.");
+            }
+        }
         
         // Create a 'Pipeline' object passing all components and linking them
         // i.e. build the pipeline by linking source->segments->destination
-        var pipeline = new Pipeline<T>(pipelineName, this._source, this._destination, this._segments, _errorHandler);
+        var pipeline = new Pipeline<T>(pipelineName, this._source, this._destination, this._segments, _errorHandler, _hostOptions);
         pipeline.LinkPipeline();
         pipeline.InitializePipeline();
         //return the pipeline

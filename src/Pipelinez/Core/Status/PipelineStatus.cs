@@ -1,16 +1,23 @@
+using Pipelinez.Core.Distributed;
+
 namespace Pipelinez.Core.Status;
 
 public class PipelineStatus
 {
-    public PipelineStatus(IList<PipelineComponentStatus> components, PipelineExecutionStatus? runtimeStatus = null)
+    public PipelineStatus(
+        IList<PipelineComponentStatus> components,
+        PipelineExecutionStatus? runtimeStatus = null,
+        PipelineDistributedStatus? distributedStatus = null)
     {
         Components = components;
         RuntimeStatus = runtimeStatus;
+        DistributedStatus = distributedStatus;
     }
     
     public PipelineExecutionStatus Status => GetStatus();
     public IList<PipelineComponentStatus> Components { get; }
     public PipelineExecutionStatus? RuntimeStatus { get; }
+    public PipelineDistributedStatus? DistributedStatus { get; }
     
     private PipelineExecutionStatus GetStatus()
     {

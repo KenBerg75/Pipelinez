@@ -1,6 +1,7 @@
 using System.Threading.Tasks.Dataflow;
 using Ardalis.GuardClauses;
 using Microsoft.Extensions.Logging;
+using Pipelinez.Core.Distributed;
 using Pipelinez.Core.Destination;
 using Pipelinez.Core.ErrorHandling;
 using Pipelinez.Core.Eventing;
@@ -47,13 +48,20 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
     private readonly IList<IPipelineSegment<TPipelineRecord>> _segments;
     private readonly IPipelineDestination<TPipelineRecord> _destination;
     private readonly PipelineErrorHandler<TPipelineRecord>? _errorHandler;
+    private readonly PipelineHostOptions _hostOptions;
+    private readonly string _instanceId;
+    private readonly string _workerId;
     private readonly object _stateLock = new();
+    private readonly object _distributionLock = new();
     private readonly TaskCompletionSource _completionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private CancellationTokenSource? _runtimeCancellationTokenSource;
     private CancellationTokenRegistration _cancellationRegistration;
     private PipelineRuntimeState _state = PipelineRuntimeState.NotStarted;
     private PipelineFaultState? _pipelineFault;
+    private IReadOnlyList<PipelinePartitionLease> _ownedPartitions = Array.Empty<PipelinePartitionLease>();
+    private bool _workerStartedRaised;
+    private bool _workerStoppingRaised;
     
     #endregion
     
@@ -89,6 +97,26 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
     public event PipelineFaultedEventHandler? OnPipelineFaulted;
 
     /// <summary>
+    /// Occurs when the distributed worker starts.
+    /// </summary>
+    public event PipelineWorkerStartedEventHandler? OnWorkerStarted;
+
+    /// <summary>
+    /// Occurs when partitions are assigned to the current distributed worker.
+    /// </summary>
+    public event PipelinePartitionsAssignedEventHandler? OnPartitionsAssigned;
+
+    /// <summary>
+    /// Occurs when partitions are revoked from the current distributed worker.
+    /// </summary>
+    public event PipelinePartitionsRevokedEventHandler? OnPartitionsRevoked;
+
+    /// <summary>
+    /// Occurs when the distributed worker begins stopping.
+    /// </summary>
+    public event PipelineWorkerStoppingEventHandler? OnWorkerStopping;
+
+    /// <summary>
     /// Occurs when the pipeline container has completed traversing the pipeline
     /// </summary>
     internal event PipelineContainerCompletedEventHandler<PipelineContainer<TPipelineRecord>>?
@@ -103,7 +131,11 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
         // 1 - lets the source know that the record has completed so it can apply any transactional commits if needed
         // 2 - lets pipeline users know that the record has completed
         OnPipelineContainerCompelted?.Invoke(this, evt);
-        OnPipelineRecordCompleted?.Invoke(this, new PipelineRecordCompletedEventHandlerArgs<TPipelineRecord>(evt.Container.Record));
+        OnPipelineRecordCompleted?.Invoke(
+            this,
+            new PipelineRecordCompletedEventHandlerArgs<TPipelineRecord>(
+                evt.Container.Record,
+                BuildDistributionContext(evt.Container.Metadata)));
     }
 
     internal async Task<PipelineErrorAction> HandleFaultedContainerAsync(PipelineContainer<TPipelineRecord> container)
@@ -117,7 +149,11 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
 
         OnPipelineRecordFaulted?.Invoke(
             this,
-            new PipelineRecordFaultedEventArgs<TPipelineRecord>(container.Record, container, container.Fault));
+            new PipelineRecordFaultedEventArgs<TPipelineRecord>(
+                container.Record,
+                container,
+                container.Fault,
+                BuildDistributionContext(container.Metadata)));
 
         var action = await ResolveErrorActionAsync(container, container.Fault).ConfigureAwait(false);
 
@@ -144,8 +180,13 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
 
     #region Construction
     
-    internal Pipeline(string name, IPipelineSource<TPipelineRecord> source, IPipelineDestination<TPipelineRecord> destination, 
-        IList<IPipelineSegment<TPipelineRecord>> segments, PipelineErrorHandler<TPipelineRecord>? errorHandler = null)
+    internal Pipeline(
+        string name,
+        IPipelineSource<TPipelineRecord> source,
+        IPipelineDestination<TPipelineRecord> destination,
+        IList<IPipelineSegment<TPipelineRecord>> segments,
+        PipelineErrorHandler<TPipelineRecord>? errorHandler = null,
+        PipelineHostOptions? hostOptions = null)
     {
         Guard.Against.NullOrEmpty(name, message: "Pipeline must have a name");
         Guard.Against.Null(source, message: "Pipeline must have a valid source");
@@ -158,6 +199,13 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
         this._destination = destination;
         this._segments = segments;
         this._errorHandler = errorHandler;
+        _hostOptions = hostOptions ?? new PipelineHostOptions();
+        _instanceId = string.IsNullOrWhiteSpace(_hostOptions.InstanceId)
+            ? Environment.MachineName
+            : _hostOptions.InstanceId;
+        _workerId = string.IsNullOrWhiteSpace(_hostOptions.WorkerId)
+            ? $"{_name}-{Guid.NewGuid():N}"
+            : _hostOptions.WorkerId;
     }
 
     internal void LinkPipeline()
@@ -235,7 +283,14 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
             }
         }
 
-        Logger.LogInformation("Pipeline started: {PipelineName}", _name);
+        Logger.LogInformation(
+            "Pipeline started: {PipelineName}, Mode: {ExecutionMode}, InstanceId: {InstanceId}, WorkerId: {WorkerId}",
+            _name,
+            _hostOptions.ExecutionMode,
+            _instanceId,
+            _workerId);
+
+        RaiseWorkerStartedIfNeeded();
         return Task.CompletedTask;
     }
 
@@ -314,7 +369,21 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
         components.Add(new PipelineComponentStatus(_destination.GetType().Name, _destination.Completion.Status.ToPipelineExecutionStatus()));
         return new PipelineStatus(
             components,
-            _state == PipelineRuntimeState.Faulted ? PipelineExecutionStatus.Faulted : null);
+            _state == PipelineRuntimeState.Faulted ? PipelineExecutionStatus.Faulted : null,
+            GetDistributedStatus());
+    }
+
+    public PipelineRuntimeContext GetRuntimeContext()
+    {
+        lock (_distributionLock)
+        {
+            return new PipelineRuntimeContext(
+                _name,
+                _hostOptions.ExecutionMode,
+                _instanceId,
+                _workerId,
+                _ownedPartitions);
+        }
     }
 
     private void EnsurePipelineStartedForPublish()
@@ -329,6 +398,65 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
         }
     }
 
+    internal void ReportAssignedPartitions(IReadOnlyList<PipelinePartitionLease> assignedPartitions)
+    {
+        Guard.Against.Null(assignedPartitions, nameof(assignedPartitions));
+
+        PipelineRuntimeContext runtimeContext;
+
+        lock (_distributionLock)
+        {
+            var activeLeases = _ownedPartitions
+                .Concat(assignedPartitions)
+                .GroupBy(lease => lease.LeaseId, StringComparer.OrdinalIgnoreCase)
+                .Select(group => group.Last())
+                .ToArray();
+
+            _ownedPartitions = activeLeases;
+            runtimeContext = new PipelineRuntimeContext(
+                _name,
+                _hostOptions.ExecutionMode,
+                _instanceId,
+                _workerId,
+                _ownedPartitions);
+        }
+
+        if (assignedPartitions.Count > 0)
+        {
+            OnPartitionsAssigned?.Invoke(this, new PipelinePartitionsAssignedEventArgs(runtimeContext, assignedPartitions));
+        }
+    }
+
+    internal void ReportRevokedPartitions(IReadOnlyList<PipelinePartitionLease> revokedPartitions)
+    {
+        Guard.Against.Null(revokedPartitions, nameof(revokedPartitions));
+
+        PipelineRuntimeContext runtimeContext;
+
+        lock (_distributionLock)
+        {
+            var revokedLeaseIds = revokedPartitions
+                .Select(lease => lease.LeaseId)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            _ownedPartitions = _ownedPartitions
+                .Where(lease => !revokedLeaseIds.Contains(lease.LeaseId))
+                .ToArray();
+
+            runtimeContext = new PipelineRuntimeContext(
+                _name,
+                _hostOptions.ExecutionMode,
+                _instanceId,
+                _workerId,
+                _ownedPartitions);
+        }
+
+        if (revokedPartitions.Count > 0)
+        {
+            OnPartitionsRevoked?.Invoke(this, new PipelinePartitionsRevokedEventArgs(runtimeContext, revokedPartitions));
+        }
+    }
+
     private void HandleCancellationRequested()
     {
         lock (_stateLock)
@@ -338,6 +466,8 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
                 _state = PipelineRuntimeState.Completing;
             }
         }
+
+        RaiseWorkerStoppingIfNeeded();
 
         try
         {
@@ -467,6 +597,96 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
             FaultPipeline(handlerFault);
             throw;
         }
+    }
+
+    private PipelineDistributedStatus GetDistributedStatus()
+    {
+        lock (_distributionLock)
+        {
+            return new PipelineDistributedStatus(
+                _hostOptions.ExecutionMode,
+                _instanceId,
+                _workerId,
+                _ownedPartitions);
+        }
+    }
+
+    private PipelineRecordDistributionContext BuildDistributionContext(Pipelinez.Core.Record.Metadata.MetadataCollection metadata)
+    {
+        return new PipelineRecordDistributionContext(
+            _instanceId,
+            _workerId,
+            metadata.GetValue(DistributedMetadataKeys.TransportName),
+            metadata.GetValue(DistributedMetadataKeys.LeaseId),
+            metadata.GetValue(DistributedMetadataKeys.PartitionKey),
+            TryParseInt(metadata.GetValue(DistributedMetadataKeys.PartitionId)),
+            TryParseLong(metadata.GetValue(DistributedMetadataKeys.Offset)));
+    }
+
+    private void RaiseWorkerStartedIfNeeded()
+    {
+        if (_hostOptions.ExecutionMode != PipelineExecutionMode.Distributed)
+        {
+            return;
+        }
+
+        PipelineRuntimeContext? runtimeContext = null;
+
+        lock (_distributionLock)
+        {
+            if (_workerStartedRaised)
+            {
+                return;
+            }
+
+            _workerStartedRaised = true;
+            runtimeContext = new PipelineRuntimeContext(
+                _name,
+                _hostOptions.ExecutionMode,
+                _instanceId,
+                _workerId,
+                _ownedPartitions);
+        }
+
+        OnWorkerStarted?.Invoke(this, new PipelineWorkerStartedEventArgs(runtimeContext));
+    }
+
+    private void RaiseWorkerStoppingIfNeeded()
+    {
+        if (_hostOptions.ExecutionMode != PipelineExecutionMode.Distributed)
+        {
+            return;
+        }
+
+        PipelineRuntimeContext? runtimeContext = null;
+
+        lock (_distributionLock)
+        {
+            if (_workerStoppingRaised)
+            {
+                return;
+            }
+
+            _workerStoppingRaised = true;
+            runtimeContext = new PipelineRuntimeContext(
+                _name,
+                _hostOptions.ExecutionMode,
+                _instanceId,
+                _workerId,
+                _ownedPartitions);
+        }
+
+        OnWorkerStopping?.Invoke(this, new PipelineWorkerStoppingEventArgs(runtimeContext));
+    }
+
+    private static int? TryParseInt(string? value)
+    {
+        return int.TryParse(value, out var parsed) ? parsed : null;
+    }
+
+    private static long? TryParseLong(string? value)
+    {
+        return long.TryParse(value, out var parsed) ? parsed : null;
     }
 
     private PipelineFaultState CreatePipelineFaultFromTasks(

@@ -81,6 +81,23 @@ public class MetadataCollection : IList<MetadataRecord>
         return null;
     }
 
+    public string? GetValue(string key)
+    {
+        return GetByKey(key)?.Value;
+    }
+
+    public void Set(string key, string value)
+    {
+        var existingRecord = GetByKey(key);
+        if (existingRecord is not null)
+        {
+            existingRecord.Value = value;
+            return;
+        }
+
+        Add(new MetadataRecord(key, value));
+    }
+
     public MetadataRecord this[int index]
     {
         get => _internalList[index];
