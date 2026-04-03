@@ -6,7 +6,7 @@ namespace Pipelinez.Tests.Core.SegmentTests;
 public class PipelineSegmentTests
 {
     [Fact]
-    public async void Pipeline_Segment_Operates_As_Expected()
+    public async Task Pipeline_Segment_Operates_As_Expected()
     {
         var testRecord = new TestSegmentModel()
         {
@@ -25,7 +25,7 @@ public class PipelineSegmentTests
             Assert.Equal(testRecord.FirstValue + testRecord.SecondValue, args.Record.AddResult);
         };
 
-        pipeline.StartPipelineAsync(new CancellationTokenSource());
+        await pipeline.StartPipelineAsync();
         
         await pipeline.PublishAsync(testRecord);
         
@@ -35,7 +35,7 @@ public class PipelineSegmentTests
     
     
     [Fact]
-    public async void Pipeline_Multiple_Segment_Operates_As_Expected()
+    public async Task Pipeline_Multiple_Segment_Operates_As_Expected()
     {
         var testRecord = new TestSegmentModel()
         {
@@ -56,7 +56,7 @@ public class PipelineSegmentTests
             Assert.Equal(testRecord.FirstValue * testRecord.SecondValue, args.Record.MultiplyResult);
         };
 
-        pipeline.StartPipelineAsync(new CancellationTokenSource());
+        await pipeline.StartPipelineAsync();
         
         await pipeline.PublishAsync(testRecord);
         
@@ -65,7 +65,7 @@ public class PipelineSegmentTests
     }
     
     [Fact]
-    public async void Pipeline_Multiple_Segment_Ordering_Operates_As_Expected()
+    public async Task Pipeline_Multiple_Segment_Ordering_Operates_As_Expected()
     {
         var testRecord = new TestOrderModel();
         
@@ -81,7 +81,7 @@ public class PipelineSegmentTests
             Assert.True(args.Record.FirstStamp < args.Record.SecondStamp);
         };
 
-        pipeline.StartPipelineAsync(new CancellationTokenSource());
+        await pipeline.StartPipelineAsync();
         
         await pipeline.PublishAsync(testRecord);
         

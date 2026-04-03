@@ -71,12 +71,14 @@ pipeline.OnPipelineRecordCompleted += (sender, handlerArgs) =>
     Console.WriteLine($"[{handlerArgs.Record.RecordKey}]: {handlerArgs.Record.RecordValue}");
 };
 
+var pipelineStarted = false;
 
 try
 {
-    pipeline.StartPipelineAsync(token);
+    await pipeline.StartPipelineAsync(token.Token);
+    pipelineStarted = true;
     
-    Thread.Sleep(10000);
+    await Task.Delay(TimeSpan.FromSeconds(10), token.Token);
 
     //await pipeline.CompleteAsync();
     
@@ -92,7 +94,10 @@ catch (Exception ex)
 finally
 {
     timer.Dispose();
-    await pipeline.CompleteAsync();
+    if (pipelineStarted)
+    {
+        await pipeline.CompleteAsync();
+    }
     Log.Information("Application shutting down");
     Log.CloseAndFlush();
 }

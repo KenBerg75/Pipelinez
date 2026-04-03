@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Threading.Tasks.Dataflow;
 using Microsoft.Extensions.Logging;
+using Pipelinez.Core.FaultHandling;
 using Pipelinez.Core.Flow;
 using Pipelinez.Core.Logging;
 using Pipelinez.Core.Record;
@@ -9,7 +10,7 @@ namespace Pipelinez.Core.Segment;
 
 public abstract class PipelineSegment<T> : IPipelineSegment<T> where T : PipelineRecord
 {
-    private TransformBlock<PipelineContainer<T>, PipelineContainer<T>> _transformBlock = null;
+    private TransformBlock<PipelineContainer<T>, PipelineContainer<T>> _transformBlock = null!;
 
     /// <summary>
     /// Logger for the segment
@@ -68,49 +69,59 @@ public abstract class PipelineSegment<T> : IPipelineSegment<T> where T : Pipelin
     
     private async Task<PipelineContainer<T>> ExecuteInternal(PipelineContainer<T> arg)
     {
+        if (arg.HasFault)
+        {
+            return arg;
+        }
+
         // Reference the implementation provided by the inheriting class
         Func<T, Task<T>> transformMethod = this.ExecuteAsync;
-        
-        T? finalResult = null;
-        
-        // Should be the last thing we do before entering the try/catch{}
+        var segmentName = GetType().Name;
+        var startedAtUtc = DateTimeOffset.UtcNow;
+        string? failureMessage = null;
+        var succeeded = false;
         var stopwatch = Stopwatch.StartNew();
+
         try
         {
             Logger.LogTrace("Executing Segment");
             
             // Execute the worker method
-            finalResult = await transformMethod(arg.Record);
+            var finalResult = await transformMethod(arg.Record).ConfigureAwait(false);
+
+            if (finalResult is null)
+            {
+                throw new InvalidOperationException(
+                    $"Pipeline segment '{segmentName}' returned a null record.");
+            }
+
+            arg.Record = finalResult;
+            succeeded = true;
             
             Logger.LogTrace("Completed Segment Execution");
         }
         catch (Exception e)
         {
             Logger.LogError(e, "Error in pipeline segment block");
-
-            // Fault the message.
-            // Stops segments from processing
-            //sourceRecord.Fault(e);
+            failureMessage = e.Message;
+            arg.MarkFaulted(new PipelineFaultState(
+                e,
+                segmentName,
+                PipelineComponentKind.Segment,
+                DateTimeOffset.UtcNow,
+                e.Message));
         }
         finally
         {
             stopwatch.Stop();
-            
-            // TODO: Move/Refactor this
-            // Record that this segment has completed for the record
-            //sourceRecord.CompletedSegments.Add(new SegmentExecution(this.Name, stopwatch.ElapsedTicks, sourceRecord.IsFaulted()));
-            
-            //if (sourceRecord.IsFaulted())
-            //{
-            //    sourceRecord.ErrorMetadata.FaultedSegment = this.Name;
-                // put in DLQ
-            //    SendToErrorHandler(sourceRecord);
-            //}
+            arg.AddSegmentExecution(new PipelineSegmentExecution(
+                segmentName,
+                startedAtUtc,
+                startedAtUtc.Add(stopwatch.Elapsed),
+                succeeded,
+                failureMessage));
         }
-        
-        // ToDo: This will need to change as pipelinecontainer matures with metadata
-        // ToDo: Handle a NULL result
-        arg.Record = finalResult;
+
         return arg;
     }
     

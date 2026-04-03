@@ -38,12 +38,13 @@ public abstract class PipelineSourceBase<T> : IPipelineSource<T> where T : Pipel
         try
         {
             Logger.LogInformation("Starting up pipeline source");
-            await MainLoop(cancellationToken);
+            await MainLoop(cancellationToken).ConfigureAwait(false);
         }
         catch (Exception e)
         {
             Logger.LogError(e, "Error in the PipelineSource MainLoop()");
             Complete();
+            throw;
         }
     }
 
@@ -52,7 +53,7 @@ public abstract class PipelineSourceBase<T> : IPipelineSource<T> where T : Pipel
         // ToDo: Needs to be refactored - maybe move to a factory
         var container = new PipelineContainer<T>(record);
         
-        await _messageBuffer.SendAsync(container);
+        await _messageBuffer.SendAsync(container).ConfigureAwait(false);
         
         #region Old Implementation - left in case SendAsync doesn't support buffer full
         /*
@@ -81,7 +82,7 @@ public abstract class PipelineSourceBase<T> : IPipelineSource<T> where T : Pipel
         // ToDo: Needs to be refactored - maybe move to a factory
         var container = new PipelineContainer<T>(record, metadata);
         
-        await _messageBuffer.SendAsync(container);
+        await _messageBuffer.SendAsync(container).ConfigureAwait(false);
     }
 
     public void Complete()

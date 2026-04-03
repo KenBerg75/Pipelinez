@@ -6,7 +6,7 @@ namespace Pipelinez.Tests.Core.LoggingTests;
 public class PipelineLoggingTests
 {
     [Fact]
-    public async void Pipeline_Segment_Logging_Operates_As_Expected()
+    public async Task Pipeline_Segment_Logging_Operates_As_Expected()
     {
         var testRecord = new TestLoggingModel();
         var testLogFactory = new TestLogFactory();
@@ -17,7 +17,7 @@ public class PipelineLoggingTests
             .WithInMemoryDestination("config")
             .Build();
 
-        pipeline.StartPipelineAsync(new CancellationTokenSource());
+        await pipeline.StartPipelineAsync();
         
         await pipeline.PublishAsync(testRecord);
         
@@ -29,14 +29,14 @@ public class PipelineLoggingTests
     }
     
     [Fact]
-    public async void Pipeline_Segment_Logging_Throws_With_Null()
+    public Task Pipeline_Segment_Logging_Throws_With_Null()
     {
-        var testRecord = new TestLoggingModel();
-        
         Assert.Throws<ArgumentNullException>(() => 
             Pipeline<TestLoggingModel>.New("Pipeline_Segment_Logging_Throws_With_Null")
             .UseLogger(null)
             .WithInMemorySource("config")
             .WithInMemoryDestination("config").Build());
+
+        return Task.CompletedTask;
     }
 }

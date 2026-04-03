@@ -1,16 +1,17 @@
 using Pipelinez.Core.Eventing;
+using Pipelinez.Core.Record;
 using Pipelinez.Core.Status;
 
 namespace Pipelinez.Core;
 
-public interface IPipeline<T>
+public interface IPipeline<T> where T : PipelineRecord
 {
     /// <summary>
     /// Starts up the pipeline
     /// </summary>
     /// <param name="cancellationToken">A token allowing the cancellation of the pipeline</param>
     /// <returns></returns>
-    void StartPipelineAsync(CancellationTokenSource cancellationToken);
+    Task StartPipelineAsync(CancellationToken cancellationToken = default);
     
     /// <summary>
     /// Publishes a record into the pipeline. Acts as a manual source for the pipeline.
@@ -35,6 +36,16 @@ public interface IPipeline<T>
     /// Event that is raised when a message is completed in the pipeline.
     /// </summary>
     event PipelineRecordCompletedEventHandler<T> OnPipelineRecordCompleted;
+
+    /// <summary>
+    /// Event that is raised when a record faults while traversing the pipeline.
+    /// </summary>
+    event PipelineRecordFaultedEventHandler<T> OnPipelineRecordFaulted;
+
+    /// <summary>
+    /// Event that is raised when the pipeline transitions into a faulted state.
+    /// </summary>
+    event PipelineFaultedEventHandler OnPipelineFaulted;
 
     #endregion
 }
