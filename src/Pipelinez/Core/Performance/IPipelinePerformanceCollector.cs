@@ -16,6 +16,10 @@ internal interface IPipelinePerformanceCollector
 
     void RecordRetryExhausted();
 
+    void RecordDeadLettered();
+
+    void RecordDeadLetterFailure();
+
     void RecordPublishWait(TimeSpan waitDuration);
 
     void RecordPublishRejected();

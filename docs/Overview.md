@@ -51,7 +51,9 @@ The core builder currently supports:
 - `AddSegment(...)`
 - `WithDestination(...)`
 - `WithInMemoryDestination(...)`
+- `WithDeadLetterDestination(...)`
 - `UseHostOptions(...)`
+- `UseDeadLetterOptions(...)`
 - `UseFlowControlOptions(...)`
 - `UsePerformanceOptions(...)`
 - `UseRetryOptions(...)`
@@ -62,6 +64,7 @@ Kafka integrates through extension methods in `Pipelinez.Kafka`, not through par
 
 - `WithKafkaSource(...)`
 - `WithKafkaDestination(...)`
+- `WithKafkaDeadLetterDestination(...)`
 
 `Build()` validates that a source and destination exist, creates a `Pipeline<T>`, links all blocks, and initializes the source and destination.
 If distributed execution is requested, `Build()` also validates that the configured source implements the distributed source contract.
@@ -196,6 +199,8 @@ Segment defaults remain conservative, but callers can now opt into higher-throug
 - total retry count
 - successful retry recovery count
 - retry exhaustion count
+- total dead-lettered count
+- total dead-letter failure count
 - total publish wait count
 - average publish wait duration
 - total publish rejection count
@@ -438,6 +443,10 @@ The pipeline exposes:
   raised after a record successfully completes the entire pipeline
 - `OnPipelineRecordFaulted`
   raised when a record faults and enters policy handling
+- `OnPipelineRecordDeadLettered`
+  raised when a faulted record is preserved through the configured dead-letter path
+- `OnPipelineDeadLetterWriteFailed`
+  raised when a dead-letter write attempt fails
 - `OnPipelineFaulted`
   raised when the pipeline transitions into a faulted runtime state
 
@@ -459,6 +468,8 @@ The handler returns a `PipelineErrorAction`:
 
 - `SkipRecord`
   skip the faulted record and continue processing
+- `DeadLetter`
+  preserve the faulted record through the configured dead-letter destination and continue if the dead-letter write succeeds
 - `StopPipeline`
   mark the pipeline faulted and stop processing
 - `Rethrow`
@@ -466,6 +477,30 @@ The handler returns a `PipelineErrorAction`:
 
 If no handler is configured, the default behavior is to stop the pipeline on fault.
 Retries always run before the error handler is invoked. If retry eventually succeeds, the error handler is never called. If retry is exhausted, the handler receives the populated retry context and can decide whether to skip, stop, or rethrow.
+
+### Dead-Letter Model
+
+Dead-lettering is now a first-class terminal record outcome.
+
+When a handler returns `DeadLetter`, the runtime:
+
+1. builds a `PipelineDeadLetterRecord<T>`
+2. copies the original record, fault state, metadata, segment history, retry history, and distribution context
+3. writes that envelope to the configured `IPipelineDeadLetterDestination<T>`
+4. treats the record as terminally handled without raising the normal completion event
+
+Dead-letter writes are available through:
+
+- `InMemoryDeadLetterDestination<T>` in core
+- `WithKafkaDeadLetterDestination(...)` in `Pipelinez.Kafka`
+
+Dead-letter write failures are explicit:
+
+- by default they fault the pipeline
+- they raise `OnPipelineDeadLetterWriteFailed`
+- they increment dead-letter failure counters in `PipelinePerformanceSnapshot`
+
+The dead-letter path does not require special removal from TPL Dataflow blocks. Faulted containers already leave the active block as part of normal execution and then reach the destination-side terminal fault handler, where the dead-letter decision is applied.
 
 ## Status And Observability
 
@@ -507,6 +542,7 @@ Kafka extends the builder through `KafkaPipelineBuilderExtensions`:
 
 - `WithKafkaSource(...)`
 - `WithKafkaDestination(...)`
+- `WithKafkaDeadLetterDestination(...)`
 
 Kafka source configuration can now also include `KafkaPartitionScalingOptions`, either by setting `KafkaSourceOptions.PartitionScaling` directly or by using the overload that accepts partition scaling explicitly.
 
@@ -572,6 +608,16 @@ The default is to preserve ordering within a partition while still allowing conc
 
 The destination only treats the record as complete after broker delivery has been awaited successfully.
 
+### Kafka Dead-Letter Destination
+
+`KafkaDeadLetterDestination<T, TRecordKey, TRecordValue>`:
+
+- reuses the existing Kafka producer infrastructure
+- maps `PipelineDeadLetterRecord<T>` into a Kafka `Message<TKey, TValue>`
+- copies pipeline headers into the dead-letter message
+- adds dead-letter fault headers for component, component kind, and fault timestamp
+- awaits broker acknowledgement before the runtime treats the dead-letter write as successful
+
 ### Configuration
 
 Kafka configuration types include:
@@ -632,6 +678,7 @@ The solution now includes two test layers.
 `src/tests/Pipelinez.Kafka.Tests` uses Docker and `Testcontainers.Kafka` to run broker-backed integration tests that validate:
 
 - source-topic to destination-topic flow
+- dead-letter topic publishing for faulted records
 - header propagation through Kafka and the pipeline runtime
 - segment fault handling with `SkipRecord`, `StopPipeline`, and `Rethrow`
 - destination fault handling
@@ -663,6 +710,7 @@ The major architectural work called out in the earlier planning docs has been im
 - explicit partition-aware Kafka scaling with partition execution state, drain events, and per-partition scheduling rules
 - explicit performance tuning controls, built-in performance snapshots, destination batching, and a benchmark project
 - explicit retry policies with retry history, retry events, and retry-aware performance counters
+- explicit dead-letter flows with in-memory and Kafka dead-letter destinations
 - explicit flow-control policies with publish results, saturation status, and pressure metrics
 
 The remaining work is mostly future evolution work rather than foundational cleanup. Likely areas include broader transport coverage, schema-registry integration tests, and further runtime ergonomics.

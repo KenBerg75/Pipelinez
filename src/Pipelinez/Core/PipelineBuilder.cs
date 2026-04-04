@@ -1,6 +1,7 @@
 using Ardalis.GuardClauses;
 using Microsoft.Extensions.Logging;
 using Pipelinez.Core.Distributed;
+using Pipelinez.Core.DeadLettering;
 using Pipelinez.Core.Destination;
 using Pipelinez.Core.ErrorHandling;
 using Pipelinez.Core.FlowControl;
@@ -31,8 +32,10 @@ public class PipelineBuilder<T>(string pipelineName)
     private IPipelineDestination<T>? _destination;
     private PipelineExecutionOptions? _destinationExecutionOptions;
     private PipelineRetryPolicy<T>? _destinationRetryPolicy;
+    private IPipelineDeadLetterDestination<T>? _deadLetterDestination;
     private PipelineErrorHandler<T>? _errorHandler;
     private PipelineHostOptions _hostOptions = new();
+    private PipelineDeadLetterOptions _deadLetterOptions = new();
     private PipelineFlowControlOptions _flowControlOptions = new();
     private PipelinePerformanceOptions _performanceOptions = new();
     private PipelineRetryOptions<T> _retryOptions = new();
@@ -154,6 +157,12 @@ public class PipelineBuilder<T>(string pipelineName)
         return WithDestination(new InMemoryPipelineDestination<T>());
     }
 
+    public PipelineBuilder<T> WithDeadLetterDestination(IPipelineDeadLetterDestination<T> deadLetterDestination)
+    {
+        _deadLetterDestination = Guard.Against.Null(deadLetterDestination, nameof(deadLetterDestination));
+        return this;
+    }
+
     #endregion
 
     #region Logging
@@ -167,6 +176,12 @@ public class PipelineBuilder<T>(string pipelineName)
     #endregion
 
     #region Hosting
+
+    public PipelineBuilder<T> UseDeadLetterOptions(PipelineDeadLetterOptions options)
+    {
+        _deadLetterOptions = Guard.Against.Null(options, nameof(options)).Validate();
+        return this;
+    }
 
     public PipelineBuilder<T> UseHostOptions(PipelineHostOptions options)
     {
@@ -288,6 +303,8 @@ public class PipelineBuilder<T>(string pipelineName)
             _segments.Select(registration => registration.Segment).ToList(),
             _errorHandler,
             _hostOptions,
+            _deadLetterDestination,
+            _deadLetterOptions,
             _flowControlOptions,
             performanceCollector,
             _retryOptions.EmitRetryEvents);

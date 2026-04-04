@@ -4,5 +4,6 @@ public enum PipelineErrorAction
 {
     StopPipeline,
     SkipRecord,
-    Rethrow
+    Rethrow,
+    DeadLetter
 }

@@ -22,6 +22,8 @@ internal sealed class PipelinePerformanceCollector : IPipelinePerformanceCollect
     private long _retryCount;
     private long _retryRecoveries;
     private long _retryExhaustions;
+    private long _deadLetterCount;
+    private long _deadLetterFailureCount;
     private long _publishWaitCount;
     private long _publishRejectedCount;
     private long _totalPublishWaitDurationTicks;
@@ -138,6 +140,32 @@ internal sealed class PipelinePerformanceCollector : IPipelinePerformanceCollect
         }
     }
 
+    public void RecordDeadLettered()
+    {
+        if (!_metricsOptions.EnableRuntimeMetrics)
+        {
+            return;
+        }
+
+        lock (_syncLock)
+        {
+            _deadLetterCount++;
+        }
+    }
+
+    public void RecordDeadLetterFailure()
+    {
+        if (!_metricsOptions.EnableRuntimeMetrics)
+        {
+            return;
+        }
+
+        lock (_syncLock)
+        {
+            _deadLetterFailureCount++;
+        }
+    }
+
     public void RecordPublishWait(TimeSpan waitDuration)
     {
         if (!_metricsOptions.EnableRuntimeMetrics || waitDuration <= TimeSpan.Zero)
@@ -223,6 +251,8 @@ internal sealed class PipelinePerformanceCollector : IPipelinePerformanceCollect
                 _retryCount,
                 _retryRecoveries,
                 _retryExhaustions,
+                _deadLetterCount,
+                _deadLetterFailureCount,
                 _publishWaitCount,
                 averagePublishWait,
                 _publishRejectedCount,

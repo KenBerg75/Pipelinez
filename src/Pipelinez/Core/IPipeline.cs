@@ -1,4 +1,5 @@
 using Pipelinez.Core.Distributed;
+using Pipelinez.Core.DeadLettering;
 using Pipelinez.Core.Eventing;
 using Pipelinez.Core.FlowControl;
 using Pipelinez.Core.Performance;
@@ -58,6 +59,16 @@ public interface IPipeline<T> where T : PipelineRecord
     /// Event that is raised when a record is scheduled for retry after a transient failure.
     /// </summary>
     event PipelineRecordRetryingEventHandler<T> OnPipelineRecordRetrying;
+
+    /// <summary>
+    /// Event that is raised when a faulted record is preserved through the dead-letter path.
+    /// </summary>
+    event PipelineRecordDeadLetteredEventHandler<T> OnPipelineRecordDeadLettered;
+
+    /// <summary>
+    /// Event that is raised when a dead-letter write attempt fails.
+    /// </summary>
+    event PipelineDeadLetterWriteFailedEventHandler<T> OnPipelineDeadLetterWriteFailed;
 
     /// <summary>
     /// Event that is raised when pipeline saturation state changes.

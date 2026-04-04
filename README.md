@@ -9,6 +9,7 @@ Pipelinez is a small .NET 8 framework for building record-processing pipelines w
 - async startup and completion
 - fault tracking and configurable error policies
 - configurable retry policies for segments and destinations
+- dead-letter destinations for preserving failed records
 - explicit flow control and saturation observability
 - optional distributed execution for transport-backed sources
 - explicit performance tuning and runtime performance snapshots
@@ -82,6 +83,7 @@ Kafka support lives in the separate `Pipelinez.Kafka` assembly and extends the c
 
 - `WithKafkaSource(...)`
 - `WithKafkaDestination(...)`
+- `WithKafkaDeadLetterDestination(...)`
 
 Example shape:
 
@@ -308,6 +310,47 @@ pipeline.OnPipelineRecordRetrying += (_, args) =>
 
 Retry exhaustion flows into the existing `WithErrorHandler(...)` path, so consumers can still decide whether to skip, stop, or rethrow once the configured retry policy has been exhausted.
 
+## Dead-Lettering
+
+Pipelinez supports first-class dead-letter handling for faulted records.
+
+Dead-letter configuration can be applied through:
+
+- `WithDeadLetterDestination(...)`
+- `UseDeadLetterOptions(...)`
+- `WithKafkaDeadLetterDestination(...)`
+
+When an error handler returns `PipelineErrorAction.DeadLetter`, the runtime:
+
+- preserves the failed record in a `PipelineDeadLetterRecord<T>`
+- includes fault state, metadata, segment history, retry history, and distribution context
+- writes that envelope to the configured dead-letter destination
+- continues processing later records if the dead-letter write succeeds
+
+Example shape:
+
+```csharp
+using Pipelinez.Core.DeadLettering;
+
+var deadLetters = new InMemoryDeadLetterDestination<MyRecord>();
+
+var pipeline = Pipeline<MyRecord>.New("orders")
+    .WithInMemorySource(new object())
+    .AddSegment(new MySegment(), new object())
+    .WithInMemoryDestination("config")
+    .WithDeadLetterDestination(deadLetters)
+    .WithErrorHandler(_ => PipelineErrorAction.DeadLetter)
+    .Build();
+
+pipeline.OnPipelineRecordDeadLettered += (_, args) =>
+{
+    Console.WriteLine(
+        $"Dead-lettered {args.Record.Id} from {args.DeadLetterRecord.Fault.ComponentName}");
+};
+```
+
+Kafka-backed pipelines can route failures to a dead-letter topic through `WithKafkaDeadLetterDestination(...)`.
+
 ## Error Handling
 
 Pipelinez supports explicit fault handling through `WithErrorHandler(...)`.
@@ -316,6 +359,8 @@ Available actions:
 
 - `SkipRecord`
   continue processing later records
+- `DeadLetter`
+  preserve the failed record through the configured dead-letter destination and continue when that write succeeds
 - `StopPipeline`
   fault and stop the pipeline
 - `Rethrow`
@@ -328,6 +373,8 @@ Public events include:
 - `OnPublishRejected`
 - `OnPipelineRecordCompleted`
 - `OnPipelineRecordFaulted`
+- `OnPipelineRecordDeadLettered`
+- `OnPipelineDeadLetterWriteFailed`
 - `OnPipelineFaulted`
 - `OnWorkerStarted`
 - `OnPartitionsAssigned`
@@ -392,6 +439,7 @@ Current implemented capabilities include:
 - segment execution history
 - configurable error policies
 - configurable retry policies with retry events and retry history
+- dead-letter destinations, dead-letter events, and dead-letter performance counters
 - configurable flow-control policies with saturation status and publish result handling
 - async destination execution
 - distributed runtime mode and worker/partition observability

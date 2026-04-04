@@ -2,6 +2,7 @@ using System.Threading.Tasks.Dataflow;
 using System.Runtime.ExceptionServices;
 using Ardalis.GuardClauses;
 using Microsoft.Extensions.Logging;
+using Pipelinez.Core.DeadLettering;
 using Pipelinez.Core.Distributed;
 using Pipelinez.Core.Destination;
 using Pipelinez.Core.ErrorHandling;
@@ -53,6 +54,8 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
     private readonly IPipelineDestination<TPipelineRecord> _destination;
     private readonly PipelineErrorHandler<TPipelineRecord>? _errorHandler;
     private readonly PipelineHostOptions _hostOptions;
+    private readonly IPipelineDeadLetterDestination<TPipelineRecord>? _deadLetterDestination;
+    private readonly PipelineDeadLetterOptions _deadLetterOptions;
     private readonly PipelineFlowControlOptions _flowControlOptions;
     private readonly IPipelinePerformanceCollector _performanceCollector;
     private readonly bool _emitRetryEvents;
@@ -105,6 +108,8 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
     /// Occurs when a record is about to be retried after a transient failure.
     /// </summary>
     public event PipelineRecordRetryingEventHandler<TPipelineRecord>? OnPipelineRecordRetrying;
+    public event PipelineRecordDeadLetteredEventHandler<TPipelineRecord>? OnPipelineRecordDeadLettered;
+    public event PipelineDeadLetterWriteFailedEventHandler<TPipelineRecord>? OnPipelineDeadLetterWriteFailed;
     public event PipelineSaturationChangedEventHandler? OnSaturationChanged;
     public event PipelinePublishRejectedEventHandler<TPipelineRecord>? OnPublishRejected;
 
@@ -212,6 +217,15 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
                         PipelineErrorAction.SkipRecord));
                 ObserveFlowControlState();
                 return PipelineErrorAction.SkipRecord;
+            case PipelineErrorAction.DeadLetter:
+                await HandleDeadLetterAsync(container, container.Fault).ConfigureAwait(false);
+                OnPipelineContainerFaultHandled?.Invoke(
+                    this,
+                    new PipelineContainerFaultHandledEventHandlerArgs<PipelineContainer<TPipelineRecord>>(
+                        container,
+                        PipelineErrorAction.DeadLetter));
+                ObserveFlowControlState();
+                return PipelineErrorAction.DeadLetter;
             case PipelineErrorAction.StopPipeline:
                 OnPipelineContainerFaultHandled?.Invoke(
                     this,
@@ -244,6 +258,8 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
         IList<IPipelineSegment<TPipelineRecord>> segments,
         PipelineErrorHandler<TPipelineRecord>? errorHandler = null,
         PipelineHostOptions? hostOptions = null,
+        IPipelineDeadLetterDestination<TPipelineRecord>? deadLetterDestination = null,
+        PipelineDeadLetterOptions? deadLetterOptions = null,
         PipelineFlowControlOptions? flowControlOptions = null,
         IPipelinePerformanceCollector? performanceCollector = null,
         bool emitRetryEvents = true)
@@ -260,6 +276,8 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
         this._segments = segments;
         this._errorHandler = errorHandler;
         _hostOptions = hostOptions ?? new PipelineHostOptions();
+        _deadLetterDestination = deadLetterDestination;
+        _deadLetterOptions = (deadLetterOptions ?? new PipelineDeadLetterOptions()).Validate();
         _flowControlOptions = (flowControlOptions ?? new PipelineFlowControlOptions()).Validate();
         _performanceCollector = performanceCollector ?? new PipelinePerformanceCollector(new PipelineMetricsOptions());
         _emitRetryEvents = emitRetryEvents;
@@ -820,6 +838,63 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
         }
     }
 
+    private async Task HandleDeadLetterAsync(
+        PipelineContainer<TPipelineRecord> container,
+        PipelineFaultState fault)
+    {
+        var deadLetterRecord = CreateDeadLetterRecord(container, fault);
+
+        if (_deadLetterDestination is null)
+        {
+            var configurationException = new InvalidOperationException(
+                $"Pipeline '{_name}' resolved a faulted record to '{PipelineErrorAction.DeadLetter}', but no dead-letter destination is configured.");
+            var configurationFault = CreatePipelineFaultState(
+                configurationException,
+                "PipelineDeadLetterDestination",
+                PipelineComponentKind.Pipeline,
+                configurationException.Message);
+
+            _performanceCollector.RecordDeadLetterFailure();
+            RaiseDeadLetterWriteFailed(container.Record, deadLetterRecord, configurationException);
+            FaultPipeline(configurationFault);
+            throw configurationException;
+        }
+
+        try
+        {
+            await _deadLetterDestination
+                .WriteAsync(deadLetterRecord, _runtimeCancellationTokenSource?.Token ?? CancellationToken.None)
+                .ConfigureAwait(false);
+
+            _performanceCollector.RecordDeadLettered();
+            RaiseDeadLettered(container.Record, deadLetterRecord);
+        }
+        catch (Exception exception)
+        {
+            _performanceCollector.RecordDeadLetterFailure();
+            RaiseDeadLetterWriteFailed(container.Record, deadLetterRecord, exception);
+
+            if (!_deadLetterOptions.TreatDeadLetterFailureAsPipelineFault)
+            {
+                Logger.LogWarning(
+                    exception,
+                    "Dead-letter write failed in pipeline {PipelineName}, but runtime is configured to continue.",
+                    _name);
+                return;
+            }
+
+            var componentName = _deadLetterDestination.GetType().Name;
+            var deadLetterFault = CreatePipelineFaultState(
+                exception,
+                componentName,
+                PipelineComponentKind.Destination,
+                exception.Message);
+
+            FaultPipeline(deadLetterFault);
+            throw;
+        }
+    }
+
     private PipelineDistributedStatus GetDistributedStatus()
     {
         lock (_distributionLock)
@@ -896,6 +971,56 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
             metadata.GetValue(DistributedMetadataKeys.PartitionKey),
             TryParseInt(metadata.GetValue(DistributedMetadataKeys.PartitionId)),
             TryParseLong(metadata.GetValue(DistributedMetadataKeys.Offset)));
+    }
+
+    private PipelineDeadLetterRecord<TPipelineRecord> CreateDeadLetterRecord(
+        PipelineContainer<TPipelineRecord> container,
+        PipelineFaultState fault)
+    {
+        var deadLetterRecord = new PipelineDeadLetterRecord<TPipelineRecord>
+        {
+            Record = container.Record,
+            Fault = fault,
+            Metadata = _deadLetterOptions.CloneMetadata
+                ? container.Metadata.Clone()
+                : container.Metadata,
+            SegmentHistory = container.SegmentHistory.ToArray(),
+            RetryHistory = container.RetryHistory.ToArray(),
+            CreatedAtUtc = container.CreatedAtUtc,
+            DeadLetteredAtUtc = DateTimeOffset.UtcNow,
+            Distribution = BuildDistributionContext(container.Metadata)
+        };
+        deadLetterRecord.Validate();
+        return deadLetterRecord;
+    }
+
+    private void RaiseDeadLettered(
+        TPipelineRecord record,
+        PipelineDeadLetterRecord<TPipelineRecord> deadLetterRecord)
+    {
+        if (!_deadLetterOptions.EmitDeadLetterEvents)
+        {
+            return;
+        }
+
+        OnPipelineRecordDeadLettered?.Invoke(
+            this,
+            new PipelineRecordDeadLetteredEventArgs<TPipelineRecord>(record, deadLetterRecord));
+    }
+
+    private void RaiseDeadLetterWriteFailed(
+        TPipelineRecord record,
+        PipelineDeadLetterRecord<TPipelineRecord> deadLetterRecord,
+        Exception exception)
+    {
+        if (!_deadLetterOptions.EmitDeadLetterEvents)
+        {
+            return;
+        }
+
+        OnPipelineDeadLetterWriteFailed?.Invoke(
+            this,
+            new PipelineDeadLetterWriteFailedEventArgs<TPipelineRecord>(record, deadLetterRecord, exception));
     }
 
     private void RaiseWorkerStartedIfNeeded()
