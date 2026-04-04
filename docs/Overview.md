@@ -37,6 +37,8 @@ Each record flows through the runtime inside a `PipelineContainer<T>`, which let
   sample application that builds a Kafka-backed pipeline
 - `src/examples/Example.Kafka.DataGen`
   simple Kafka publisher used to generate example traffic
+- `docs/README.md`
+  documentation index linking getting-started, guides, transport docs, operations docs, and architecture docs
 
 ## Core Runtime Design
 

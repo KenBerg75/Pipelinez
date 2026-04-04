@@ -432,10 +432,20 @@ Public events include:
   Kafka integration tests
 - [`src/benchmarks/Pipelinez.Benchmarks`](src/benchmarks/Pipelinez.Benchmarks)
   BenchmarkDotNet-based performance benchmarks
+- [`docs/README.md`](docs/README.md)
+  documentation index and guide map
 - [`docs/Overview.md`](docs/Overview.md)
   deeper architectural overview
 - [`docs/ApiStability.md`](docs/ApiStability.md)
   compatibility, stability, and public API change guidance
+
+## Documentation
+
+For task-oriented docs, start with:
+
+- [`docs/README.md`](docs/README.md)
+- [`docs/getting-started/in-memory.md`](docs/getting-started/in-memory.md)
+- [`docs/getting-started/kafka.md`](docs/getting-started/kafka.md)
 
 ## Running Locally
 
@@ -503,4 +513,4 @@ See [`docs/ApiStability.md`](docs/ApiStability.md) for the full policy and maint
 
 ## License
 
-No license file is currently included in the repository.
+This repository is licensed under the MIT License. See [`LICENSE`](LICENSE).
