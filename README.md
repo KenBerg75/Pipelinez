@@ -17,6 +17,29 @@ Pipelinez is a small .NET 8 framework for building record-processing pipelines w
 - correlation-aware diagnostics for records and faults
 - transport extensions such as Kafka
 
+## Installation
+
+Package distribution is now configured for:
+
+- `Pipelinez`
+- `Pipelinez.Kafka`
+
+Expected install commands for published packages:
+
+```bash
+dotnet add package Pipelinez
+```
+
+For Kafka support:
+
+```bash
+dotnet add package Pipelinez.Kafka
+```
+
+`Pipelinez.Kafka` depends on `Pipelinez`, so Kafka consumers do not need to add both explicitly unless they want to.
+
+Public publishing and release/version automation are tracked separately from the packaging work itself.
+
 ## How It Works
 
 A pipeline is built from three concepts:
@@ -480,6 +503,21 @@ dotnet run --project src/examples/Example.Kafka.DataGen
 ```
 
 The Kafka examples and Kafka integration tests use Docker/Testcontainers for local broker startup unless you provide an existing broker through environment variables.
+
+## Package Validation
+
+Generate local packages:
+
+```bash
+dotnet pack src/Pipelinez/Pipelinez.csproj -c Release -o artifacts/packages -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
+dotnet pack src/Pipelinez.Kafka/Pipelinez.Kafka.csproj -c Release -o artifacts/packages -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
+```
+
+Run the local package smoke test:
+
+```powershell
+./scripts/Validate-Packages.ps1 -PackageDirectory artifacts/packages
+```
 
 ## Status
 

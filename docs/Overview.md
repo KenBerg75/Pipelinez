@@ -40,6 +40,16 @@ Each record flows through the runtime inside a `PipelineContainer<T>`, which let
 - `docs/README.md`
   documentation index linking getting-started, guides, transport docs, operations docs, and architecture docs
 
+## Packaging Status
+
+The repository is now configured for package generation of:
+
+- `Pipelinez`
+- `Pipelinez.Kafka`
+
+That includes package metadata, XML docs, Source Link, symbol packages, and CI pack validation.
+Public release/version automation remains a separate concern.
+
 ## Core Runtime Design
 
 ### Pipeline Construction
