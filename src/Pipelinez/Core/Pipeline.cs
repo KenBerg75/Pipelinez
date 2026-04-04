@@ -10,6 +10,7 @@ using Pipelinez.Core.Eventing;
 using Pipelinez.Core.FaultHandling;
 using Pipelinez.Core.FlowControl;
 using Pipelinez.Core.Logging;
+using Pipelinez.Core.Operational;
 using Pipelinez.Core.Performance;
 using Pipelinez.Core.Record;
 using Pipelinez.Core.Retry;
@@ -57,7 +58,9 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
     private readonly IPipelineDeadLetterDestination<TPipelineRecord>? _deadLetterDestination;
     private readonly PipelineDeadLetterOptions _deadLetterOptions;
     private readonly PipelineFlowControlOptions _flowControlOptions;
+    private readonly PipelineOperationalOptions _operationalOptions;
     private readonly IPipelinePerformanceCollector _performanceCollector;
+    private readonly IPipelineMetricsEmitter? _metricsEmitter;
     private readonly bool _emitRetryEvents;
     private readonly string _instanceId;
     private readonly string _workerId;
@@ -75,6 +78,8 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
     private bool _workerStoppingRaised;
     private bool? _lastObservedSaturationWarningState;
     private bool? _lastObservedSaturationState;
+    private DateTimeOffset? _lastRecordCompletedAtUtc;
+    private DateTimeOffset? _lastDeadLetteredAtUtc;
     
     #endregion
     
@@ -171,11 +176,13 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
         // 2 - lets pipeline users know that the record has completed
         OnPipelineContainerCompelted?.Invoke(this, evt);
         _performanceCollector.RecordCompleted(evt.Container.CreatedAtUtc);
+        _lastRecordCompletedAtUtc = DateTimeOffset.UtcNow;
         OnPipelineRecordCompleted?.Invoke(
             this,
             new PipelineRecordCompletedEventHandlerArgs<TPipelineRecord>(
                 evt.Container.Record,
-                BuildDistributionContext(evt.Container.Metadata)));
+                BuildDistributionContext(evt.Container.Metadata),
+                BuildDiagnosticContext(evt.Container.Metadata)));
         ObserveFlowControlState();
     }
 
@@ -194,7 +201,8 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
                 container.Record,
                 container,
                 container.Fault,
-                BuildDistributionContext(container.Metadata)));
+                BuildDistributionContext(container.Metadata),
+                BuildDiagnosticContext(container.Metadata, container.Fault.ComponentName)));
         if (container.RetryHistory.Count > 0)
         {
             _performanceCollector.RecordRetryExhausted();
@@ -260,6 +268,7 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
         PipelineHostOptions? hostOptions = null,
         IPipelineDeadLetterDestination<TPipelineRecord>? deadLetterDestination = null,
         PipelineDeadLetterOptions? deadLetterOptions = null,
+        PipelineOperationalOptions? operationalOptions = null,
         PipelineFlowControlOptions? flowControlOptions = null,
         IPipelinePerformanceCollector? performanceCollector = null,
         bool emitRetryEvents = true)
@@ -278,6 +287,7 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
         _hostOptions = hostOptions ?? new PipelineHostOptions();
         _deadLetterDestination = deadLetterDestination;
         _deadLetterOptions = (deadLetterOptions ?? new PipelineDeadLetterOptions()).Validate();
+        _operationalOptions = (operationalOptions ?? new PipelineOperationalOptions()).Validate();
         _flowControlOptions = (flowControlOptions ?? new PipelineFlowControlOptions()).Validate();
         _performanceCollector = performanceCollector ?? new PipelinePerformanceCollector(new PipelineMetricsOptions());
         _emitRetryEvents = emitRetryEvents;
@@ -287,6 +297,17 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
         _workerId = string.IsNullOrWhiteSpace(_hostOptions.WorkerId)
             ? $"{_name}-{Guid.NewGuid():N}"
             : _hostOptions.WorkerId;
+
+        if (_operationalOptions.EnableMetrics)
+        {
+            _metricsEmitter = new PipelineMetricsEmitter(
+                _name,
+                _workerId,
+                _hostOptions.ExecutionMode,
+                () => GetPerformanceSnapshot().RecordsPerSecond,
+                GetCurrentHealthState);
+            _performanceCollector.ConfigureMetricsEmitter(_metricsEmitter);
+        }
     }
 
     internal void LinkPipeline()
@@ -504,6 +525,39 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
         return _performanceCollector.CreateSnapshot();
     }
 
+    public PipelineHealthStatus GetHealthStatus()
+    {
+        var status = GetStatus();
+        var performance = GetPerformanceSnapshot();
+        var reasons = BuildHealthReasons(status, performance);
+        var healthState = DetermineHealthState(performance, reasons);
+
+        return new PipelineHealthStatus(
+            _name,
+            healthState,
+            reasons,
+            DateTimeOffset.UtcNow,
+            status,
+            performance,
+            _pipelineFault);
+    }
+
+    public PipelineOperationalSnapshot GetOperationalSnapshot()
+    {
+        var status = GetStatus();
+        var performance = GetPerformanceSnapshot();
+        var health = GetHealthStatus();
+
+        return new PipelineOperationalSnapshot(
+            status,
+            performance,
+            health,
+            DateTimeOffset.UtcNow,
+            _pipelineFault,
+            _lastRecordCompletedAtUtc,
+            _lastDeadLetteredAtUtc);
+    }
+
     internal PipelineFlowControlOptions GetFlowControlOptions()
     {
         return _flowControlOptions;
@@ -520,9 +574,13 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
         ObserveFlowControlState();
     }
 
-    internal void NotifyPublishRejected(TPipelineRecord record, PipelinePublishResult publishResult)
+    internal void NotifyPublishRejected(
+        TPipelineRecord record,
+        Pipelinez.Core.Record.Metadata.MetadataCollection metadata,
+        PipelinePublishResult publishResult)
     {
         Guard.Against.Null(record, nameof(record));
+        Guard.Against.Null(metadata, nameof(metadata));
         Guard.Against.Null(publishResult, nameof(publishResult));
 
         if (publishResult.WaitDuration > TimeSpan.Zero)
@@ -536,7 +594,8 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
             new PipelinePublishRejectedEventArgs<TPipelineRecord>(
                 record,
                 publishResult.Reason,
-                DateTimeOffset.UtcNow));
+                DateTimeOffset.UtcNow,
+                BuildDiagnosticContext(metadata)));
         ObserveFlowControlState();
     }
 
@@ -613,7 +672,8 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
                 retryAttempt.AttemptNumber,
                 maxAttempts,
                 retryAttempt.DelayBeforeNextAttempt,
-                BuildDistributionContext(container.Metadata)));
+                BuildDistributionContext(container.Metadata),
+                BuildDiagnosticContext(container.Metadata, retryAttempt.ComponentName)));
 
         return Task.CompletedTask;
     }
@@ -661,6 +721,7 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
 
         if (assignedPartitions.Count > 0)
         {
+            _metricsEmitter?.ObserveOwnedPartitionCount(runtimeContext.OwnedPartitions.Count);
             OnPartitionsAssigned?.Invoke(this, new PipelinePartitionsAssignedEventArgs(runtimeContext, assignedPartitions));
         }
     }
@@ -692,6 +753,7 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
 
         if (revokedPartitions.Count > 0)
         {
+            _metricsEmitter?.ObserveOwnedPartitionCount(runtimeContext.OwnedPartitions.Count);
             OnPartitionsRevoked?.Invoke(this, new PipelinePartitionsRevokedEventArgs(runtimeContext, revokedPartitions));
         }
     }
@@ -789,6 +851,7 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
         _cancellationRegistration.Dispose();
         _runtimeCancellationTokenSource?.Dispose();
         _runtimeCancellationTokenSource = null;
+        _metricsEmitter?.Dispose();
     }
 
     private void RequestRuntimeCancellation()
@@ -867,6 +930,7 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
                 .ConfigureAwait(false);
 
             _performanceCollector.RecordDeadLettered();
+            _lastDeadLetteredAtUtc = DateTimeOffset.UtcNow;
             RaiseDeadLettered(container.Record, deadLetterRecord);
         }
         catch (Exception exception)
@@ -973,6 +1037,25 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
             TryParseLong(metadata.GetValue(DistributedMetadataKeys.Offset)));
     }
 
+    private PipelineRecordDiagnosticContext BuildDiagnosticContext(
+        Pipelinez.Core.Record.Metadata.MetadataCollection metadata,
+        string? componentName = null)
+    {
+        var correlationId = metadata.GetValue(PipelineOperationalMetadataKeys.CorrelationId);
+        if (string.IsNullOrWhiteSpace(correlationId))
+        {
+            correlationId = Guid.NewGuid().ToString("N");
+            metadata.Set(PipelineOperationalMetadataKeys.CorrelationId, correlationId);
+        }
+
+        return new PipelineRecordDiagnosticContext(
+            correlationId,
+            _name,
+            _instanceId,
+            _workerId,
+            componentName);
+    }
+
     private PipelineDeadLetterRecord<TPipelineRecord> CreateDeadLetterRecord(
         PipelineContainer<TPipelineRecord> container,
         PipelineFaultState fault)
@@ -1005,7 +1088,10 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
 
         OnPipelineRecordDeadLettered?.Invoke(
             this,
-            new PipelineRecordDeadLetteredEventArgs<TPipelineRecord>(record, deadLetterRecord));
+            new PipelineRecordDeadLetteredEventArgs<TPipelineRecord>(
+                record,
+                deadLetterRecord,
+                BuildDiagnosticContext(deadLetterRecord.Metadata, deadLetterRecord.Fault.ComponentName)));
     }
 
     private void RaiseDeadLetterWriteFailed(
@@ -1020,7 +1106,11 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
 
         OnPipelineDeadLetterWriteFailed?.Invoke(
             this,
-            new PipelineDeadLetterWriteFailedEventArgs<TPipelineRecord>(record, deadLetterRecord, exception));
+            new PipelineDeadLetterWriteFailedEventArgs<TPipelineRecord>(
+                record,
+                deadLetterRecord,
+                exception,
+                BuildDiagnosticContext(deadLetterRecord.Metadata, deadLetterRecord.Fault.ComponentName)));
     }
 
     private void RaiseWorkerStartedIfNeeded()
@@ -1173,6 +1263,81 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
         }
 
         return Array.Empty<PipelinePartitionExecutionState>();
+    }
+
+    private PipelineHealthState GetCurrentHealthState()
+    {
+        var status = GetStatus();
+        var performance = GetPerformanceSnapshot();
+        var reasons = BuildHealthReasons(status, performance);
+        return DetermineHealthState(performance, reasons);
+    }
+
+    private IReadOnlyList<string> BuildHealthReasons(
+        PipelineStatus status,
+        PipelinePerformanceSnapshot performance)
+    {
+        var reasons = new List<string>();
+
+        if (status.FlowControlStatus is { } flow &&
+            (flow.IsSaturated || flow.SaturationRatio >= _operationalOptions.SaturationDegradedThreshold))
+        {
+            reasons.Add("Pipeline is saturated.");
+        }
+
+        if (_operationalOptions.RetryExhaustionDegradedThreshold > 0 &&
+            performance.RetryExhaustions >= _operationalOptions.RetryExhaustionDegradedThreshold)
+        {
+            reasons.Add("Retry exhaustion threshold exceeded.");
+        }
+
+        if (_operationalOptions.DeadLetterDegradedThreshold > 0 &&
+            performance.TotalDeadLetteredCount >= _operationalOptions.DeadLetterDegradedThreshold)
+        {
+            reasons.Add("Dead-letter threshold exceeded.");
+        }
+
+        if (_operationalOptions.PublishRejectionDegradedThreshold > 0 &&
+            performance.TotalPublishRejectedCount >= _operationalOptions.PublishRejectionDegradedThreshold)
+        {
+            reasons.Add("Publish rejection threshold exceeded.");
+        }
+
+        var drainingPartitions = status.DistributedStatus?.PartitionExecution.Count(partition => partition.IsDraining) ?? 0;
+        if (_operationalOptions.DrainingPartitionDegradedThreshold > 0 &&
+            drainingPartitions >= _operationalOptions.DrainingPartitionDegradedThreshold)
+        {
+            reasons.Add("Draining partition threshold exceeded.");
+        }
+
+        if (performance.TotalDeadLetterFailureCount > 0)
+        {
+            reasons.Add("Dead-letter failures observed.");
+        }
+
+        return reasons;
+    }
+
+    private PipelineHealthState DetermineHealthState(
+        PipelinePerformanceSnapshot performance,
+        IReadOnlyList<string> reasons)
+    {
+        PipelineRuntimeState currentState;
+        lock (_stateLock)
+        {
+            currentState = _state;
+        }
+
+        return currentState switch
+        {
+            PipelineRuntimeState.NotStarted => PipelineHealthState.Starting,
+            PipelineRuntimeState.Starting => PipelineHealthState.Starting,
+            PipelineRuntimeState.Completed => PipelineHealthState.Completed,
+            PipelineRuntimeState.Faulted => PipelineHealthState.Unhealthy,
+            _ when performance.TotalDeadLetterFailureCount > 0 => PipelineHealthState.Unhealthy,
+            _ when reasons.Count > 0 => PipelineHealthState.Degraded,
+            _ => PipelineHealthState.Healthy
+        };
     }
 
 }

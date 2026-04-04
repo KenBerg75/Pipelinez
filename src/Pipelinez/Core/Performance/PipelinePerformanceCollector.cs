@@ -1,4 +1,5 @@
 using Ardalis.GuardClauses;
+using Pipelinez.Core.Operational;
 
 namespace Pipelinez.Core.Performance;
 
@@ -15,6 +16,7 @@ internal sealed class PipelinePerformanceCollector : IPipelinePerformanceCollect
     private readonly PipelineMetricsOptions _metricsOptions;
     private readonly Dictionary<string, ComponentAccumulator> _components = new(StringComparer.Ordinal);
     private readonly DateTimeOffset _startedAtUtc = DateTimeOffset.UtcNow;
+    private IPipelineMetricsEmitter? _metricsEmitter;
 
     private long _publishedCount;
     private long _completedCount;
@@ -35,6 +37,11 @@ internal sealed class PipelinePerformanceCollector : IPipelinePerformanceCollect
         _metricsOptions = Guard.Against.Null(metricsOptions, nameof(metricsOptions));
     }
 
+    public void ConfigureMetricsEmitter(IPipelineMetricsEmitter? metricsEmitter)
+    {
+        _metricsEmitter = metricsEmitter;
+    }
+
     public void RecordPublished(string componentName)
     {
         if (!_metricsOptions.EnableRuntimeMetrics)
@@ -47,6 +54,8 @@ internal sealed class PipelinePerformanceCollector : IPipelinePerformanceCollect
             _publishedCount++;
             GetOrAddComponent(componentName).ProcessedCount++;
         }
+
+        _metricsEmitter?.RecordPublished();
     }
 
     public void RecordCompleted(DateTimeOffset createdAtUtc)
@@ -61,6 +70,8 @@ internal sealed class PipelinePerformanceCollector : IPipelinePerformanceCollect
             _completedCount++;
             _totalEndToEndLatencyTicks += (DateTimeOffset.UtcNow - createdAtUtc).Ticks;
         }
+
+        _metricsEmitter?.RecordCompleted();
     }
 
     public void RecordFaulted(DateTimeOffset createdAtUtc)
@@ -75,6 +86,8 @@ internal sealed class PipelinePerformanceCollector : IPipelinePerformanceCollect
             _faultedCount++;
             _totalEndToEndLatencyTicks += (DateTimeOffset.UtcNow - createdAtUtc).Ticks;
         }
+
+        _metricsEmitter?.RecordFaulted();
     }
 
     public void RecordComponentExecution(string componentName, TimeSpan duration, bool succeeded)
@@ -112,6 +125,8 @@ internal sealed class PipelinePerformanceCollector : IPipelinePerformanceCollect
         {
             _retryCount++;
         }
+
+        _metricsEmitter?.RecordRetryAttempt();
     }
 
     public void RecordRetryRecovery()
@@ -125,6 +140,8 @@ internal sealed class PipelinePerformanceCollector : IPipelinePerformanceCollect
         {
             _retryRecoveries++;
         }
+
+        _metricsEmitter?.RecordRetryRecovery();
     }
 
     public void RecordRetryExhausted()
@@ -138,6 +155,8 @@ internal sealed class PipelinePerformanceCollector : IPipelinePerformanceCollect
         {
             _retryExhaustions++;
         }
+
+        _metricsEmitter?.RecordRetryExhausted();
     }
 
     public void RecordDeadLettered()
@@ -151,6 +170,8 @@ internal sealed class PipelinePerformanceCollector : IPipelinePerformanceCollect
         {
             _deadLetterCount++;
         }
+
+        _metricsEmitter?.RecordDeadLettered();
     }
 
     public void RecordDeadLetterFailure()
@@ -164,6 +185,8 @@ internal sealed class PipelinePerformanceCollector : IPipelinePerformanceCollect
         {
             _deadLetterFailureCount++;
         }
+
+        _metricsEmitter?.RecordDeadLetterFailure();
     }
 
     public void RecordPublishWait(TimeSpan waitDuration)
@@ -191,6 +214,8 @@ internal sealed class PipelinePerformanceCollector : IPipelinePerformanceCollect
         {
             _publishRejectedCount++;
         }
+
+        _metricsEmitter?.RecordPublishRejected();
     }
 
     public void ObserveBufferedCount(int totalBufferedCount)
@@ -207,6 +232,8 @@ internal sealed class PipelinePerformanceCollector : IPipelinePerformanceCollect
                 _peakBufferedCount = totalBufferedCount;
             }
         }
+
+        _metricsEmitter?.ObserveBufferedCount(totalBufferedCount);
     }
 
     public PipelinePerformanceSnapshot CreateSnapshot()

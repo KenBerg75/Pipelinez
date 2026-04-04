@@ -6,6 +6,7 @@ using Pipelinez.Core.Destination;
 using Pipelinez.Core.ErrorHandling;
 using Pipelinez.Core.FlowControl;
 using Pipelinez.Core.Logging;
+using Pipelinez.Core.Operational;
 using Pipelinez.Core.Performance;
 using Pipelinez.Core.Record;
 using Pipelinez.Core.Retry;
@@ -37,6 +38,7 @@ public class PipelineBuilder<T>(string pipelineName)
     private PipelineHostOptions _hostOptions = new();
     private PipelineDeadLetterOptions _deadLetterOptions = new();
     private PipelineFlowControlOptions _flowControlOptions = new();
+    private PipelineOperationalOptions _operationalOptions = new();
     private PipelinePerformanceOptions _performanceOptions = new();
     private PipelineRetryOptions<T> _retryOptions = new();
 
@@ -193,6 +195,12 @@ public class PipelineBuilder<T>(string pipelineName)
 
     #region Flow Control
 
+    public PipelineBuilder<T> UseOperationalOptions(PipelineOperationalOptions options)
+    {
+        _operationalOptions = Guard.Against.Null(options, nameof(options)).Validate();
+        return this;
+    }
+
     public PipelineBuilder<T> UseFlowControlOptions(PipelineFlowControlOptions options)
     {
         _flowControlOptions = Guard.Against.Null(options, nameof(options)).Validate();
@@ -305,6 +313,7 @@ public class PipelineBuilder<T>(string pipelineName)
             _hostOptions,
             _deadLetterDestination,
             _deadLetterOptions,
+            _operationalOptions,
             _flowControlOptions,
             performanceCollector,
             _retryOptions.EmitRetryEvents);

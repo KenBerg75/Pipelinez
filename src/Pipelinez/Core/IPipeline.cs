@@ -2,6 +2,7 @@ using Pipelinez.Core.Distributed;
 using Pipelinez.Core.DeadLettering;
 using Pipelinez.Core.Eventing;
 using Pipelinez.Core.FlowControl;
+using Pipelinez.Core.Operational;
 using Pipelinez.Core.Performance;
 using Pipelinez.Core.Record;
 using Pipelinez.Core.Status;
@@ -42,6 +43,10 @@ public interface IPipeline<T> where T : PipelineRecord
     PipelineRuntimeContext GetRuntimeContext();
 
     PipelinePerformanceSnapshot GetPerformanceSnapshot();
+
+    PipelineHealthStatus GetHealthStatus();
+
+    PipelineOperationalSnapshot GetOperationalSnapshot();
     
     #region Eventing
     

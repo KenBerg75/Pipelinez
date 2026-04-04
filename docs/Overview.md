@@ -54,6 +54,7 @@ The core builder currently supports:
 - `WithDeadLetterDestination(...)`
 - `UseHostOptions(...)`
 - `UseDeadLetterOptions(...)`
+- `UseOperationalOptions(...)`
 - `UseFlowControlOptions(...)`
 - `UsePerformanceOptions(...)`
 - `UseRetryOptions(...)`
@@ -218,6 +219,100 @@ Per-component snapshots expose:
 - average execution latency
 
 This gives consumers a lightweight built-in way to inspect pipeline behavior during testing, demos, or hosted execution.
+
+## Operational Tooling Model
+
+Pipelinez now has a first-class operational surface layered on top of the existing status, eventing, and performance model.
+
+### Operational Options
+
+`UseOperationalOptions(...)` configures:
+
+- health-check enablement
+- meter-based metrics enablement
+- correlation ID stamping
+- degraded-state thresholds for saturation, retries, dead-lettering, publish rejection, and partition draining
+
+### Health Status
+
+`Pipeline<T>.GetHealthStatus()` returns a `PipelineHealthStatus` with:
+
+- `PipelineName`
+- `State`
+- `Reasons`
+- `ObservedAtUtc`
+- current `PipelineStatus`
+- current `PipelinePerformanceSnapshot`
+- the last pipeline-level fault when one exists
+
+Supported health states are:
+
+- `Starting`
+- `Healthy`
+- `Degraded`
+- `Unhealthy`
+- `Completed`
+
+### Operational Snapshot
+
+`Pipeline<T>.GetOperationalSnapshot()` returns a `PipelineOperationalSnapshot` that combines:
+
+- `PipelineStatus`
+- `PipelinePerformanceSnapshot`
+- `PipelineHealthStatus`
+- last pipeline fault
+- last successful completion timestamp
+- last dead-letter timestamp
+
+This gives hosts a single operator-oriented read model without replacing the existing lower-level APIs.
+
+### Health Check Integration
+
+Pipelinez now includes `PipelineHealthCheck<T>`, which implements `IHealthCheck` and maps runtime health into the standard .NET health-check model.
+
+This allows ASP.NET Core and worker-service hosts to expose pipeline health through standard endpoints such as `/health`.
+
+### Meter-Based Metrics
+
+Pipelinez now emits runtime metrics through the `Pipelinez.Runtime` meter.
+
+Current instruments include counters for:
+
+- published records
+- completed records
+- faulted records
+- retry attempts
+- retry recoveries
+- retry exhaustions
+- dead-letter writes
+- dead-letter failures
+- publish rejections
+
+It also exposes observable gauges for:
+
+- current buffered record count
+- owned partition count
+- current records-per-second
+- current health-state value
+
+### Correlation IDs And Diagnostics
+
+Pipelinez now stamps a correlation ID into record metadata when a record first enters the pipeline, unless one already exists.
+
+The metadata key is:
+
+- `pipelinez.correlation.id`
+
+Correlation context is then surfaced through `PipelineRecordDiagnosticContext` on:
+
+- `OnPipelineRecordCompleted`
+- `OnPipelineRecordFaulted`
+- `OnPipelineRecordRetrying`
+- `OnPublishRejected`
+- `OnPipelineRecordDeadLettered`
+- `OnPipelineDeadLetterWriteFailed`
+
+This makes it easier to correlate logs, faults, retries, and dead-letter outcomes back to one logical record flow.
 
 ### Destination Batching
 
@@ -531,6 +626,7 @@ For distributed sources, this status reflects live ownership while the worker is
 
 Logging is managed through the internal `LoggingManager`, which wraps an `ILoggerFactory`. If the caller never supplies a logger factory, the runtime falls back to a null logger factory.
 The runtime now also exposes additive performance metrics through `GetPerformanceSnapshot()` rather than relying only on logs for throughput diagnostics, including retry counts, retry recovery/exhaustion totals, publish wait totals, publish rejection totals, and peak buffered depth.
+Those same operational signals can now also flow through the `Pipelinez.Runtime` meter and the health/operational snapshot APIs.
 
 ## Kafka Integration
 
@@ -712,6 +808,7 @@ The major architectural work called out in the earlier planning docs has been im
 - explicit retry policies with retry history, retry events, and retry-aware performance counters
 - explicit dead-letter flows with in-memory and Kafka dead-letter destinations
 - explicit flow-control policies with publish results, saturation status, and pressure metrics
+- explicit operational tooling with health snapshots, health checks, meter metrics, and correlation-aware diagnostics
 
 The remaining work is mostly future evolution work rather than foundational cleanup. Likely areas include broader transport coverage, schema-registry integration tests, and further runtime ergonomics.
 

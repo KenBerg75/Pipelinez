@@ -5,6 +5,7 @@ using Pipelinez.Core.Eventing;
 using Pipelinez.Core.Flow;
 using Pipelinez.Core.FlowControl;
 using Pipelinez.Core.Logging;
+using Pipelinez.Core.Operational;
 using Pipelinez.Core.Performance;
 using Pipelinez.Core.Record;
 using Pipelinez.Core.Record.Metadata;
@@ -72,6 +73,8 @@ public abstract class PipelineSourceBase<T> : IPipelineSource<T>, IPipelineExecu
 
     public async Task<PipelinePublishResult> PublishAsync(T record, MetadataCollection metadata, PipelinePublishOptions options)
     {
+        EnsureCorrelationId(metadata);
+
         var container = new PipelineContainer<T>(
             Guard.Against.Null(record, nameof(record)),
             Guard.Against.Null(metadata, nameof(metadata)));
@@ -91,7 +94,7 @@ public abstract class PipelineSourceBase<T> : IPipelineSource<T>, IPipelineExecu
             return publishResult;
         }
 
-        ParentPipeline.NotifyPublishRejected(record, publishResult);
+        ParentPipeline.NotifyPublishRejected(record, metadata, publishResult);
         return publishResult;
     }
 
@@ -213,5 +216,15 @@ public abstract class PipelineSourceBase<T> : IPipelineSource<T>, IPipelineExecu
         }
 
         publishResult.ThrowIfNotAccepted();
+    }
+
+    private static void EnsureCorrelationId(MetadataCollection metadata)
+    {
+        if (metadata.HasKey(PipelineOperationalMetadataKeys.CorrelationId))
+        {
+            return;
+        }
+
+        metadata.Set(PipelineOperationalMetadataKeys.CorrelationId, Guid.NewGuid().ToString("N"));
     }
 }
