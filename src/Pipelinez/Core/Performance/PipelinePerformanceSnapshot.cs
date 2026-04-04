@@ -11,6 +11,8 @@ public sealed class PipelinePerformanceSnapshot
         long totalRetryCount,
         long successfulRetryRecoveries,
         long retryExhaustions,
+        long totalDeadLetteredCount,
+        long totalDeadLetterFailureCount,
         long totalPublishWaitCount,
         TimeSpan averagePublishWaitDuration,
         long totalPublishRejectedCount,
@@ -27,6 +29,8 @@ public sealed class PipelinePerformanceSnapshot
         TotalRetryCount = totalRetryCount;
         SuccessfulRetryRecoveries = successfulRetryRecoveries;
         RetryExhaustions = retryExhaustions;
+        TotalDeadLetteredCount = totalDeadLetteredCount;
+        TotalDeadLetterFailureCount = totalDeadLetterFailureCount;
         TotalPublishWaitCount = totalPublishWaitCount;
         AveragePublishWaitDuration = averagePublishWaitDuration;
         TotalPublishRejectedCount = totalPublishRejectedCount;
@@ -51,6 +55,10 @@ public sealed class PipelinePerformanceSnapshot
     public long SuccessfulRetryRecoveries { get; }
 
     public long RetryExhaustions { get; }
+
+    public long TotalDeadLetteredCount { get; }
+
+    public long TotalDeadLetterFailureCount { get; }
 
     public long TotalPublishWaitCount { get; }
 

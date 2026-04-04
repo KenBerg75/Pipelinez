@@ -1,4 +1,5 @@
 using Ardalis.GuardClauses;
+using Pipelinez.Core.DeadLettering;
 using Pipelinez.Core.Distributed;
 using Pipelinez.Core.FaultHandling;
 using Pipelinez.Core.Record;
@@ -75,6 +76,14 @@ public delegate void PipelineSaturationChangedEventHandler(
 public delegate void PipelinePublishRejectedEventHandler<T>(
     object sender,
     PipelinePublishRejectedEventArgs<T> args) where T : PipelineRecord;
+
+public delegate void PipelineRecordDeadLetteredEventHandler<T>(
+    object sender,
+    PipelineRecordDeadLetteredEventArgs<T> args) where T : PipelineRecord;
+
+public delegate void PipelineDeadLetterWriteFailedEventHandler<T>(
+    object sender,
+    PipelineDeadLetterWriteFailedEventArgs<T> args) where T : PipelineRecord;
 
 public sealed class PipelineRecordFaultedEventArgs<T> where T : PipelineRecord
 {
@@ -176,6 +185,40 @@ public sealed class PipelinePublishRejectedEventArgs<T> where T : PipelineRecord
     public FlowControl.PipelinePublishResultReason Reason { get; }
 
     public DateTimeOffset ObservedAtUtc { get; }
+}
+
+public sealed class PipelineRecordDeadLetteredEventArgs<T> where T : PipelineRecord
+{
+    public PipelineRecordDeadLetteredEventArgs(
+        T record,
+        PipelineDeadLetterRecord<T> deadLetterRecord)
+    {
+        Record = Guard.Against.Null(record, nameof(record));
+        DeadLetterRecord = Guard.Against.Null(deadLetterRecord, nameof(deadLetterRecord));
+    }
+
+    public T Record { get; }
+
+    public PipelineDeadLetterRecord<T> DeadLetterRecord { get; }
+}
+
+public sealed class PipelineDeadLetterWriteFailedEventArgs<T> where T : PipelineRecord
+{
+    public PipelineDeadLetterWriteFailedEventArgs(
+        T record,
+        PipelineDeadLetterRecord<T> deadLetterRecord,
+        Exception exception)
+    {
+        Record = Guard.Against.Null(record, nameof(record));
+        DeadLetterRecord = Guard.Against.Null(deadLetterRecord, nameof(deadLetterRecord));
+        Exception = Guard.Against.Null(exception, nameof(exception));
+    }
+
+    public T Record { get; }
+
+    public PipelineDeadLetterRecord<T> DeadLetterRecord { get; }
+
+    public Exception Exception { get; }
 }
 
 public delegate void PipelineFaultedEventHandler(object sender, PipelineFaultedEventArgs args);

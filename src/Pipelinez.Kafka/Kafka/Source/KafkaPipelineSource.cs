@@ -168,7 +168,7 @@ public class KafkaPipelineSource<T, TRecordKey, TRecordValue> : PipelineSourceBa
 
         HandleTerminalRecord(
             topicPartitionOffset,
-            canAdvanceProgress: e.Action == PipelineErrorAction.SkipRecord);
+            canAdvanceProgress: e.Action is PipelineErrorAction.SkipRecord or PipelineErrorAction.DeadLetter);
     }
 
     private IKafkaConsumer<TRecordKey, TRecordValue> Consumer =>

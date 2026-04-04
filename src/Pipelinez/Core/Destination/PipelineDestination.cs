@@ -386,6 +386,11 @@ public abstract class PipelineDestination<T> : IPipelineDestination<T>, IPipelin
             return true;
         }
 
+        if (action == PipelineErrorAction.DeadLetter)
+        {
+            return true;
+        }
+
         if (action == PipelineErrorAction.Rethrow)
         {
             ExceptionDispatchInfo.Capture(sourceRecord.Fault!.Exception).Throw();

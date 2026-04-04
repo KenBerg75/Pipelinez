@@ -1,5 +1,6 @@
 using Confluent.Kafka;
 using Pipelinez.Core;
+using Pipelinez.Core.DeadLettering;
 using Pipelinez.Core.Record;
 using Pipelinez.Kafka.Configuration;
 using Pipelinez.Kafka.Destination;
@@ -52,6 +53,24 @@ public static class KafkaPipelineBuilderExtensions
         ArgumentNullException.ThrowIfNull(recordMapper);
 
         return builder.WithDestination(new KafkaPipelineDestination<T, TRecordKey, TRecordValue>(
+            builder.PipelineName,
+            config,
+            recordMapper));
+    }
+
+    public static PipelineBuilder<T> WithKafkaDeadLetterDestination<T, TRecordKey, TRecordValue>(
+        this PipelineBuilder<T> builder,
+        KafkaDestinationOptions config,
+        Func<PipelineDeadLetterRecord<T>, Message<TRecordKey, TRecordValue>> recordMapper)
+        where TRecordKey : class
+        where TRecordValue : class
+        where T : PipelineRecord
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(config);
+        ArgumentNullException.ThrowIfNull(recordMapper);
+
+        return builder.WithDeadLetterDestination(new KafkaDeadLetterDestination<T, TRecordKey, TRecordValue>(
             builder.PipelineName,
             config,
             recordMapper));

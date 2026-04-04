@@ -98,6 +98,18 @@ public class MetadataCollection : IList<MetadataRecord>
         Add(new MetadataRecord(key, value));
     }
 
+    public MetadataCollection Clone()
+    {
+        var clone = new MetadataCollection();
+
+        foreach (var item in _internalList)
+        {
+            clone.Add(new MetadataRecord(item.Key, item.Value));
+        }
+
+        return clone;
+    }
+
     public MetadataRecord this[int index]
     {
         get => _internalList[index];
