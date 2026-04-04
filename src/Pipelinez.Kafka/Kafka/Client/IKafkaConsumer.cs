@@ -2,7 +2,7 @@ using Confluent.Kafka;
 
 namespace Pipelinez.Kafka.Client;
 
-public interface IKafkaConsumer<TMessageKey, TMessageValue>
+internal interface IKafkaConsumer<TMessageKey, TMessageValue>
 {
     public string Name { get; }
     public List<string> Subscription { get; }

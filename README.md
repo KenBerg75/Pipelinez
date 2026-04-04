@@ -434,6 +434,8 @@ Public events include:
   BenchmarkDotNet-based performance benchmarks
 - [`docs/Overview.md`](docs/Overview.md)
   deeper architectural overview
+- [`docs/ApiStability.md`](docs/ApiStability.md)
+  compatibility, stability, and public API change guidance
 
 ## Running Locally
 
@@ -487,6 +489,17 @@ Current implemented capabilities include:
 - operational health snapshots, health-check integration, runtime meter metrics, and correlation IDs
 - Kafka source and destination support
 - Docker-backed Kafka integration coverage, including multi-worker distributed tests
+- public API approval tests and repository-level API stability guidance
+
+## API Stability
+
+Pipelinez now treats the public API of `Pipelinez` and `Pipelinez.Kafka` as an intentional compatibility contract.
+
+- stable APIs are expected to remain source-compatible within the current major version
+- preview APIs should be explicitly marked and documented when introduced
+- public API approval tests protect both assemblies from accidental surface changes in normal PR and CI validation
+
+See [`docs/ApiStability.md`](docs/ApiStability.md) for the full policy and maintainer workflow.
 
 ## License
 

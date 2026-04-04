@@ -1,0 +1,707 @@
+Assembly: Pipelinez
+
+public interface Pipelinez.Core.DeadLettering.IPipelineDeadLetterDestination<T> where T : Pipelinez.Core.Record.PipelineRecord
+  METHOD public abstract System.Threading.Tasks.Task WriteAsync(Pipelinez.Core.DeadLettering.PipelineDeadLetterRecord<T> deadLetterRecord, System.Threading.CancellationToken cancellationToken)
+
+public class Pipelinez.Core.DeadLettering.InMemoryDeadLetterDestination<T> : Pipelinez.Core.DeadLettering.IPipelineDeadLetterDestination<T> where T : Pipelinez.Core.Record.PipelineRecord
+  CTOR public Pipelinez.Core.DeadLettering.InMemoryDeadLetterDestination<T>()
+  PROPERTY public System.Collections.Generic.IReadOnlyList<Pipelinez.Core.DeadLettering.PipelineDeadLetterRecord<T>> Records { get; }
+  METHOD public virtual System.Threading.Tasks.Task WriteAsync(Pipelinez.Core.DeadLettering.PipelineDeadLetterRecord<T> deadLetterRecord, System.Threading.CancellationToken cancellationToken)
+
+public class Pipelinez.Core.DeadLettering.PipelineDeadLetterOptions
+  CTOR public Pipelinez.Core.DeadLettering.PipelineDeadLetterOptions()
+  PROPERTY public bool CloneMetadata { get; init; }
+  PROPERTY public bool EmitDeadLetterEvents { get; init; }
+  PROPERTY public bool TreatDeadLetterFailureAsPipelineFault { get; init; }
+  METHOD public Pipelinez.Core.DeadLettering.PipelineDeadLetterOptions Validate()
+
+public class Pipelinez.Core.DeadLettering.PipelineDeadLetterRecord<T> where T : Pipelinez.Core.Record.PipelineRecord
+  [Obsolete("Constructors of types with required members are not supported in this version of your compiler.")] CTOR public Pipelinez.Core.DeadLettering.PipelineDeadLetterRecord<T>()
+  PROPERTY public required System.DateTimeOffset CreatedAtUtc { get; init; }
+  PROPERTY public required System.DateTimeOffset DeadLetteredAtUtc { get; init; }
+  PROPERTY public required Pipelinez.Core.Distributed.PipelineRecordDistributionContext Distribution { get; init; }
+  PROPERTY public required Pipelinez.Core.FaultHandling.PipelineFaultState Fault { get; init; }
+  PROPERTY public required Pipelinez.Core.Record.Metadata.MetadataCollection Metadata { get; init; }
+  PROPERTY public required T Record { get; init; }
+  PROPERTY public required System.Collections.Generic.IReadOnlyList<Pipelinez.Core.Retry.PipelineRetryAttempt> RetryHistory { get; init; }
+  PROPERTY public required System.Collections.Generic.IReadOnlyList<Pipelinez.Core.FaultHandling.PipelineSegmentExecution> SegmentHistory { get; init; }
+  METHOD public void Validate()
+
+public interface Pipelinez.Core.Destination.IBatchedPipelineDestination<T> : Pipelinez.Core.Destination.IPipelineDestination<T> where T : Pipelinez.Core.Record.PipelineRecord
+  METHOD public abstract System.Threading.Tasks.Task ExecuteBatchAsync(System.Collections.Generic.IReadOnlyList<Pipelinez.Core.Record.PipelineContainer<T>> batch, System.Threading.CancellationToken cancellationToken)
+
+public interface Pipelinez.Core.Destination.IPipelineDestination<T> : Pipelinez.Core.Flow.IFlowDestination<Pipelinez.Core.Record.PipelineContainer<T>> where T : Pipelinez.Core.Record.PipelineRecord
+  PROPERTY public System.Threading.Tasks.Task Completion { get; }
+  METHOD public abstract void Initialize(Pipelinez.Core.Pipeline<T> parentPipeline)
+  METHOD public abstract System.Threading.Tasks.Task StartAsync(System.Threading.CancellationTokenSource cancellationToken)
+
+public class Pipelinez.Core.Destination.InMemoryPipelineDestination<T> : Pipelinez.Core.Destination.PipelineDestination<T> where T : Pipelinez.Core.Record.PipelineRecord
+  CTOR public Pipelinez.Core.Destination.InMemoryPipelineDestination<T>()
+
+public abstract class Pipelinez.Core.Destination.PipelineDestination<T> : Pipelinez.Core.Destination.IPipelineDestination<T>, Pipelinez.Core.Flow.IFlowDestination<Pipelinez.Core.Record.PipelineContainer<T>>, Pipelinez.Core.Retry.IPipelineRetryConfigurable<T>, Pipelinez.Core.FlowControl.IPipelineFlowStatusProvider, Pipelinez.Core.Performance.IPipelineBatchingAware, Pipelinez.Core.Performance.IPipelineExecutionConfigurable, Pipelinez.Core.Performance.IPipelinePerformanceAware where T : Pipelinez.Core.Record.PipelineRecord
+  PROPERTY public System.Threading.Tasks.Task Completion { get; }
+  METHOD public virtual System.Threading.Tasks.Dataflow.ITargetBlock<Pipelinez.Core.Record.PipelineContainer<T>> AsTargetBlock()
+  METHOD public virtual void ConfigureExecutionOptions(Pipelinez.Core.Performance.PipelineExecutionOptions options)
+  METHOD public virtual void ConfigureRetryPolicy(Pipelinez.Core.Retry.PipelineRetryPolicy<T> retryPolicy)
+  METHOD public virtual Pipelinez.Core.Performance.PipelineExecutionOptions GetExecutionOptions()
+  METHOD public virtual Pipelinez.Core.Retry.PipelineRetryPolicy<T> GetRetryPolicy()
+  METHOD public virtual void Initialize(Pipelinez.Core.Pipeline<T> parentPipeline)
+  METHOD public virtual System.Threading.Tasks.Task StartAsync(System.Threading.CancellationTokenSource cancellationToken)
+
+public static class Pipelinez.Core.Distributed.DistributedMetadataKeys
+  FIELD public static const string LeaseId = "pipelinez.distribution.lease.id"
+  FIELD public static const string Offset = "pipelinez.distribution.offset"
+  FIELD public static const string PartitionId = "pipelinez.distribution.partition.id"
+  FIELD public static const string PartitionKey = "pipelinez.distribution.partition.key"
+  FIELD public static const string TransportName = "pipelinez.distribution.transport.name"
+
+public class Pipelinez.Core.Distributed.PipelineDistributedStatus
+  CTOR public Pipelinez.Core.Distributed.PipelineDistributedStatus(Pipelinez.Core.Distributed.PipelineExecutionMode executionMode, string instanceId, string workerId, System.Collections.Generic.IReadOnlyList<Pipelinez.Core.Distributed.PipelinePartitionLease> ownedPartitions = null, System.Collections.Generic.IReadOnlyList<Pipelinez.Core.Distributed.PipelinePartitionExecutionState> partitionExecution = null)
+  PROPERTY public Pipelinez.Core.Distributed.PipelineExecutionMode ExecutionMode { get; }
+  PROPERTY public string InstanceId { get; }
+  PROPERTY public System.Collections.Generic.IReadOnlyList<Pipelinez.Core.Distributed.PipelinePartitionLease> OwnedPartitions { get; }
+  PROPERTY public System.Collections.Generic.IReadOnlyList<Pipelinez.Core.Distributed.PipelinePartitionExecutionState> PartitionExecution { get; }
+  PROPERTY public string WorkerId { get; }
+
+public enum Pipelinez.Core.Distributed.PipelineExecutionMode
+  FIELD public static const Pipelinez.Core.Distributed.PipelineExecutionMode Distributed = Pipelinez.Core.Distributed.PipelineExecutionMode.1
+  FIELD public static const Pipelinez.Core.Distributed.PipelineExecutionMode SingleProcess = Pipelinez.Core.Distributed.PipelineExecutionMode.0
+
+public class Pipelinez.Core.Distributed.PipelineHostOptions
+  CTOR public Pipelinez.Core.Distributed.PipelineHostOptions()
+  PROPERTY public Pipelinez.Core.Distributed.PipelineExecutionMode ExecutionMode { get; init; }
+  PROPERTY public string InstanceId { get; init; }
+  PROPERTY public bool RequireTransportOwnership { get; init; }
+  PROPERTY public string WorkerId { get; init; }
+
+public class Pipelinez.Core.Distributed.PipelinePartitionExecutionState
+  CTOR public Pipelinez.Core.Distributed.PipelinePartitionExecutionState(string leaseId, string partitionKey, System.Nullable<int> partitionId, bool isAssigned, bool isDraining, int inFlightCount, System.Nullable<long> highestCompletedOffset)
+  PROPERTY public System.Nullable<long> HighestCompletedOffset { get; }
+  PROPERTY public int InFlightCount { get; }
+  PROPERTY public bool IsAssigned { get; }
+  PROPERTY public bool IsDraining { get; }
+  PROPERTY public string LeaseId { get; }
+  PROPERTY public System.Nullable<int> PartitionId { get; }
+  PROPERTY public string PartitionKey { get; }
+
+public class Pipelinez.Core.Distributed.PipelinePartitionLease
+  CTOR public Pipelinez.Core.Distributed.PipelinePartitionLease(string leaseId, string transportName, string partitionKey, string instanceId, string workerId, System.Nullable<int> partitionId = null)
+  PROPERTY public string InstanceId { get; }
+  PROPERTY public string LeaseId { get; }
+  PROPERTY public System.Nullable<int> PartitionId { get; }
+  PROPERTY public string PartitionKey { get; }
+  PROPERTY public string TransportName { get; }
+  PROPERTY public string WorkerId { get; }
+
+public class Pipelinez.Core.Distributed.PipelineRecordDistributionContext
+  CTOR public Pipelinez.Core.Distributed.PipelineRecordDistributionContext(string instanceId, string workerId, string transportName, string leaseId, string partitionKey, System.Nullable<int> partitionId, System.Nullable<long> offset)
+  PROPERTY public string InstanceId { get; }
+  PROPERTY public string LeaseId { get; }
+  PROPERTY public System.Nullable<long> Offset { get; }
+  PROPERTY public System.Nullable<int> PartitionId { get; }
+  PROPERTY public string PartitionKey { get; }
+  PROPERTY public string TransportName { get; }
+  PROPERTY public string WorkerId { get; }
+
+public class Pipelinez.Core.Distributed.PipelineRuntimeContext
+  CTOR public Pipelinez.Core.Distributed.PipelineRuntimeContext(string pipelineName, Pipelinez.Core.Distributed.PipelineExecutionMode executionMode, string instanceId, string workerId, System.Collections.Generic.IReadOnlyList<Pipelinez.Core.Distributed.PipelinePartitionLease> ownedPartitions = null, System.Collections.Generic.IReadOnlyList<Pipelinez.Core.Distributed.PipelinePartitionExecutionState> partitionExecution = null)
+  PROPERTY public Pipelinez.Core.Distributed.PipelineExecutionMode ExecutionMode { get; }
+  PROPERTY public string InstanceId { get; }
+  PROPERTY public System.Collections.Generic.IReadOnlyList<Pipelinez.Core.Distributed.PipelinePartitionLease> OwnedPartitions { get; }
+  PROPERTY public System.Collections.Generic.IReadOnlyList<Pipelinez.Core.Distributed.PipelinePartitionExecutionState> PartitionExecution { get; }
+  PROPERTY public string PipelineName { get; }
+  PROPERTY public string WorkerId { get; }
+
+public enum Pipelinez.Core.ErrorHandling.PipelineErrorAction
+  FIELD public static const Pipelinez.Core.ErrorHandling.PipelineErrorAction DeadLetter = Pipelinez.Core.ErrorHandling.PipelineErrorAction.3
+  FIELD public static const Pipelinez.Core.ErrorHandling.PipelineErrorAction Rethrow = Pipelinez.Core.ErrorHandling.PipelineErrorAction.2
+  FIELD public static const Pipelinez.Core.ErrorHandling.PipelineErrorAction SkipRecord = Pipelinez.Core.ErrorHandling.PipelineErrorAction.1
+  FIELD public static const Pipelinez.Core.ErrorHandling.PipelineErrorAction StopPipeline = Pipelinez.Core.ErrorHandling.PipelineErrorAction.0
+
+public class Pipelinez.Core.ErrorHandling.PipelineErrorContext<T> where T : Pipelinez.Core.Record.PipelineRecord
+  CTOR public Pipelinez.Core.ErrorHandling.PipelineErrorContext<T>(System.Exception exception, Pipelinez.Core.Record.PipelineContainer<T> container, Pipelinez.Core.FaultHandling.PipelineFaultState fault, System.Threading.CancellationToken cancellationToken)
+  PROPERTY public System.Threading.CancellationToken CancellationToken { get; }
+  PROPERTY public Pipelinez.Core.FaultHandling.PipelineComponentKind ComponentKind { get; }
+  PROPERTY public string ComponentName { get; }
+  PROPERTY public Pipelinez.Core.Record.PipelineContainer<T> Container { get; }
+  PROPERTY public System.Exception Exception { get; }
+  PROPERTY public Pipelinez.Core.FaultHandling.PipelineFaultState Fault { get; }
+  PROPERTY public T Record { get; }
+  PROPERTY public int RetryAttemptCount { get; }
+  PROPERTY public bool RetryExhausted { get; }
+  PROPERTY public System.Collections.Generic.IReadOnlyList<Pipelinez.Core.Retry.PipelineRetryAttempt> RetryHistory { get; }
+
+public delegate Pipelinez.Core.ErrorHandling.PipelineErrorHandler<T>(Pipelinez.Core.ErrorHandling.PipelineErrorContext<T> context) : System.Threading.Tasks.Task<Pipelinez.Core.ErrorHandling.PipelineErrorAction> where T : Pipelinez.Core.Record.PipelineRecord
+
+public class Pipelinez.Core.Eventing.PipelineContainerCompletedEventHandlerArgs<T>
+  CTOR public Pipelinez.Core.Eventing.PipelineContainerCompletedEventHandlerArgs<T>(T container)
+  PROPERTY public T Container { get; }
+
+public delegate Pipelinez.Core.Eventing.PipelineContainerCompletedEventHandler<T>(object sender, Pipelinez.Core.Eventing.PipelineContainerCompletedEventHandlerArgs<T> args) : void
+
+public class Pipelinez.Core.Eventing.PipelineDeadLetterWriteFailedEventArgs<T> where T : Pipelinez.Core.Record.PipelineRecord
+  CTOR public Pipelinez.Core.Eventing.PipelineDeadLetterWriteFailedEventArgs<T>(T record, Pipelinez.Core.DeadLettering.PipelineDeadLetterRecord<T> deadLetterRecord, System.Exception exception, Pipelinez.Core.Operational.PipelineRecordDiagnosticContext diagnostic = null)
+  PROPERTY public Pipelinez.Core.DeadLettering.PipelineDeadLetterRecord<T> DeadLetterRecord { get; }
+  PROPERTY public Pipelinez.Core.Operational.PipelineRecordDiagnosticContext Diagnostic { get; }
+  PROPERTY public System.Exception Exception { get; }
+  PROPERTY public T Record { get; }
+
+public delegate Pipelinez.Core.Eventing.PipelineDeadLetterWriteFailedEventHandler<T>(object sender, Pipelinez.Core.Eventing.PipelineDeadLetterWriteFailedEventArgs<T> args) : void where T : Pipelinez.Core.Record.PipelineRecord
+
+public class Pipelinez.Core.Eventing.PipelineFaultedEventArgs
+  CTOR public Pipelinez.Core.Eventing.PipelineFaultedEventArgs(string pipelineName, Pipelinez.Core.FaultHandling.PipelineFaultState fault)
+  PROPERTY public Pipelinez.Core.FaultHandling.PipelineComponentKind ComponentKind { get; }
+  PROPERTY public string ComponentName { get; }
+  PROPERTY public System.Exception Exception { get; }
+  PROPERTY public Pipelinez.Core.FaultHandling.PipelineFaultState Fault { get; }
+  PROPERTY public string PipelineName { get; }
+
+public delegate Pipelinez.Core.Eventing.PipelineFaultedEventHandler(object sender, Pipelinez.Core.Eventing.PipelineFaultedEventArgs args) : void
+
+public class Pipelinez.Core.Eventing.PipelinePartitionDrainedEventArgs
+  CTOR public Pipelinez.Core.Eventing.PipelinePartitionDrainedEventArgs(Pipelinez.Core.Distributed.PipelineRuntimeContext runtimeContext, Pipelinez.Core.Distributed.PipelinePartitionLease partition)
+  PROPERTY public Pipelinez.Core.Distributed.PipelinePartitionLease Partition { get; }
+  PROPERTY public Pipelinez.Core.Distributed.PipelineRuntimeContext RuntimeContext { get; }
+
+public delegate Pipelinez.Core.Eventing.PipelinePartitionDrainedEventHandler(object sender, Pipelinez.Core.Eventing.PipelinePartitionDrainedEventArgs args) : void
+
+public class Pipelinez.Core.Eventing.PipelinePartitionDrainingEventArgs
+  CTOR public Pipelinez.Core.Eventing.PipelinePartitionDrainingEventArgs(Pipelinez.Core.Distributed.PipelineRuntimeContext runtimeContext, Pipelinez.Core.Distributed.PipelinePartitionLease partition)
+  PROPERTY public Pipelinez.Core.Distributed.PipelinePartitionLease Partition { get; }
+  PROPERTY public Pipelinez.Core.Distributed.PipelineRuntimeContext RuntimeContext { get; }
+
+public delegate Pipelinez.Core.Eventing.PipelinePartitionDrainingEventHandler(object sender, Pipelinez.Core.Eventing.PipelinePartitionDrainingEventArgs args) : void
+
+public class Pipelinez.Core.Eventing.PipelinePartitionExecutionStateChangedEventArgs
+  CTOR public Pipelinez.Core.Eventing.PipelinePartitionExecutionStateChangedEventArgs(Pipelinez.Core.Distributed.PipelineRuntimeContext runtimeContext, Pipelinez.Core.Distributed.PipelinePartitionExecutionState state)
+  PROPERTY public Pipelinez.Core.Distributed.PipelineRuntimeContext RuntimeContext { get; }
+  PROPERTY public Pipelinez.Core.Distributed.PipelinePartitionExecutionState State { get; }
+
+public delegate Pipelinez.Core.Eventing.PipelinePartitionExecutionStateChangedEventHandler(object sender, Pipelinez.Core.Eventing.PipelinePartitionExecutionStateChangedEventArgs args) : void
+
+public class Pipelinez.Core.Eventing.PipelinePartitionsAssignedEventArgs
+  CTOR public Pipelinez.Core.Eventing.PipelinePartitionsAssignedEventArgs(Pipelinez.Core.Distributed.PipelineRuntimeContext runtimeContext, System.Collections.Generic.IReadOnlyList<Pipelinez.Core.Distributed.PipelinePartitionLease> partitions)
+  PROPERTY public System.Collections.Generic.IReadOnlyList<Pipelinez.Core.Distributed.PipelinePartitionLease> Partitions { get; }
+  PROPERTY public Pipelinez.Core.Distributed.PipelineRuntimeContext RuntimeContext { get; }
+  PROPERTY public string WorkerId { get; }
+
+public delegate Pipelinez.Core.Eventing.PipelinePartitionsAssignedEventHandler(object sender, Pipelinez.Core.Eventing.PipelinePartitionsAssignedEventArgs args) : void
+
+public class Pipelinez.Core.Eventing.PipelinePartitionsRevokedEventArgs
+  CTOR public Pipelinez.Core.Eventing.PipelinePartitionsRevokedEventArgs(Pipelinez.Core.Distributed.PipelineRuntimeContext runtimeContext, System.Collections.Generic.IReadOnlyList<Pipelinez.Core.Distributed.PipelinePartitionLease> partitions)
+  PROPERTY public System.Collections.Generic.IReadOnlyList<Pipelinez.Core.Distributed.PipelinePartitionLease> Partitions { get; }
+  PROPERTY public Pipelinez.Core.Distributed.PipelineRuntimeContext RuntimeContext { get; }
+  PROPERTY public string WorkerId { get; }
+
+public delegate Pipelinez.Core.Eventing.PipelinePartitionsRevokedEventHandler(object sender, Pipelinez.Core.Eventing.PipelinePartitionsRevokedEventArgs args) : void
+
+public class Pipelinez.Core.Eventing.PipelinePublishRejectedEventArgs<T> where T : Pipelinez.Core.Record.PipelineRecord
+  CTOR public Pipelinez.Core.Eventing.PipelinePublishRejectedEventArgs<T>(T record, Pipelinez.Core.FlowControl.PipelinePublishResultReason reason, System.DateTimeOffset observedAtUtc, Pipelinez.Core.Operational.PipelineRecordDiagnosticContext diagnostic = null)
+  PROPERTY public Pipelinez.Core.Operational.PipelineRecordDiagnosticContext Diagnostic { get; }
+  PROPERTY public System.DateTimeOffset ObservedAtUtc { get; }
+  PROPERTY public Pipelinez.Core.FlowControl.PipelinePublishResultReason Reason { get; }
+  PROPERTY public T Record { get; }
+
+public delegate Pipelinez.Core.Eventing.PipelinePublishRejectedEventHandler<T>(object sender, Pipelinez.Core.Eventing.PipelinePublishRejectedEventArgs<T> args) : void where T : Pipelinez.Core.Record.PipelineRecord
+
+public class Pipelinez.Core.Eventing.PipelineRecordCompletedEventHandlerArgs<T>
+  CTOR public Pipelinez.Core.Eventing.PipelineRecordCompletedEventHandlerArgs<T>(T record, Pipelinez.Core.Distributed.PipelineRecordDistributionContext distribution = null, Pipelinez.Core.Operational.PipelineRecordDiagnosticContext diagnostic = null)
+  PROPERTY public Pipelinez.Core.Operational.PipelineRecordDiagnosticContext Diagnostic { get; }
+  PROPERTY public Pipelinez.Core.Distributed.PipelineRecordDistributionContext Distribution { get; }
+  PROPERTY public T Record { get; }
+
+public delegate Pipelinez.Core.Eventing.PipelineRecordCompletedEventHandler<T>(object sender, Pipelinez.Core.Eventing.PipelineRecordCompletedEventHandlerArgs<T> args) : void
+
+public class Pipelinez.Core.Eventing.PipelineRecordDeadLetteredEventArgs<T> where T : Pipelinez.Core.Record.PipelineRecord
+  CTOR public Pipelinez.Core.Eventing.PipelineRecordDeadLetteredEventArgs<T>(T record, Pipelinez.Core.DeadLettering.PipelineDeadLetterRecord<T> deadLetterRecord, Pipelinez.Core.Operational.PipelineRecordDiagnosticContext diagnostic = null)
+  PROPERTY public Pipelinez.Core.DeadLettering.PipelineDeadLetterRecord<T> DeadLetterRecord { get; }
+  PROPERTY public Pipelinez.Core.Operational.PipelineRecordDiagnosticContext Diagnostic { get; }
+  PROPERTY public T Record { get; }
+
+public delegate Pipelinez.Core.Eventing.PipelineRecordDeadLetteredEventHandler<T>(object sender, Pipelinez.Core.Eventing.PipelineRecordDeadLetteredEventArgs<T> args) : void where T : Pipelinez.Core.Record.PipelineRecord
+
+public class Pipelinez.Core.Eventing.PipelineRecordFaultedEventArgs<T> where T : Pipelinez.Core.Record.PipelineRecord
+  CTOR public Pipelinez.Core.Eventing.PipelineRecordFaultedEventArgs<T>(T record, Pipelinez.Core.Record.PipelineContainer<T> container, Pipelinez.Core.FaultHandling.PipelineFaultState fault, Pipelinez.Core.Distributed.PipelineRecordDistributionContext distribution = null, Pipelinez.Core.Operational.PipelineRecordDiagnosticContext diagnostic = null)
+  PROPERTY public Pipelinez.Core.Record.PipelineContainer<T> Container { get; }
+  PROPERTY public Pipelinez.Core.Operational.PipelineRecordDiagnosticContext Diagnostic { get; }
+  PROPERTY public Pipelinez.Core.Distributed.PipelineRecordDistributionContext Distribution { get; }
+  PROPERTY public Pipelinez.Core.FaultHandling.PipelineFaultState Fault { get; }
+  PROPERTY public T Record { get; }
+
+public delegate Pipelinez.Core.Eventing.PipelineRecordFaultedEventHandler<T>(object sender, Pipelinez.Core.Eventing.PipelineRecordFaultedEventArgs<T> args) : void where T : Pipelinez.Core.Record.PipelineRecord
+
+public class Pipelinez.Core.Eventing.PipelineRecordRetryingEventArgs<T> where T : Pipelinez.Core.Record.PipelineRecord
+  CTOR public Pipelinez.Core.Eventing.PipelineRecordRetryingEventArgs<T>(T record, Pipelinez.Core.Record.PipelineContainer<T> container, Pipelinez.Core.FaultHandling.PipelineFaultState fault, int attemptNumber, int maxAttempts, System.TimeSpan delay, Pipelinez.Core.Distributed.PipelineRecordDistributionContext distribution = null, Pipelinez.Core.Operational.PipelineRecordDiagnosticContext diagnostic = null)
+  PROPERTY public int AttemptNumber { get; }
+  PROPERTY public Pipelinez.Core.FaultHandling.PipelineComponentKind ComponentKind { get; }
+  PROPERTY public string ComponentName { get; }
+  PROPERTY public Pipelinez.Core.Record.PipelineContainer<T> Container { get; }
+  PROPERTY public System.TimeSpan Delay { get; }
+  PROPERTY public Pipelinez.Core.Operational.PipelineRecordDiagnosticContext Diagnostic { get; }
+  PROPERTY public Pipelinez.Core.Distributed.PipelineRecordDistributionContext Distribution { get; }
+  PROPERTY public System.Exception Exception { get; }
+  PROPERTY public Pipelinez.Core.FaultHandling.PipelineFaultState Fault { get; }
+  PROPERTY public int MaxAttempts { get; }
+  PROPERTY public T Record { get; }
+
+public delegate Pipelinez.Core.Eventing.PipelineRecordRetryingEventHandler<T>(object sender, Pipelinez.Core.Eventing.PipelineRecordRetryingEventArgs<T> args) : void where T : Pipelinez.Core.Record.PipelineRecord
+
+public class Pipelinez.Core.Eventing.PipelineSaturationChangedEventArgs
+  CTOR public Pipelinez.Core.Eventing.PipelineSaturationChangedEventArgs(double saturationRatio, bool isSaturated, System.DateTimeOffset observedAtUtc)
+  PROPERTY public bool IsSaturated { get; }
+  PROPERTY public System.DateTimeOffset ObservedAtUtc { get; }
+  PROPERTY public double SaturationRatio { get; }
+
+public delegate Pipelinez.Core.Eventing.PipelineSaturationChangedEventHandler(object sender, Pipelinez.Core.Eventing.PipelineSaturationChangedEventArgs args) : void
+
+public class Pipelinez.Core.Eventing.PipelineWorkerStartedEventArgs
+  CTOR public Pipelinez.Core.Eventing.PipelineWorkerStartedEventArgs(Pipelinez.Core.Distributed.PipelineRuntimeContext runtimeContext)
+  PROPERTY public Pipelinez.Core.Distributed.PipelineRuntimeContext RuntimeContext { get; }
+
+public delegate Pipelinez.Core.Eventing.PipelineWorkerStartedEventHandler(object sender, Pipelinez.Core.Eventing.PipelineWorkerStartedEventArgs args) : void
+
+public class Pipelinez.Core.Eventing.PipelineWorkerStoppingEventArgs
+  CTOR public Pipelinez.Core.Eventing.PipelineWorkerStoppingEventArgs(Pipelinez.Core.Distributed.PipelineRuntimeContext runtimeContext)
+  PROPERTY public Pipelinez.Core.Distributed.PipelineRuntimeContext RuntimeContext { get; }
+
+public delegate Pipelinez.Core.Eventing.PipelineWorkerStoppingEventHandler(object sender, Pipelinez.Core.Eventing.PipelineWorkerStoppingEventArgs args) : void
+
+public enum Pipelinez.Core.FaultHandling.PipelineComponentKind
+  FIELD public static const Pipelinez.Core.FaultHandling.PipelineComponentKind Destination = Pipelinez.Core.FaultHandling.PipelineComponentKind.2
+  FIELD public static const Pipelinez.Core.FaultHandling.PipelineComponentKind Pipeline = Pipelinez.Core.FaultHandling.PipelineComponentKind.3
+  FIELD public static const Pipelinez.Core.FaultHandling.PipelineComponentKind Segment = Pipelinez.Core.FaultHandling.PipelineComponentKind.1
+  FIELD public static const Pipelinez.Core.FaultHandling.PipelineComponentKind Source = Pipelinez.Core.FaultHandling.PipelineComponentKind.0
+
+public class Pipelinez.Core.FaultHandling.PipelineFaultState
+  CTOR public Pipelinez.Core.FaultHandling.PipelineFaultState(System.Exception exception, string componentName, Pipelinez.Core.FaultHandling.PipelineComponentKind componentKind, System.DateTimeOffset occurredAtUtc, string message = null)
+  PROPERTY public Pipelinez.Core.FaultHandling.PipelineComponentKind ComponentKind { get; }
+  PROPERTY public string ComponentName { get; }
+  PROPERTY public System.Exception Exception { get; }
+  PROPERTY public string Message { get; }
+  PROPERTY public System.DateTimeOffset OccurredAtUtc { get; }
+
+public class Pipelinez.Core.FaultHandling.PipelineSegmentExecution
+  CTOR public Pipelinez.Core.FaultHandling.PipelineSegmentExecution(string segmentName, System.DateTimeOffset startedAtUtc, System.DateTimeOffset completedAtUtc, bool succeeded, string failureMessage = null)
+  PROPERTY public System.DateTimeOffset CompletedAtUtc { get; }
+  PROPERTY public System.TimeSpan Duration { get; }
+  PROPERTY public string FailureMessage { get; }
+  PROPERTY public string SegmentName { get; }
+  PROPERTY public System.DateTimeOffset StartedAtUtc { get; }
+  PROPERTY public bool Succeeded { get; }
+
+public interface Pipelinez.Core.Flow.IFlowDestination<TInput>
+  METHOD public abstract System.Threading.Tasks.Dataflow.ITargetBlock<TInput> AsTargetBlock()
+
+public interface Pipelinez.Core.Flow.IFlowSource<TOutput>
+  METHOD public abstract System.IDisposable ConnectTo(Pipelinez.Core.Flow.IFlowDestination<TOutput> target, System.Threading.Tasks.Dataflow.DataflowLinkOptions options = null)
+
+public class Pipelinez.Core.FlowControl.PipelineComponentFlowStatus
+  CTOR public Pipelinez.Core.FlowControl.PipelineComponentFlowStatus(string name, int approximateQueueDepth, System.Nullable<int> boundedCapacity)
+  PROPERTY public int ApproximateQueueDepth { get; }
+  PROPERTY public System.Nullable<int> BoundedCapacity { get; }
+  PROPERTY public bool IsSaturated { get; }
+  PROPERTY public string Name { get; }
+  PROPERTY public double SaturationRatio { get; }
+
+public class Pipelinez.Core.FlowControl.PipelineFlowControlOptions
+  CTOR public Pipelinez.Core.FlowControl.PipelineFlowControlOptions()
+  PROPERTY public bool EmitSaturationEvents { get; init; }
+  PROPERTY public Pipelinez.Core.FlowControl.PipelineOverflowPolicy OverflowPolicy { get; init; }
+  PROPERTY public System.Nullable<System.TimeSpan> PublishTimeout { get; init; }
+  PROPERTY public double SaturationWarningThreshold { get; init; }
+  METHOD public Pipelinez.Core.FlowControl.PipelineFlowControlOptions Validate()
+
+public class Pipelinez.Core.FlowControl.PipelineFlowControlStatus
+  CTOR public Pipelinez.Core.FlowControl.PipelineFlowControlStatus(Pipelinez.Core.FlowControl.PipelineOverflowPolicy overflowPolicy, bool isSaturated, double saturationRatio, int totalBufferedCount, System.Nullable<int> totalCapacity, System.Collections.Generic.IReadOnlyList<Pipelinez.Core.FlowControl.PipelineComponentFlowStatus> components)
+  PROPERTY public System.Collections.Generic.IReadOnlyList<Pipelinez.Core.FlowControl.PipelineComponentFlowStatus> Components { get; }
+  PROPERTY public bool IsSaturated { get; }
+  PROPERTY public Pipelinez.Core.FlowControl.PipelineOverflowPolicy OverflowPolicy { get; }
+  PROPERTY public double SaturationRatio { get; }
+  PROPERTY public int TotalBufferedCount { get; }
+  PROPERTY public System.Nullable<int> TotalCapacity { get; }
+
+public enum Pipelinez.Core.FlowControl.PipelineOverflowPolicy
+  FIELD public static const Pipelinez.Core.FlowControl.PipelineOverflowPolicy Cancel = Pipelinez.Core.FlowControl.PipelineOverflowPolicy.2
+  FIELD public static const Pipelinez.Core.FlowControl.PipelineOverflowPolicy Reject = Pipelinez.Core.FlowControl.PipelineOverflowPolicy.1
+  FIELD public static const Pipelinez.Core.FlowControl.PipelineOverflowPolicy Wait = Pipelinez.Core.FlowControl.PipelineOverflowPolicy.0
+
+public class Pipelinez.Core.FlowControl.PipelinePublishOptions
+  CTOR public Pipelinez.Core.FlowControl.PipelinePublishOptions()
+  PROPERTY public System.Threading.CancellationToken CancellationToken { get; init; }
+  PROPERTY public System.Nullable<Pipelinez.Core.FlowControl.PipelineOverflowPolicy> OverflowPolicyOverride { get; init; }
+  PROPERTY public System.Nullable<System.TimeSpan> Timeout { get; init; }
+  METHOD public Pipelinez.Core.FlowControl.PipelinePublishOptions Validate()
+
+public class Pipelinez.Core.FlowControl.PipelinePublishResult
+  PROPERTY public bool Accepted { get; }
+  PROPERTY public Pipelinez.Core.FlowControl.PipelinePublishResultReason Reason { get; }
+  PROPERTY public System.TimeSpan WaitDuration { get; }
+  METHOD public static Pipelinez.Core.FlowControl.PipelinePublishResult AcceptedResult(System.TimeSpan waitDuration)
+  METHOD public static Pipelinez.Core.FlowControl.PipelinePublishResult Rejected(Pipelinez.Core.FlowControl.PipelinePublishResultReason reason, System.TimeSpan waitDuration)
+  METHOD public void ThrowIfNotAccepted()
+
+public enum Pipelinez.Core.FlowControl.PipelinePublishResultReason
+  FIELD public static const Pipelinez.Core.FlowControl.PipelinePublishResultReason Accepted = Pipelinez.Core.FlowControl.PipelinePublishResultReason.0
+  FIELD public static const Pipelinez.Core.FlowControl.PipelinePublishResultReason Canceled = Pipelinez.Core.FlowControl.PipelinePublishResultReason.3
+  FIELD public static const Pipelinez.Core.FlowControl.PipelinePublishResultReason RejectedByOverflowPolicy = Pipelinez.Core.FlowControl.PipelinePublishResultReason.1
+  FIELD public static const Pipelinez.Core.FlowControl.PipelinePublishResultReason TimedOut = Pipelinez.Core.FlowControl.PipelinePublishResultReason.2
+
+public interface Pipelinez.Core.IPipeline<T> where T : Pipelinez.Core.Record.PipelineRecord
+  PROPERTY public System.Threading.Tasks.Task Completion { get; }
+  EVENT public event Pipelinez.Core.Eventing.PipelinePartitionDrainedEventHandler OnPartitionDrained
+  EVENT public event Pipelinez.Core.Eventing.PipelinePartitionDrainingEventHandler OnPartitionDraining
+  EVENT public event Pipelinez.Core.Eventing.PipelinePartitionExecutionStateChangedEventHandler OnPartitionExecutionStateChanged
+  EVENT public event Pipelinez.Core.Eventing.PipelinePartitionsAssignedEventHandler OnPartitionsAssigned
+  EVENT public event Pipelinez.Core.Eventing.PipelinePartitionsRevokedEventHandler OnPartitionsRevoked
+  EVENT public event Pipelinez.Core.Eventing.PipelineDeadLetterWriteFailedEventHandler<T> OnPipelineDeadLetterWriteFailed
+  EVENT public event Pipelinez.Core.Eventing.PipelineFaultedEventHandler OnPipelineFaulted
+  EVENT public event Pipelinez.Core.Eventing.PipelineRecordCompletedEventHandler<T> OnPipelineRecordCompleted
+  EVENT public event Pipelinez.Core.Eventing.PipelineRecordDeadLetteredEventHandler<T> OnPipelineRecordDeadLettered
+  EVENT public event Pipelinez.Core.Eventing.PipelineRecordFaultedEventHandler<T> OnPipelineRecordFaulted
+  EVENT public event Pipelinez.Core.Eventing.PipelineRecordRetryingEventHandler<T> OnPipelineRecordRetrying
+  EVENT public event Pipelinez.Core.Eventing.PipelinePublishRejectedEventHandler<T> OnPublishRejected
+  EVENT public event Pipelinez.Core.Eventing.PipelineSaturationChangedEventHandler OnSaturationChanged
+  EVENT public event Pipelinez.Core.Eventing.PipelineWorkerStartedEventHandler OnWorkerStarted
+  EVENT public event Pipelinez.Core.Eventing.PipelineWorkerStoppingEventHandler OnWorkerStopping
+  METHOD public abstract System.Threading.Tasks.Task CompleteAsync()
+  METHOD public abstract Pipelinez.Core.Operational.PipelineHealthStatus GetHealthStatus()
+  METHOD public abstract Pipelinez.Core.Operational.PipelineOperationalSnapshot GetOperationalSnapshot()
+  METHOD public abstract Pipelinez.Core.Performance.PipelinePerformanceSnapshot GetPerformanceSnapshot()
+  METHOD public abstract Pipelinez.Core.Distributed.PipelineRuntimeContext GetRuntimeContext()
+  METHOD public abstract Pipelinez.Core.Status.PipelineStatus GetStatus()
+  METHOD public abstract System.Threading.Tasks.Task PublishAsync(T record)
+  METHOD public abstract System.Threading.Tasks.Task<Pipelinez.Core.FlowControl.PipelinePublishResult> PublishAsync(T record, Pipelinez.Core.FlowControl.PipelinePublishOptions options)
+  METHOD public abstract System.Threading.Tasks.Task StartPipelineAsync(System.Threading.CancellationToken cancellationToken = null)
+
+public class Pipelinez.Core.Operational.PipelineHealthCheck<T> : Microsoft.Extensions.Diagnostics.HealthChecks.IHealthCheck where T : Pipelinez.Core.Record.PipelineRecord
+  CTOR public Pipelinez.Core.Operational.PipelineHealthCheck<T>(Pipelinez.Core.IPipeline<T> pipeline, bool includeComponentDiagnostics = true)
+  METHOD public virtual System.Threading.Tasks.Task<Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult> CheckHealthAsync(Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckContext context, System.Threading.CancellationToken cancellationToken = null)
+
+public enum Pipelinez.Core.Operational.PipelineHealthState
+  FIELD public static const Pipelinez.Core.Operational.PipelineHealthState Completed = Pipelinez.Core.Operational.PipelineHealthState.4
+  FIELD public static const Pipelinez.Core.Operational.PipelineHealthState Degraded = Pipelinez.Core.Operational.PipelineHealthState.2
+  FIELD public static const Pipelinez.Core.Operational.PipelineHealthState Healthy = Pipelinez.Core.Operational.PipelineHealthState.1
+  FIELD public static const Pipelinez.Core.Operational.PipelineHealthState Starting = Pipelinez.Core.Operational.PipelineHealthState.0
+  FIELD public static const Pipelinez.Core.Operational.PipelineHealthState Unhealthy = Pipelinez.Core.Operational.PipelineHealthState.3
+
+public class Pipelinez.Core.Operational.PipelineHealthStatus
+  CTOR public Pipelinez.Core.Operational.PipelineHealthStatus(string pipelineName, Pipelinez.Core.Operational.PipelineHealthState state, System.Collections.Generic.IReadOnlyList<string> reasons, System.DateTimeOffset observedAtUtc, Pipelinez.Core.Status.PipelineStatus runtimeStatus, Pipelinez.Core.Performance.PipelinePerformanceSnapshot performance, Pipelinez.Core.FaultHandling.PipelineFaultState lastPipelineFault = null)
+  PROPERTY public Pipelinez.Core.FaultHandling.PipelineFaultState LastPipelineFault { get; }
+  PROPERTY public System.DateTimeOffset ObservedAtUtc { get; }
+  PROPERTY public Pipelinez.Core.Performance.PipelinePerformanceSnapshot Performance { get; }
+  PROPERTY public string PipelineName { get; }
+  PROPERTY public string Reason { get; }
+  PROPERTY public System.Collections.Generic.IReadOnlyList<string> Reasons { get; }
+  PROPERTY public Pipelinez.Core.Status.PipelineStatus RuntimeStatus { get; }
+  PROPERTY public Pipelinez.Core.Operational.PipelineHealthState State { get; }
+
+public static class Pipelinez.Core.Operational.PipelineOperationalMetadataKeys
+  FIELD public static const string CorrelationId = "pipelinez.correlation.id"
+
+public class Pipelinez.Core.Operational.PipelineOperationalOptions
+  CTOR public Pipelinez.Core.Operational.PipelineOperationalOptions()
+  PROPERTY public long DeadLetterDegradedThreshold { get; init; }
+  PROPERTY public int DrainingPartitionDegradedThreshold { get; init; }
+  PROPERTY public bool EnableCorrelationIds { get; init; }
+  PROPERTY public bool EnableHealthChecks { get; init; }
+  PROPERTY public bool EnableMetrics { get; init; }
+  PROPERTY public bool IncludeComponentDiagnosticsInHealthResults { get; init; }
+  PROPERTY public long PublishRejectionDegradedThreshold { get; init; }
+  PROPERTY public long RetryExhaustionDegradedThreshold { get; init; }
+  PROPERTY public double SaturationDegradedThreshold { get; init; }
+  METHOD public Pipelinez.Core.Operational.PipelineOperationalOptions Validate()
+
+public class Pipelinez.Core.Operational.PipelineOperationalSnapshot
+  CTOR public Pipelinez.Core.Operational.PipelineOperationalSnapshot(Pipelinez.Core.Status.PipelineStatus status, Pipelinez.Core.Performance.PipelinePerformanceSnapshot performance, Pipelinez.Core.Operational.PipelineHealthStatus health, System.DateTimeOffset observedAtUtc, Pipelinez.Core.FaultHandling.PipelineFaultState lastPipelineFault = null, System.Nullable<System.DateTimeOffset> lastRecordCompletedAtUtc = null, System.Nullable<System.DateTimeOffset> lastDeadLetteredAtUtc = null)
+  PROPERTY public Pipelinez.Core.Operational.PipelineHealthStatus Health { get; }
+  PROPERTY public System.Nullable<System.DateTimeOffset> LastDeadLetteredAtUtc { get; }
+  PROPERTY public Pipelinez.Core.FaultHandling.PipelineFaultState LastPipelineFault { get; }
+  PROPERTY public System.Nullable<System.DateTimeOffset> LastRecordCompletedAtUtc { get; }
+  PROPERTY public System.DateTimeOffset ObservedAtUtc { get; }
+  PROPERTY public Pipelinez.Core.Performance.PipelinePerformanceSnapshot Performance { get; }
+  PROPERTY public Pipelinez.Core.Status.PipelineStatus Status { get; }
+
+public class Pipelinez.Core.Operational.PipelineRecordDiagnosticContext
+  CTOR public Pipelinez.Core.Operational.PipelineRecordDiagnosticContext(string correlationId, string pipelineName, string instanceId, string workerId, string componentName = null)
+  PROPERTY public string ComponentName { get; }
+  PROPERTY public string CorrelationId { get; }
+  PROPERTY public string InstanceId { get; }
+  PROPERTY public string PipelineName { get; }
+  PROPERTY public string WorkerId { get; }
+
+public interface Pipelinez.Core.Performance.IPipelineExecutionConfigurable
+  METHOD public abstract void ConfigureExecutionOptions(Pipelinez.Core.Performance.PipelineExecutionOptions options)
+  METHOD public abstract Pipelinez.Core.Performance.PipelineExecutionOptions GetExecutionOptions()
+
+public class Pipelinez.Core.Performance.PipelineBatchingOptions
+  CTOR public Pipelinez.Core.Performance.PipelineBatchingOptions()
+  PROPERTY public int BatchSize { get; init; }
+  PROPERTY public System.TimeSpan MaxBatchDelay { get; init; }
+  METHOD public Pipelinez.Core.Performance.PipelineBatchingOptions Validate()
+
+public class Pipelinez.Core.Performance.PipelineComponentPerformanceSnapshot
+  CTOR public Pipelinez.Core.Performance.PipelineComponentPerformanceSnapshot(string componentName, long processedCount, long faultedCount, double recordsPerSecond, System.TimeSpan averageExecutionLatency, System.Nullable<int> queueDepth = null)
+  PROPERTY public System.TimeSpan AverageExecutionLatency { get; }
+  PROPERTY public string ComponentName { get; }
+  PROPERTY public long FaultedCount { get; }
+  PROPERTY public long ProcessedCount { get; }
+  PROPERTY public System.Nullable<int> QueueDepth { get; }
+  PROPERTY public double RecordsPerSecond { get; }
+
+public class Pipelinez.Core.Performance.PipelineExecutionOptions
+  CTOR public Pipelinez.Core.Performance.PipelineExecutionOptions()
+  PROPERTY public int BoundedCapacity { get; init; }
+  PROPERTY public int DegreeOfParallelism { get; init; }
+  PROPERTY public bool EnsureOrdered { get; init; }
+  METHOD public static Pipelinez.Core.Performance.PipelineExecutionOptions CreateDefaultDestinationOptions()
+  METHOD public static Pipelinez.Core.Performance.PipelineExecutionOptions CreateDefaultSegmentOptions()
+  METHOD public static Pipelinez.Core.Performance.PipelineExecutionOptions CreateDefaultSourceOptions()
+  METHOD public bool Matches(Pipelinez.Core.Performance.PipelineExecutionOptions other)
+  METHOD public Pipelinez.Core.Performance.PipelineExecutionOptions Validate()
+
+public class Pipelinez.Core.Performance.PipelineMetricsOptions
+  CTOR public Pipelinez.Core.Performance.PipelineMetricsOptions()
+  PROPERTY public bool EnablePerComponentTiming { get; init; }
+  PROPERTY public bool EnableRuntimeMetrics { get; init; }
+
+public class Pipelinez.Core.Performance.PipelinePerformanceOptions
+  CTOR public Pipelinez.Core.Performance.PipelinePerformanceOptions()
+  PROPERTY public Pipelinez.Core.Performance.PipelineExecutionOptions DefaultSegmentExecution { get; init; }
+  PROPERTY public Pipelinez.Core.Performance.PipelineBatchingOptions DestinationBatching { get; init; }
+  PROPERTY public Pipelinez.Core.Performance.PipelineExecutionOptions DestinationExecution { get; init; }
+  PROPERTY public Pipelinez.Core.Performance.PipelineMetricsOptions Metrics { get; init; }
+  PROPERTY public Pipelinez.Core.Performance.PipelineExecutionOptions SourceExecution { get; init; }
+  METHOD public Pipelinez.Core.Performance.PipelinePerformanceOptions Validate()
+
+public class Pipelinez.Core.Performance.PipelinePerformanceSnapshot
+  CTOR public Pipelinez.Core.Performance.PipelinePerformanceSnapshot(System.DateTimeOffset startedAtUtc, System.TimeSpan elapsed, long totalRecordsPublished, long totalRecordsCompleted, long totalRecordsFaulted, long totalRetryCount, long successfulRetryRecoveries, long retryExhaustions, long totalDeadLetteredCount, long totalDeadLetterFailureCount, long totalPublishWaitCount, System.TimeSpan averagePublishWaitDuration, long totalPublishRejectedCount, int peakBufferedCount, double recordsPerSecond, System.TimeSpan averageEndToEndLatency, System.Collections.Generic.IReadOnlyList<Pipelinez.Core.Performance.PipelineComponentPerformanceSnapshot> components)
+  PROPERTY public System.TimeSpan AverageEndToEndLatency { get; }
+  PROPERTY public System.TimeSpan AveragePublishWaitDuration { get; }
+  PROPERTY public System.Collections.Generic.IReadOnlyList<Pipelinez.Core.Performance.PipelineComponentPerformanceSnapshot> Components { get; }
+  PROPERTY public System.TimeSpan Elapsed { get; }
+  PROPERTY public int PeakBufferedCount { get; }
+  PROPERTY public double RecordsPerSecond { get; }
+  PROPERTY public long RetryExhaustions { get; }
+  PROPERTY public System.DateTimeOffset StartedAtUtc { get; }
+  PROPERTY public long SuccessfulRetryRecoveries { get; }
+  PROPERTY public long TotalDeadLetterFailureCount { get; }
+  PROPERTY public long TotalDeadLetteredCount { get; }
+  PROPERTY public long TotalPublishRejectedCount { get; }
+  PROPERTY public long TotalPublishWaitCount { get; }
+  PROPERTY public long TotalRecordsCompleted { get; }
+  PROPERTY public long TotalRecordsFaulted { get; }
+  PROPERTY public long TotalRecordsPublished { get; }
+  PROPERTY public long TotalRetryCount { get; }
+
+public class Pipelinez.Core.PipelineBuilder<T> where T : Pipelinez.Core.Record.PipelineRecord
+  CTOR public Pipelinez.Core.PipelineBuilder<T>(string pipelineName)
+  PROPERTY public string PipelineName { get; }
+  METHOD public Pipelinez.Core.PipelineBuilder<T> AddSegment(Pipelinez.Core.Segment.IPipelineSegment<T> segment, object config)
+  METHOD public Pipelinez.Core.PipelineBuilder<T> AddSegment(Pipelinez.Core.Segment.IPipelineSegment<T> segment, object config, Pipelinez.Core.Performance.PipelineExecutionOptions executionOptions)
+  METHOD public Pipelinez.Core.PipelineBuilder<T> AddSegment(Pipelinez.Core.Segment.IPipelineSegment<T> segment, object config, Pipelinez.Core.Performance.PipelineExecutionOptions executionOptions, Pipelinez.Core.Retry.PipelineRetryPolicy<T> retryPolicy)
+  METHOD public Pipelinez.Core.PipelineBuilder<T> AddSegment(Pipelinez.Core.Segment.IPipelineSegment<T> segment, object config, Pipelinez.Core.Retry.PipelineRetryPolicy<T> retryPolicy)
+  METHOD public Pipelinez.Core.IPipeline<T> Build()
+  METHOD public Pipelinez.Core.PipelineBuilder<T> UseDeadLetterOptions(Pipelinez.Core.DeadLettering.PipelineDeadLetterOptions options)
+  METHOD public Pipelinez.Core.PipelineBuilder<T> UseFlowControlOptions(Pipelinez.Core.FlowControl.PipelineFlowControlOptions options)
+  METHOD public Pipelinez.Core.PipelineBuilder<T> UseHostOptions(Pipelinez.Core.Distributed.PipelineHostOptions options)
+  METHOD public Pipelinez.Core.PipelineBuilder<T> UseLogger(Microsoft.Extensions.Logging.ILoggerFactory logFactory)
+  METHOD public Pipelinez.Core.PipelineBuilder<T> UseOperationalOptions(Pipelinez.Core.Operational.PipelineOperationalOptions options)
+  METHOD public Pipelinez.Core.PipelineBuilder<T> UsePerformanceOptions(Pipelinez.Core.Performance.PipelinePerformanceOptions options)
+  METHOD public Pipelinez.Core.PipelineBuilder<T> UseRetryOptions(Pipelinez.Core.Retry.PipelineRetryOptions<T> options)
+  METHOD public Pipelinez.Core.PipelineBuilder<T> WithDeadLetterDestination(Pipelinez.Core.DeadLettering.IPipelineDeadLetterDestination<T> deadLetterDestination)
+  METHOD public Pipelinez.Core.PipelineBuilder<T> WithDestination(Pipelinez.Core.Destination.IPipelineDestination<T> destination)
+  METHOD public Pipelinez.Core.PipelineBuilder<T> WithDestination(Pipelinez.Core.Destination.IPipelineDestination<T> destination, Pipelinez.Core.Performance.PipelineExecutionOptions executionOptions)
+  METHOD public Pipelinez.Core.PipelineBuilder<T> WithDestination(Pipelinez.Core.Destination.IPipelineDestination<T> destination, Pipelinez.Core.Performance.PipelineExecutionOptions executionOptions, Pipelinez.Core.Retry.PipelineRetryPolicy<T> retryPolicy)
+  METHOD public Pipelinez.Core.PipelineBuilder<T> WithDestination(Pipelinez.Core.Destination.IPipelineDestination<T> destination, Pipelinez.Core.Retry.PipelineRetryPolicy<T> retryPolicy)
+  METHOD public Pipelinez.Core.PipelineBuilder<T> WithErrorHandler(Pipelinez.Core.ErrorHandling.PipelineErrorHandler<T> errorHandler)
+  METHOD public Pipelinez.Core.PipelineBuilder<T> WithErrorHandler(System.Func<Pipelinez.Core.ErrorHandling.PipelineErrorContext<T>, Pipelinez.Core.ErrorHandling.PipelineErrorAction> errorHandler)
+  METHOD public Pipelinez.Core.PipelineBuilder<T> WithInMemoryDestination(string config)
+  METHOD public Pipelinez.Core.PipelineBuilder<T> WithInMemorySource(object config)
+  METHOD public Pipelinez.Core.PipelineBuilder<T> WithSource(Pipelinez.Core.Source.IPipelineSource<T> source)
+  METHOD public Pipelinez.Core.PipelineBuilder<T> WithSource(Pipelinez.Core.Source.IPipelineSource<T> source, Pipelinez.Core.Performance.PipelineExecutionOptions executionOptions)
+
+public class Pipelinez.Core.Pipeline<TPipelineRecord> : Pipelinez.Core.IPipeline<TPipelineRecord> where TPipelineRecord : Pipelinez.Core.Record.PipelineRecord
+  PROPERTY public System.Threading.Tasks.Task Completion { get; }
+  EVENT public event Pipelinez.Core.Eventing.PipelinePartitionDrainedEventHandler OnPartitionDrained
+  EVENT public event Pipelinez.Core.Eventing.PipelinePartitionDrainingEventHandler OnPartitionDraining
+  EVENT public event Pipelinez.Core.Eventing.PipelinePartitionExecutionStateChangedEventHandler OnPartitionExecutionStateChanged
+  EVENT public event Pipelinez.Core.Eventing.PipelinePartitionsAssignedEventHandler OnPartitionsAssigned
+  EVENT public event Pipelinez.Core.Eventing.PipelinePartitionsRevokedEventHandler OnPartitionsRevoked
+  EVENT public event Pipelinez.Core.Eventing.PipelineDeadLetterWriteFailedEventHandler<TPipelineRecord> OnPipelineDeadLetterWriteFailed
+  EVENT public event Pipelinez.Core.Eventing.PipelineFaultedEventHandler OnPipelineFaulted
+  EVENT public event Pipelinez.Core.Eventing.PipelineRecordCompletedEventHandler<TPipelineRecord> OnPipelineRecordCompleted
+  EVENT public event Pipelinez.Core.Eventing.PipelineRecordDeadLetteredEventHandler<TPipelineRecord> OnPipelineRecordDeadLettered
+  EVENT public event Pipelinez.Core.Eventing.PipelineRecordFaultedEventHandler<TPipelineRecord> OnPipelineRecordFaulted
+  EVENT public event Pipelinez.Core.Eventing.PipelineRecordRetryingEventHandler<TPipelineRecord> OnPipelineRecordRetrying
+  EVENT public event Pipelinez.Core.Eventing.PipelinePublishRejectedEventHandler<TPipelineRecord> OnPublishRejected
+  EVENT public event Pipelinez.Core.Eventing.PipelineSaturationChangedEventHandler OnSaturationChanged
+  EVENT public event Pipelinez.Core.Eventing.PipelineWorkerStartedEventHandler OnWorkerStarted
+  EVENT public event Pipelinez.Core.Eventing.PipelineWorkerStoppingEventHandler OnWorkerStopping
+  METHOD public virtual System.Threading.Tasks.Task CompleteAsync()
+  METHOD public virtual Pipelinez.Core.Operational.PipelineHealthStatus GetHealthStatus()
+  METHOD public virtual Pipelinez.Core.Operational.PipelineOperationalSnapshot GetOperationalSnapshot()
+  METHOD public virtual Pipelinez.Core.Performance.PipelinePerformanceSnapshot GetPerformanceSnapshot()
+  METHOD public virtual Pipelinez.Core.Distributed.PipelineRuntimeContext GetRuntimeContext()
+  METHOD public virtual Pipelinez.Core.Status.PipelineStatus GetStatus()
+  METHOD public static Pipelinez.Core.PipelineBuilder<TPipelineRecord> New(string pipelineName)
+  METHOD public virtual System.Threading.Tasks.Task PublishAsync(TPipelineRecord record)
+  METHOD public virtual System.Threading.Tasks.Task<Pipelinez.Core.FlowControl.PipelinePublishResult> PublishAsync(TPipelineRecord record, Pipelinez.Core.FlowControl.PipelinePublishOptions options)
+  METHOD public virtual System.Threading.Tasks.Task StartPipelineAsync(System.Threading.CancellationToken cancellationToken = null)
+
+public class Pipelinez.Core.Record.Metadata.MetadataCollection : System.Collections.Generic.ICollection<Pipelinez.Core.Record.Metadata.MetadataRecord>, System.Collections.Generic.IEnumerable<Pipelinez.Core.Record.Metadata.MetadataRecord>, System.Collections.Generic.IList<Pipelinez.Core.Record.Metadata.MetadataRecord>, System.Collections.IEnumerable
+  CTOR public Pipelinez.Core.Record.Metadata.MetadataCollection()
+  PROPERTY public int Count { get; }
+  PROPERTY public bool IsReadOnly { get; }
+  PROPERTY public Pipelinez.Core.Record.Metadata.MetadataRecord this[int index] { get; set; }
+  METHOD public virtual void Add(Pipelinez.Core.Record.Metadata.MetadataRecord item)
+  METHOD public virtual void Clear()
+  METHOD public Pipelinez.Core.Record.Metadata.MetadataCollection Clone()
+  METHOD public virtual bool Contains(Pipelinez.Core.Record.Metadata.MetadataRecord item)
+  METHOD public virtual void CopyTo(Pipelinez.Core.Record.Metadata.MetadataRecord[] array, int arrayIndex)
+  METHOD public Pipelinez.Core.Record.Metadata.MetadataRecord GetByKey(string key)
+  METHOD public virtual System.Collections.Generic.IEnumerator<Pipelinez.Core.Record.Metadata.MetadataRecord> GetEnumerator()
+  METHOD public string GetValue(string key)
+  METHOD public bool HasKey(string key)
+  METHOD public virtual int IndexOf(Pipelinez.Core.Record.Metadata.MetadataRecord item)
+  METHOD public virtual void Insert(int index, Pipelinez.Core.Record.Metadata.MetadataRecord item)
+  METHOD public virtual bool Remove(Pipelinez.Core.Record.Metadata.MetadataRecord item)
+  METHOD public virtual void RemoveAt(int index)
+  METHOD public void Set(string key, string value)
+
+public class Pipelinez.Core.Record.Metadata.MetadataRecord
+  CTOR public Pipelinez.Core.Record.Metadata.MetadataRecord(string key, string value)
+  PROPERTY public string Key { get; set; }
+  PROPERTY public string Value { get; set; }
+
+public class Pipelinez.Core.Record.PipelineContainer<T> where T : Pipelinez.Core.Record.PipelineRecord
+  CTOR public Pipelinez.Core.Record.PipelineContainer<T>(T record)
+  CTOR public Pipelinez.Core.Record.PipelineContainer<T>(T record, Pipelinez.Core.Record.Metadata.MetadataCollection metadata)
+  PROPERTY public System.DateTimeOffset CreatedAtUtc { get; }
+  PROPERTY public Pipelinez.Core.FaultHandling.PipelineFaultState Fault { get; }
+  PROPERTY public bool HasFault { get; }
+  PROPERTY public Pipelinez.Core.Record.Metadata.MetadataCollection Metadata { get; }
+  PROPERTY public T Record { get; set; }
+  PROPERTY public System.Collections.Generic.IList<Pipelinez.Core.Retry.PipelineRetryAttempt> RetryHistory { get; }
+  PROPERTY public System.Collections.Generic.IList<Pipelinez.Core.FaultHandling.PipelineSegmentExecution> SegmentHistory { get; }
+  METHOD public void AddRetryAttempt(Pipelinez.Core.Retry.PipelineRetryAttempt retryAttempt)
+  METHOD public void AddSegmentExecution(Pipelinez.Core.FaultHandling.PipelineSegmentExecution segmentExecution)
+  METHOD public void MarkFaulted(Pipelinez.Core.FaultHandling.PipelineFaultState fault)
+
+public abstract class Pipelinez.Core.Record.PipelineRecord
+  PROPERTY public System.Collections.Generic.IList<Pipelinez.Core.Record.PipelineRecordHeader> Headers { get; }
+
+public class Pipelinez.Core.Record.PipelineRecordHeader
+  CTOR public Pipelinez.Core.Record.PipelineRecordHeader()
+  PROPERTY public string Key { get; set; }
+  PROPERTY public string Value { get; set; }
+
+public interface Pipelinez.Core.Retry.IPipelineRetryConfigurable<T> where T : Pipelinez.Core.Record.PipelineRecord
+  METHOD public abstract void ConfigureRetryPolicy(Pipelinez.Core.Retry.PipelineRetryPolicy<T> retryPolicy)
+  METHOD public abstract Pipelinez.Core.Retry.PipelineRetryPolicy<T> GetRetryPolicy()
+
+public class Pipelinez.Core.Retry.PipelineRetryAttempt
+  CTOR public Pipelinez.Core.Retry.PipelineRetryAttempt(int attemptNumber, string componentName, Pipelinez.Core.FaultHandling.PipelineComponentKind componentKind, System.DateTimeOffset startedAtUtc, System.DateTimeOffset completedAtUtc, System.TimeSpan duration, System.TimeSpan delayBeforeNextAttempt, string exceptionType, string message)
+  PROPERTY public int AttemptNumber { get; }
+  PROPERTY public System.DateTimeOffset CompletedAtUtc { get; }
+  PROPERTY public Pipelinez.Core.FaultHandling.PipelineComponentKind ComponentKind { get; }
+  PROPERTY public string ComponentName { get; }
+  PROPERTY public System.TimeSpan DelayBeforeNextAttempt { get; }
+  PROPERTY public System.TimeSpan Duration { get; }
+  PROPERTY public string ExceptionType { get; }
+  PROPERTY public string Message { get; }
+  PROPERTY public System.DateTimeOffset StartedAtUtc { get; }
+
+public class Pipelinez.Core.Retry.PipelineRetryContext<T> where T : Pipelinez.Core.Record.PipelineRecord
+  CTOR public Pipelinez.Core.Retry.PipelineRetryContext<T>(System.Exception exception, Pipelinez.Core.Record.PipelineContainer<T> container, string componentName, Pipelinez.Core.FaultHandling.PipelineComponentKind componentKind, int attemptNumber, int maxAttempts, System.Threading.CancellationToken cancellationToken)
+  PROPERTY public int AttemptNumber { get; }
+  PROPERTY public System.Threading.CancellationToken CancellationToken { get; }
+  PROPERTY public Pipelinez.Core.FaultHandling.PipelineComponentKind ComponentKind { get; }
+  PROPERTY public string ComponentName { get; }
+  PROPERTY public Pipelinez.Core.Record.PipelineContainer<T> Container { get; }
+  PROPERTY public System.Exception Exception { get; }
+  PROPERTY public int MaxAttempts { get; }
+  PROPERTY public T Record { get; }
+
+public class Pipelinez.Core.Retry.PipelineRetryOptions<T> where T : Pipelinez.Core.Record.PipelineRecord
+  CTOR public Pipelinez.Core.Retry.PipelineRetryOptions<T>()
+  PROPERTY public Pipelinez.Core.Retry.PipelineRetryPolicy<T> DefaultSegmentPolicy { get; init; }
+  PROPERTY public Pipelinez.Core.Retry.PipelineRetryPolicy<T> DestinationPolicy { get; init; }
+  PROPERTY public bool EmitRetryEvents { get; init; }
+
+public class Pipelinez.Core.Retry.PipelineRetryPolicy<T> where T : Pipelinez.Core.Record.PipelineRecord
+  PROPERTY public System.Func<Pipelinez.Core.Retry.PipelineRetryContext<T>, System.TimeSpan> DelayProvider { get; }
+  PROPERTY public int MaxAttempts { get; }
+  METHOD public static Pipelinez.Core.Retry.PipelineRetryPolicy<T> ExponentialBackoff(int maxAttempts, System.TimeSpan initialDelay, System.TimeSpan maxDelay, bool useJitter = false)
+  METHOD public static Pipelinez.Core.Retry.PipelineRetryPolicy<T> FixedDelay(int maxAttempts, System.TimeSpan delay)
+  METHOD public Pipelinez.Core.Retry.PipelineRetryPolicy<T> Handle(System.Func<Pipelinez.Core.Retry.PipelineRetryContext<T>, bool> predicate)
+  METHOD public Pipelinez.Core.Retry.PipelineRetryPolicy<T> Handle<TException>() where TException : System.Exception
+  METHOD public static Pipelinez.Core.Retry.PipelineRetryPolicy<T> None()
+
+public interface Pipelinez.Core.Segment.IPipelineSegment<T> : Pipelinez.Core.Flow.IFlowSource<Pipelinez.Core.Record.PipelineContainer<T>>, Pipelinez.Core.Flow.IFlowDestination<Pipelinez.Core.Record.PipelineContainer<T>> where T : Pipelinez.Core.Record.PipelineRecord
+  PROPERTY public System.Threading.Tasks.Task Completion { get; }
+
+public abstract class Pipelinez.Core.Segment.PipelineSegment<T> : Pipelinez.Core.Segment.IPipelineSegment<T>, Pipelinez.Core.Flow.IFlowSource<Pipelinez.Core.Record.PipelineContainer<T>>, Pipelinez.Core.Flow.IFlowDestination<Pipelinez.Core.Record.PipelineContainer<T>>, Pipelinez.Core.Retry.IPipelineRetryConfigurable<T>, Pipelinez.Core.FlowControl.IPipelineFlowStatusProvider, Pipelinez.Core.Performance.IPipelineExecutionConfigurable, Pipelinez.Core.Performance.IPipelinePerformanceAware where T : Pipelinez.Core.Record.PipelineRecord
+  CTOR public Pipelinez.Core.Segment.PipelineSegment<T>()
+  PROPERTY public System.Threading.Tasks.Task Completion { get; }
+  METHOD public virtual System.Threading.Tasks.Dataflow.ITargetBlock<Pipelinez.Core.Record.PipelineContainer<T>> AsTargetBlock()
+  METHOD public virtual void ConfigureExecutionOptions(Pipelinez.Core.Performance.PipelineExecutionOptions options)
+  METHOD public virtual void ConfigureRetryPolicy(Pipelinez.Core.Retry.PipelineRetryPolicy<T> retryPolicy)
+  METHOD public virtual System.IDisposable ConnectTo(Pipelinez.Core.Flow.IFlowDestination<Pipelinez.Core.Record.PipelineContainer<T>> target, System.Threading.Tasks.Dataflow.DataflowLinkOptions options = null)
+  METHOD public abstract System.Threading.Tasks.Task<T> ExecuteAsync(T arg)
+  METHOD public virtual Pipelinez.Core.Performance.PipelineExecutionOptions GetExecutionOptions()
+  METHOD public virtual Pipelinez.Core.Retry.PipelineRetryPolicy<T> GetRetryPolicy()
+
+public interface Pipelinez.Core.Source.IDistributedPipelineSource<T> : Pipelinez.Core.Source.IPipelineSource<T> where T : Pipelinez.Core.Record.PipelineRecord
+  PROPERTY public bool SupportsDistributedExecution { get; }
+  PROPERTY public string TransportName { get; }
+  METHOD public abstract System.Collections.Generic.IReadOnlyList<Pipelinez.Core.Distributed.PipelinePartitionLease> GetOwnedPartitions()
+  METHOD public abstract System.Collections.Generic.IReadOnlyList<Pipelinez.Core.Distributed.PipelinePartitionExecutionState> GetPartitionExecutionStates()
+
+public interface Pipelinez.Core.Source.IPipelineSource<T> : Pipelinez.Core.Flow.IFlowSource<Pipelinez.Core.Record.PipelineContainer<T>> where T : Pipelinez.Core.Record.PipelineRecord
+  PROPERTY public System.Threading.Tasks.Task Completion { get; }
+  METHOD public abstract void Complete()
+  METHOD public abstract void Initialize(Pipelinez.Core.Pipeline<T> parentPipeline)
+  METHOD public abstract void OnPipelineContainerComplete(object sender, Pipelinez.Core.Eventing.PipelineContainerCompletedEventHandlerArgs<Pipelinez.Core.Record.PipelineContainer<T>> e)
+  METHOD public abstract System.Threading.Tasks.Task PublishAsync(T record)
+  METHOD public abstract System.Threading.Tasks.Task PublishAsync(T record, Pipelinez.Core.Record.Metadata.MetadataCollection metadata)
+  METHOD public abstract System.Threading.Tasks.Task<Pipelinez.Core.FlowControl.PipelinePublishResult> PublishAsync(T record, Pipelinez.Core.FlowControl.PipelinePublishOptions options)
+  METHOD public abstract System.Threading.Tasks.Task<Pipelinez.Core.FlowControl.PipelinePublishResult> PublishAsync(T record, Pipelinez.Core.Record.Metadata.MetadataCollection metadata, Pipelinez.Core.FlowControl.PipelinePublishOptions options)
+  METHOD public abstract System.Threading.Tasks.Task StartAsync(System.Threading.CancellationTokenSource cancellationToken)
+
+public class Pipelinez.Core.Source.InMemoryPipelineSource<T> : Pipelinez.Core.Source.PipelineSourceBase<T> where T : Pipelinez.Core.Record.PipelineRecord
+  CTOR public Pipelinez.Core.Source.InMemoryPipelineSource<T>()
+
+public abstract class Pipelinez.Core.Source.PipelineSourceBase<T> : Pipelinez.Core.Source.IPipelineSource<T>, Pipelinez.Core.Flow.IFlowSource<Pipelinez.Core.Record.PipelineContainer<T>>, Pipelinez.Core.FlowControl.IPipelineFlowStatusProvider, Pipelinez.Core.Performance.IPipelineExecutionConfigurable, Pipelinez.Core.Performance.IPipelinePerformanceAware where T : Pipelinez.Core.Record.PipelineRecord
+  CTOR public Pipelinez.Core.Source.PipelineSourceBase<T>()
+  PROPERTY public System.Threading.Tasks.Task Completion { get; }
+  METHOD public virtual void Complete()
+  METHOD public virtual void ConfigureExecutionOptions(Pipelinez.Core.Performance.PipelineExecutionOptions options)
+  METHOD public virtual System.IDisposable ConnectTo(Pipelinez.Core.Flow.IFlowDestination<Pipelinez.Core.Record.PipelineContainer<T>> target, System.Threading.Tasks.Dataflow.DataflowLinkOptions options = null)
+  METHOD public virtual Pipelinez.Core.Performance.PipelineExecutionOptions GetExecutionOptions()
+  METHOD public virtual void Initialize(Pipelinez.Core.Pipeline<T> parentPipeline)
+  METHOD public virtual void OnPipelineContainerComplete(object sender, Pipelinez.Core.Eventing.PipelineContainerCompletedEventHandlerArgs<Pipelinez.Core.Record.PipelineContainer<T>> e)
+  METHOD public virtual System.Threading.Tasks.Task PublishAsync(T record)
+  METHOD public virtual System.Threading.Tasks.Task PublishAsync(T record, Pipelinez.Core.Record.Metadata.MetadataCollection metadata)
+  METHOD public virtual System.Threading.Tasks.Task<Pipelinez.Core.FlowControl.PipelinePublishResult> PublishAsync(T record, Pipelinez.Core.FlowControl.PipelinePublishOptions options)
+  METHOD public virtual System.Threading.Tasks.Task<Pipelinez.Core.FlowControl.PipelinePublishResult> PublishAsync(T record, Pipelinez.Core.Record.Metadata.MetadataCollection metadata, Pipelinez.Core.FlowControl.PipelinePublishOptions options)
+  METHOD public virtual System.Threading.Tasks.Task StartAsync(System.Threading.CancellationTokenSource cancellationToken)
+
+public class Pipelinez.Core.Status.PipelineComponentStatus
+  CTOR public Pipelinez.Core.Status.PipelineComponentStatus(string name, Pipelinez.Core.Status.PipelineExecutionStatus status, Pipelinez.Core.FlowControl.PipelineComponentFlowStatus flow = null)
+  PROPERTY public Pipelinez.Core.FlowControl.PipelineComponentFlowStatus Flow { get; }
+  PROPERTY public string Name { get; }
+  PROPERTY public Pipelinez.Core.Status.PipelineExecutionStatus Status { get; }
+
+public enum Pipelinez.Core.Status.PipelineExecutionStatus
+  FIELD public static const Pipelinez.Core.Status.PipelineExecutionStatus Completed = Pipelinez.Core.Status.PipelineExecutionStatus.1
+  FIELD public static const Pipelinez.Core.Status.PipelineExecutionStatus Faulted = Pipelinez.Core.Status.PipelineExecutionStatus.2
+  FIELD public static const Pipelinez.Core.Status.PipelineExecutionStatus Healthy = Pipelinez.Core.Status.PipelineExecutionStatus.0
+  FIELD public static const Pipelinez.Core.Status.PipelineExecutionStatus Unknown = Pipelinez.Core.Status.PipelineExecutionStatus.3
+
+public class Pipelinez.Core.Status.PipelineStatus
+  CTOR public Pipelinez.Core.Status.PipelineStatus(System.Collections.Generic.IList<Pipelinez.Core.Status.PipelineComponentStatus> components, System.Nullable<Pipelinez.Core.Status.PipelineExecutionStatus> runtimeStatus = null, Pipelinez.Core.Distributed.PipelineDistributedStatus distributedStatus = null, Pipelinez.Core.FlowControl.PipelineFlowControlStatus flowControlStatus = null)
+  PROPERTY public System.Collections.Generic.IList<Pipelinez.Core.Status.PipelineComponentStatus> Components { get; }
+  PROPERTY public Pipelinez.Core.Distributed.PipelineDistributedStatus DistributedStatus { get; }
+  PROPERTY public Pipelinez.Core.FlowControl.PipelineFlowControlStatus FlowControlStatus { get; }
+  PROPERTY public System.Nullable<Pipelinez.Core.Status.PipelineExecutionStatus> RuntimeStatus { get; }
+  PROPERTY public Pipelinez.Core.Status.PipelineExecutionStatus Status { get; }

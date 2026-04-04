@@ -812,6 +812,17 @@ The major architectural work called out in the earlier planning docs has been im
 
 The remaining work is mostly future evolution work rather than foundational cleanup. Likely areas include broader transport coverage, schema-registry integration tests, and further runtime ergonomics.
 
+## API Stability And Governance
+
+Pipelinez now also has explicit public API governance in place.
+
+- the repository treats `Pipelinez` and `Pipelinez.Kafka` as intentional consumer contracts
+- public API approval tests snapshot the compiled surface of both assemblies
+- accidental API changes now fail the normal test suite, which means they are also caught by the existing PR and CI workflows
+- contributor guidance now distinguishes stable, preview, and internal-only surface area
+
+This does not freeze the project completely, but it does mean public API changes are now expected to be deliberate, reviewable, and documented.
+
 ## Mental Model For Future Readers
 
 The simplest way to think about Pipelinez is:

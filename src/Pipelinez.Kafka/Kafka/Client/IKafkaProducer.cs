@@ -2,7 +2,7 @@ using Confluent.Kafka;
 
 namespace Pipelinez.Kafka.Client;
 
-public interface IKafkaProducer<TRecordKey, TRecordValue>
+internal interface IKafkaProducer<TRecordKey, TRecordValue>
 {
     Task<DeliveryResult<TRecordKey, TRecordValue>> ProduceAsync(
         string topicName,

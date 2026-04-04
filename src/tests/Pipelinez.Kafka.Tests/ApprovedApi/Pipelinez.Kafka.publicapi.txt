@@ -1,0 +1,90 @@
+Assembly: Pipelinez.Kafka
+
+public enum Pipelinez.Kafka.Configuration.KafkaDeserializationType
+  FIELD public static const Pipelinez.Kafka.Configuration.KafkaDeserializationType AVRO = Pipelinez.Kafka.Configuration.KafkaDeserializationType.1
+  FIELD public static const Pipelinez.Kafka.Configuration.KafkaDeserializationType DEFAULT = Pipelinez.Kafka.Configuration.KafkaDeserializationType.0
+  FIELD public static const Pipelinez.Kafka.Configuration.KafkaDeserializationType JSON = Pipelinez.Kafka.Configuration.KafkaDeserializationType.2
+
+public class Pipelinez.Kafka.Configuration.KafkaDestinationOptions : Pipelinez.Kafka.Configuration.KafkaOptions
+  CTOR public Pipelinez.Kafka.Configuration.KafkaDestinationOptions()
+  PROPERTY public Pipelinez.Kafka.Configuration.KafkaSchemaRegistryOptions Schema { get; set; }
+  PROPERTY public string TopicName { get; set; }
+
+public class Pipelinez.Kafka.Configuration.KafkaOptions
+  CTOR public Pipelinez.Kafka.Configuration.KafkaOptions()
+  PROPERTY public string BootstrapPassword { get; set; }
+  PROPERTY public string BootstrapServers { get; set; }
+  PROPERTY public string BootstrapUser { get; set; }
+  PROPERTY public Confluent.Kafka.SaslMechanism SaslMechanism { get; set; }
+  PROPERTY public Confluent.Kafka.SecurityProtocol SecurityProtocol { get; set; }
+
+public enum Pipelinez.Kafka.Configuration.KafkaPartitionExecutionMode
+  FIELD public static const Pipelinez.Kafka.Configuration.KafkaPartitionExecutionMode ParallelizeAcrossPartitions = Pipelinez.Kafka.Configuration.KafkaPartitionExecutionMode.1
+  FIELD public static const Pipelinez.Kafka.Configuration.KafkaPartitionExecutionMode PreservePartitionOrder = Pipelinez.Kafka.Configuration.KafkaPartitionExecutionMode.0
+  FIELD public static const Pipelinez.Kafka.Configuration.KafkaPartitionExecutionMode RelaxOrderingWithinPartition = Pipelinez.Kafka.Configuration.KafkaPartitionExecutionMode.2
+
+public enum Pipelinez.Kafka.Configuration.KafkaPartitionRebalanceMode
+  FIELD public static const Pipelinez.Kafka.Configuration.KafkaPartitionRebalanceMode DrainAndYield = Pipelinez.Kafka.Configuration.KafkaPartitionRebalanceMode.0
+  FIELD public static const Pipelinez.Kafka.Configuration.KafkaPartitionRebalanceMode StopAcceptingNewWorkAndYield = Pipelinez.Kafka.Configuration.KafkaPartitionRebalanceMode.1
+
+public class Pipelinez.Kafka.Configuration.KafkaPartitionScalingOptions
+  CTOR public Pipelinez.Kafka.Configuration.KafkaPartitionScalingOptions()
+  PROPERTY public bool EmitPartitionExecutionEvents { get; init; }
+  PROPERTY public Pipelinez.Kafka.Configuration.KafkaPartitionExecutionMode ExecutionMode { get; init; }
+  PROPERTY public int MaxConcurrentPartitions { get; init; }
+  PROPERTY public int MaxInFlightPerPartition { get; init; }
+  PROPERTY public Pipelinez.Kafka.Configuration.KafkaPartitionRebalanceMode RebalanceMode { get; init; }
+  METHOD public Pipelinez.Kafka.Configuration.KafkaPartitionScalingOptions Validate()
+
+public class Pipelinez.Kafka.Configuration.KafkaSchemaRegistryOptions
+  CTOR public Pipelinez.Kafka.Configuration.KafkaSchemaRegistryOptions()
+  PROPERTY public string KeySerializer { get; set; }
+  PROPERTY public string Password { get; set; }
+  PROPERTY public string Server { get; set; }
+  PROPERTY public string User { get; set; }
+  PROPERTY public string ValueSerializer { get; set; }
+
+public enum Pipelinez.Kafka.Configuration.KafkaSerializationType
+  FIELD public static const Pipelinez.Kafka.Configuration.KafkaSerializationType AVRO = Pipelinez.Kafka.Configuration.KafkaSerializationType.1
+  FIELD public static const Pipelinez.Kafka.Configuration.KafkaSerializationType DEFAULT = Pipelinez.Kafka.Configuration.KafkaSerializationType.0
+  FIELD public static const Pipelinez.Kafka.Configuration.KafkaSerializationType JSON = Pipelinez.Kafka.Configuration.KafkaSerializationType.2
+
+public class Pipelinez.Kafka.Configuration.KafkaSourceOptions : Pipelinez.Kafka.Configuration.KafkaOptions
+  CTOR public Pipelinez.Kafka.Configuration.KafkaSourceOptions()
+  PROPERTY public System.Nullable<int> AutoCommitIntervalMs { get; set; }
+  PROPERTY public string ConsumerGroup { get; set; }
+  PROPERTY public Pipelinez.Kafka.Configuration.KafkaPartitionScalingOptions PartitionScaling { get; set; }
+  PROPERTY public Pipelinez.Kafka.Configuration.KafkaSchemaRegistryOptions Schema { get; set; }
+  PROPERTY public bool StartOffsetFromBeginning { get; set; }
+  PROPERTY public string TopicName { get; set; }
+
+public class Pipelinez.Kafka.Destination.KafkaDeadLetterDestination<T, TRecordKey, TRecordValue> : Pipelinez.Core.DeadLettering.IPipelineDeadLetterDestination<T> where T : Pipelinez.Core.Record.PipelineRecord where TRecordKey : class where TRecordValue : class
+  CTOR public Pipelinez.Kafka.Destination.KafkaDeadLetterDestination<T, TRecordKey, TRecordValue>(string pipelineName, Pipelinez.Kafka.Configuration.KafkaDestinationOptions config, System.Func<Pipelinez.Core.DeadLettering.PipelineDeadLetterRecord<T>, Confluent.Kafka.Message<TRecordKey, TRecordValue>> messageMapper)
+  METHOD public virtual System.Threading.Tasks.Task WriteAsync(Pipelinez.Core.DeadLettering.PipelineDeadLetterRecord<T> deadLetterRecord, System.Threading.CancellationToken cancellationToken)
+
+public class Pipelinez.Kafka.Destination.KafkaPipelineDestination<T, TRecordKey, TRecordValue> : Pipelinez.Core.Destination.PipelineDestination<T> where T : Pipelinez.Core.Record.PipelineRecord where TRecordKey : class where TRecordValue : class
+  CTOR public Pipelinez.Kafka.Destination.KafkaPipelineDestination<T, TRecordKey, TRecordValue>(string pipelineName, Pipelinez.Kafka.Configuration.KafkaDestinationOptions config, System.Func<T, Confluent.Kafka.Message<TRecordKey, TRecordValue>> messageMapper)
+
+public static class Pipelinez.Kafka.KafkaPipelineBuilderExtensions
+  METHOD public static Pipelinez.Core.PipelineBuilder<T> WithKafkaDeadLetterDestination<T, TRecordKey, TRecordValue>(Pipelinez.Core.PipelineBuilder<T> builder, Pipelinez.Kafka.Configuration.KafkaDestinationOptions config, System.Func<Pipelinez.Core.DeadLettering.PipelineDeadLetterRecord<T>, Confluent.Kafka.Message<TRecordKey, TRecordValue>> recordMapper) where T : Pipelinez.Core.Record.PipelineRecord where TRecordKey : class where TRecordValue : class
+  METHOD public static Pipelinez.Core.PipelineBuilder<T> WithKafkaDestination<T, TRecordKey, TRecordValue>(Pipelinez.Core.PipelineBuilder<T> builder, Pipelinez.Kafka.Configuration.KafkaDestinationOptions config, System.Func<T, Confluent.Kafka.Message<TRecordKey, TRecordValue>> recordMapper) where T : Pipelinez.Core.Record.PipelineRecord where TRecordKey : class where TRecordValue : class
+  METHOD public static Pipelinez.Core.PipelineBuilder<T> WithKafkaSource<T, TRecordKey, TRecordValue>(Pipelinez.Core.PipelineBuilder<T> builder, Pipelinez.Kafka.Configuration.KafkaSourceOptions config, System.Func<TRecordKey, TRecordValue, T> recordMapper) where T : Pipelinez.Core.Record.PipelineRecord where TRecordKey : class where TRecordValue : class
+  METHOD public static Pipelinez.Core.PipelineBuilder<T> WithKafkaSource<T, TRecordKey, TRecordValue>(Pipelinez.Core.PipelineBuilder<T> builder, Pipelinez.Kafka.Configuration.KafkaSourceOptions config, System.Func<TRecordKey, TRecordValue, T> recordMapper, Pipelinez.Kafka.Configuration.KafkaPartitionScalingOptions partitionScalingOptions) where T : Pipelinez.Core.Record.PipelineRecord where TRecordKey : class where TRecordValue : class
+
+public static class Pipelinez.Kafka.Record.KafkaMetadataExtensions
+  METHOD public static string BuildLeaseId(string topicName, int partitionId)
+  METHOD public static string BuildPartitionKey(string topicName, int partitionId)
+  METHOD public static Pipelinez.Core.Record.Metadata.MetadataCollection ExtractMetadata(Confluent.Kafka.TopicPartitionOffset topicPartitionOffset)
+
+public static class Pipelinez.Kafka.Record.KafkaMetadataKeys
+  FIELD public static string SOURCE_OFFSET
+  FIELD public static string SOURCE_PARTITION
+  FIELD public static string SOURCE_TOPIC_NAME
+
+public class Pipelinez.Kafka.Source.KafkaPipelineSource<T, TRecordKey, TRecordValue> : Pipelinez.Core.Source.PipelineSourceBase<T>, Pipelinez.Core.Source.IDistributedPipelineSource<T> where T : Pipelinez.Core.Record.PipelineRecord where TRecordKey : class where TRecordValue : class
+  CTOR public Pipelinez.Kafka.Source.KafkaPipelineSource<T, TRecordKey, TRecordValue>(string pipelineName, Pipelinez.Kafka.Configuration.KafkaSourceOptions options, System.Func<TRecordKey, TRecordValue, T> recordMapper)
+  PROPERTY public bool SupportsDistributedExecution { get; }
+  PROPERTY public string TransportName { get; }
+  METHOD public virtual System.Collections.Generic.IReadOnlyList<Pipelinez.Core.Distributed.PipelinePartitionLease> GetOwnedPartitions()
+  METHOD public virtual System.Collections.Generic.IReadOnlyList<Pipelinez.Core.Distributed.PipelinePartitionExecutionState> GetPartitionExecutionStates()
+  METHOD public void OnPipelineContainerComplete(object sender, Pipelinez.Core.Eventing.PipelineContainerCompletedEventHandlerArgs<Pipelinez.Core.Record.PipelineContainer<T>> e)
