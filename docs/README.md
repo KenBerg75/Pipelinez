@@ -1,0 +1,50 @@
+# Documentation
+
+This folder contains the main documentation set for Pipelinez.
+
+## Start Here
+
+- [Overview](Overview.md)
+  architectural overview of the current runtime
+- [API Stability](ApiStability.md)
+  public API compatibility policy and maintainer workflow
+
+## Getting Started
+
+- [In-Memory Pipeline](getting-started/in-memory.md)
+  first end-to-end pipeline without external infrastructure
+- [Kafka Pipeline](getting-started/kafka.md)
+  first Kafka-backed pipeline using the example Docker workflow
+
+## Guides
+
+- [Lifecycle](guides/lifecycle.md)
+- [Error Handling](guides/error-handling.md)
+- [Retry](guides/retry.md)
+- [Dead-Lettering](guides/dead-lettering.md)
+- [Flow Control](guides/flow-control.md)
+- [Distributed Execution](guides/distributed-execution.md)
+- [Performance](guides/performance.md)
+- [Operational Tooling](guides/operational-tooling.md)
+
+## Transport Docs
+
+- [Kafka](transports/kafka.md)
+
+## Operations
+
+- [Troubleshooting](operations/troubleshooting.md)
+
+## Architecture
+
+- [Runtime](architecture/runtime.md)
+- [Kafka Internals](architecture/kafka.md)
+- [Testing](architecture/testing.md)
+
+## Current Installation Note
+
+Pipelinez is documented here as a source-first project. Package distribution work is planned separately, so the current getting-started guidance assumes:
+
+- cloning the repository
+- building the solution locally
+- or referencing the projects directly from source
