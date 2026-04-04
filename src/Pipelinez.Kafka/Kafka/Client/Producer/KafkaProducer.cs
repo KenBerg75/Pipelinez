@@ -50,8 +50,6 @@ internal class KafkaProducer<TRecordKey, TRecordValue> : IKafkaProducer<TRecordK
     /// </summary>
     /// <param name="builder"></param>
     /// <param name="options"></param>
-    /// <typeparam name="TKey">Type for the Key</typeparam>
-    /// <typeparam name="TValue">Type for the Value</typeparam>
     /// <returns></returns>
     private static ProducerBuilder<TRecordKey, TRecordValue> SetProducerSerializers(ProducerBuilder<TRecordKey, TRecordValue> builder,
         KafkaSchemaRegistryOptions? options)

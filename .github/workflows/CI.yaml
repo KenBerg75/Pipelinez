@@ -38,3 +38,13 @@ jobs:
 
       - name: Test
         run: dotnet test src/Pipelinez.sln --configuration Release --no-build --logger "console;verbosity=minimal"
+
+      - name: Pack Pipelinez
+        run: dotnet pack src/Pipelinez/Pipelinez.csproj --configuration Release --no-build -o artifacts/packages -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
+
+      - name: Pack Pipelinez.Kafka
+        run: dotnet pack src/Pipelinez.Kafka/Pipelinez.Kafka.csproj --configuration Release --no-build -o artifacts/packages -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
+
+      - name: Validate Packages
+        shell: pwsh
+        run: ./scripts/Validate-Packages.ps1 -PackageDirectory artifacts/packages

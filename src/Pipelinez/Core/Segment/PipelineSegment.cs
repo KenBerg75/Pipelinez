@@ -36,7 +36,6 @@ public abstract class PipelineSegment<T> : IPipelineSegment<T>, IPipelineExecuti
     /// <summary>
     /// Initialize the TransformBlock
     /// </summary>
-    /// <param name="options"></param>
     private void InitializeTransformBlock()
     {
         Logger.LogTrace("Initializing Segment");

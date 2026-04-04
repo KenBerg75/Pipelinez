@@ -41,10 +41,18 @@ This folder contains the main documentation set for Pipelinez.
 - [Kafka Internals](architecture/kafka.md)
 - [Testing](architecture/testing.md)
 
-## Current Installation Note
+## Installation Note
 
-Pipelinez is documented here as a source-first project. Package distribution work is planned separately, so the current getting-started guidance assumes:
+Packaging is now configured for:
 
-- cloning the repository
-- building the solution locally
-- or referencing the projects directly from source
+- `Pipelinez`
+- `Pipelinez.Kafka`
+
+Expected install commands for published packages are:
+
+```bash
+dotnet add package Pipelinez
+dotnet add package Pipelinez.Kafka
+```
+
+Release/version automation is tracked separately, so this docs set still focuses on the current repository and example workflow as the most directly runnable path.

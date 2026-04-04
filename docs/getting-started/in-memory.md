@@ -16,9 +16,15 @@ This guide walks through the smallest useful Pipelinez setup:
 ## Prerequisites
 
 - .NET 8 SDK
-- a local clone of this repository
+- either:
+  - a consumer project referencing the `Pipelinez` package when published
+  - or a local clone of this repository
 
-Pipeline packaging and distribution are tracked separately, so the current path is source-first.
+Expected package install command:
+
+```bash
+dotnet add package Pipelinez
+```
 
 ## Build The Solution
 

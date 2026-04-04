@@ -38,7 +38,6 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
     /// Initiates the build of a new pipeline with the specified PipelineRecord type
     /// </summary>
     /// <param name="pipelineName">Name of the pipeline</param>
-    /// <typeparam name="TPipelineRecord">Type of the record that will flow through the pipeline</typeparam>
     /// <returns></returns>
     public static PipelineBuilder<TPipelineRecord> New(string pipelineName)
     {
