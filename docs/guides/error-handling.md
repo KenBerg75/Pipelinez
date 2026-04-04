@@ -68,6 +68,8 @@ pipeline.OnPipelineRecordFaulted += (_, args) =>
 };
 ```
 
+When a fault stops the pipeline, `OnPipelineFaulted` is raised before `Completion` faults. If a fault-event subscriber throws, that subscriber exception is logged and the original pipeline fault remains the `Completion` exception.
+
 ## Related Docs
 
 - [Retry](retry.md)

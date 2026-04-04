@@ -819,8 +819,6 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
     {
         Guard.Against.Null(fault, nameof(fault));
 
-        var shouldRaiseEvent = false;
-
         lock (_stateLock)
         {
             if (_state == PipelineRuntimeState.Completed || _state == PipelineRuntimeState.Faulted)
@@ -830,19 +828,19 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
 
             _state = PipelineRuntimeState.Faulted;
             _pipelineFault = fault;
-            shouldRaiseEvent = true;
-        }
-
-        _completionSource.TrySetException(fault.Exception);
-
-        if (!shouldRaiseEvent)
-        {
-            return;
         }
 
         HandleCancellationRequested();
         RequestRuntimeCancellation();
-        OnPipelineFaulted?.Invoke(this, new PipelineFaultedEventArgs(_name, fault));
+
+        try
+        {
+            RaisePipelineFaultedEvent(fault);
+        }
+        finally
+        {
+            _completionSource.TrySetException(fault.Exception);
+        }
     }
 
     private void CleanupRuntimeResources()
@@ -1219,6 +1217,27 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
             componentKind,
             DateTimeOffset.UtcNow,
             message ?? exception.Message);
+    }
+
+    private void RaisePipelineFaultedEvent(PipelineFaultState fault)
+    {
+        var handler = OnPipelineFaulted;
+        if (handler is null)
+        {
+            return;
+        }
+
+        try
+        {
+            handler.Invoke(this, new PipelineFaultedEventArgs(_name, fault));
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(
+                exception,
+                "An OnPipelineFaulted subscriber threw while handling a fault in pipeline {PipelineName}.",
+                _name);
+        }
     }
 
     internal void ReportPartitionDraining(PipelinePartitionLease partition)

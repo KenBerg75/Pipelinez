@@ -40,6 +40,7 @@ await pipeline.Completion;
 - starting twice throws.
 - `Completion` represents the full pipeline run, not just one internal block.
 - `CompleteAsync()` waits for downstream work to finish rather than only stopping ingress.
+- when the pipeline faults, `OnPipelineFaulted` is raised before `Completion` faults.
 
 ## Manual Publish With Flow Control
 
