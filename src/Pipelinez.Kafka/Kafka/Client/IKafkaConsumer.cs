@@ -13,6 +13,8 @@ public interface IKafkaConsumer<TMessageKey, TMessageValue>
     public void Subscribe(string topicName);
     
     public ConsumeResult<TMessageKey, TMessageValue> Consume(TimeSpan timeout);
+    void Pause(IEnumerable<TopicPartition> partitions);
+    void Resume(IEnumerable<TopicPartition> partitions);
     void StoreOffset(TopicPartitionOffset topicPartitionOffset);
     void Close();
 }

@@ -10,4 +10,6 @@ public interface IDistributedPipelineSource<T> : IPipelineSource<T> where T : Pi
     string TransportName { get; }
 
     IReadOnlyList<PipelinePartitionLease> GetOwnedPartitions();
+
+    IReadOnlyList<PipelinePartitionExecutionState> GetPartitionExecutionStates();
 }

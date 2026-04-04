@@ -175,6 +175,16 @@ internal class KafkaConsumer<TMessageKey, TMessageValue> : IKafkaConsumer<TMessa
         return Consumer.Consume(timeout);
     }
 
+    public void Pause(IEnumerable<TopicPartition> partitions)
+    {
+        Consumer.Pause(partitions);
+    }
+
+    public void Resume(IEnumerable<TopicPartition> partitions)
+    {
+        Consumer.Resume(partitions);
+    }
+
     public void StoreOffset(TopicPartitionOffset topicPartitionOffset)
     {
         Consumer.StoreOffset(topicPartitionOffset);

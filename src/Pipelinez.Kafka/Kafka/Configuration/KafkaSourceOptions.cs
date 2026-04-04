@@ -10,4 +10,5 @@ public class KafkaSourceOptions : KafkaOptions
     public bool StartOffsetFromBeginning { get; set; } = false;
     public int? AutoCommitIntervalMs { get; set; }
     public KafkaSchemaRegistryOptions Schema { get; set; } = new KafkaSchemaRegistryOptions();
+    public KafkaPartitionScalingOptions PartitionScaling { get; set; } = new KafkaPartitionScalingOptions();
 }

@@ -90,6 +90,21 @@ public interface IPipeline<T> where T : PipelineRecord
     event PipelinePartitionsRevokedEventHandler OnPartitionsRevoked;
 
     /// <summary>
+    /// Event that is raised when a partition begins draining during rebalance.
+    /// </summary>
+    event PipelinePartitionDrainingEventHandler OnPartitionDraining;
+
+    /// <summary>
+    /// Event that is raised when a partition has fully drained.
+    /// </summary>
+    event PipelinePartitionDrainedEventHandler OnPartitionDrained;
+
+    /// <summary>
+    /// Event that is raised when partition execution state changes.
+    /// </summary>
+    event PipelinePartitionExecutionStateChangedEventHandler OnPartitionExecutionStateChanged;
+
+    /// <summary>
     /// Event that is raised when a distributed worker is stopping.
     /// </summary>
     event PipelineWorkerStoppingEventHandler OnWorkerStopping;

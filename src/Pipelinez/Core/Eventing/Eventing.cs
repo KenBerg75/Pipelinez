@@ -9,6 +9,9 @@ namespace Pipelinez.Core.Eventing;
 public delegate void PipelineContainerCompletedEventHandler<T>(object sender,
     PipelineContainerCompletedEventHandlerArgs<T> args);
 
+internal delegate void PipelineContainerFaultHandledEventHandler<T>(object sender,
+    PipelineContainerFaultHandledEventHandlerArgs<T> args);
+
 /// <summary>
 /// Contains data for the PipelineRecordCompleted event.
 /// </summary>
@@ -21,6 +24,19 @@ public sealed class PipelineContainerCompletedEventHandlerArgs<T>
     {
         Container = container;
     }
+}
+
+internal sealed class PipelineContainerFaultHandledEventHandlerArgs<T>
+{
+    public PipelineContainerFaultHandledEventHandlerArgs(T container, ErrorHandling.PipelineErrorAction action)
+    {
+        Container = container;
+        Action = action;
+    }
+
+    public T Container { get; }
+
+    public ErrorHandling.PipelineErrorAction Action { get; }
 }
 
 public delegate void PipelineRecordCompletedEventHandler<T>(object sender, PipelineRecordCompletedEventHandlerArgs<T> args);
@@ -227,6 +243,9 @@ public sealed class PipelinePartitionsAssignedEventArgs
 }
 
 public delegate void PipelinePartitionsRevokedEventHandler(object sender, PipelinePartitionsRevokedEventArgs args);
+public delegate void PipelinePartitionDrainingEventHandler(object sender, PipelinePartitionDrainingEventArgs args);
+public delegate void PipelinePartitionDrainedEventHandler(object sender, PipelinePartitionDrainedEventArgs args);
+public delegate void PipelinePartitionExecutionStateChangedEventHandler(object sender, PipelinePartitionExecutionStateChangedEventArgs args);
 
 public sealed class PipelinePartitionsRevokedEventArgs
 {
@@ -243,4 +262,49 @@ public sealed class PipelinePartitionsRevokedEventArgs
     public string WorkerId => RuntimeContext.WorkerId;
 
     public IReadOnlyList<PipelinePartitionLease> Partitions { get; }
+}
+
+public sealed class PipelinePartitionDrainingEventArgs
+{
+    public PipelinePartitionDrainingEventArgs(
+        PipelineRuntimeContext runtimeContext,
+        PipelinePartitionLease partition)
+    {
+        RuntimeContext = Guard.Against.Null(runtimeContext, nameof(runtimeContext));
+        Partition = Guard.Against.Null(partition, nameof(partition));
+    }
+
+    public PipelineRuntimeContext RuntimeContext { get; }
+
+    public PipelinePartitionLease Partition { get; }
+}
+
+public sealed class PipelinePartitionDrainedEventArgs
+{
+    public PipelinePartitionDrainedEventArgs(
+        PipelineRuntimeContext runtimeContext,
+        PipelinePartitionLease partition)
+    {
+        RuntimeContext = Guard.Against.Null(runtimeContext, nameof(runtimeContext));
+        Partition = Guard.Against.Null(partition, nameof(partition));
+    }
+
+    public PipelineRuntimeContext RuntimeContext { get; }
+
+    public PipelinePartitionLease Partition { get; }
+}
+
+public sealed class PipelinePartitionExecutionStateChangedEventArgs
+{
+    public PipelinePartitionExecutionStateChangedEventArgs(
+        PipelineRuntimeContext runtimeContext,
+        Distributed.PipelinePartitionExecutionState state)
+    {
+        RuntimeContext = Guard.Against.Null(runtimeContext, nameof(runtimeContext));
+        State = Guard.Against.Null(state, nameof(state));
+    }
+
+    public PipelineRuntimeContext RuntimeContext { get; }
+
+    public Distributed.PipelinePartitionExecutionState State { get; }
 }
