@@ -121,6 +121,73 @@ public class PipelineFaultHandlingTests
         Assert.Equal(PipelineExecutionStatus.Faulted, pipeline.GetStatus().Status);
     }
 
+    [Fact]
+    public async Task Pipeline_Fault_Event_Is_Raised_Before_Completion_Faults()
+    {
+        bool? completionWasCompletedWhenFaultEventRaised = null;
+        var faultEventRaised = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var pipeline = Pipeline<TestSegmentModel>.New("Pipeline_Fault_Event_Is_Raised_Before_Completion_Faults")
+            .WithInMemorySource("config")
+            .AddSegment(new FaultingSegment(), "config")
+            .WithInMemoryDestination("config")
+            .Build();
+
+        pipeline.OnPipelineFaulted += (_, _) =>
+        {
+            completionWasCompletedWhenFaultEventRaised = pipeline.Completion.IsCompleted;
+            faultEventRaised.TrySetResult();
+        };
+
+        await pipeline.StartPipelineAsync();
+        await pipeline.PublishAsync(new TestSegmentModel
+        {
+            FirstValue = 1,
+            SecondValue = 2
+        });
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await pipeline.Completion);
+
+        await faultEventRaised.Task.WaitAsync(TimeSpan.FromSeconds(1));
+
+        Assert.Equal(FaultingSegment.FailureMessage, exception.Message);
+        Assert.NotNull(completionWasCompletedWhenFaultEventRaised);
+        Assert.False(completionWasCompletedWhenFaultEventRaised!.Value);
+    }
+
+    [Fact]
+    public async Task Pipeline_Fault_Event_Subscriber_Exceptions_Do_Not_Replace_Original_Pipeline_Fault()
+    {
+        var faultSubscriberInvoked = false;
+
+        var pipeline = Pipeline<TestSegmentModel>.New("Pipeline_Fault_Event_Subscriber_Exceptions_Do_Not_Replace_Original_Pipeline_Fault")
+            .WithInMemorySource("config")
+            .AddSegment(new FaultingSegment(), "config")
+            .WithInMemoryDestination("config")
+            .Build();
+
+        pipeline.OnPipelineFaulted += (_, _) =>
+        {
+            faultSubscriberInvoked = true;
+            throw new InvalidOperationException("Fault subscriber failed intentionally.");
+        };
+
+        await pipeline.StartPipelineAsync();
+        await pipeline.PublishAsync(new TestSegmentModel
+        {
+            FirstValue = 3,
+            SecondValue = 4
+        });
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await pipeline.Completion);
+
+        Assert.True(faultSubscriberInvoked);
+        Assert.Equal(FaultingSegment.FailureMessage, exception.Message);
+        Assert.Equal(PipelineExecutionStatus.Faulted, pipeline.GetStatus().Status);
+    }
+
     private static Pipeline<TestPipelineRecord> CreatePipeline(
         string name,
         IPipelineDestination<TestPipelineRecord> destination)

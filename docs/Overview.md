@@ -171,6 +171,7 @@ Important current semantics:
 - completing before start throws
 - `Completion` represents the pipeline run, not just one internal block
 - `CompleteAsync()` waits for downstream destination work before final completion
+- if the pipeline faults, `OnPipelineFaulted` is raised before `Completion` faults
 
 `Pipeline<T>` also tracks runtime state explicitly:
 
