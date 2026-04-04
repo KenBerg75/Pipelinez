@@ -1,6 +1,6 @@
 namespace Pipelinez.Kafka.Client;
 
-public interface IKafkaAdminClient
+internal interface IKafkaAdminClient
 {
     /// <summary>
     /// Validates the connection to kafka

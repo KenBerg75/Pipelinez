@@ -8,7 +8,7 @@ using Pipelinez.Kafka.Configuration;
 
 namespace Pipelinez.Kafka.Client.Producer;
 
-public class KafkaProducer<TRecordKey, TRecordValue> : IKafkaProducer<TRecordKey, TRecordValue> where TRecordValue : class where TRecordKey : class
+internal class KafkaProducer<TRecordKey, TRecordValue> : IKafkaProducer<TRecordKey, TRecordValue> where TRecordValue : class where TRecordKey : class
 {
     private readonly KafkaDestinationOptions _options;
     private readonly string _pipelineName;

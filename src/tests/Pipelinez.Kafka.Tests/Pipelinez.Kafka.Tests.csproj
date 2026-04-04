@@ -28,4 +28,9 @@
         <ProjectReference Include="..\..\Pipelinez.Kafka\Pipelinez.Kafka.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <Compile Include="..\TestCommon\ApiApproval\ApiApprovalTextGenerator.cs" Link="ApiApproval\ApiApprovalTextGenerator.cs" />
+        <None Include="ApprovedApi\Pipelinez.Kafka.publicapi.txt" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
 </Project>

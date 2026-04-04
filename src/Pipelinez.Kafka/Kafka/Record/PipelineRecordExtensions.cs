@@ -4,7 +4,7 @@ using Pipelinez.Core.Record;
 
 namespace Pipelinez.Kafka.Record;
 
-public static class PipelineRecordExtensions
+internal static class PipelineRecordExtensions
 {
     internal static PipelineRecordHeader ToPipelineRecordHeader(this IHeader header)
     {

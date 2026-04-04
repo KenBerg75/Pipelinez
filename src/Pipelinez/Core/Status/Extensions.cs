@@ -1,6 +1,6 @@
 namespace Pipelinez.Core.Status;
 
-public static class Extensions
+internal static class Extensions
 {
     
     internal static PipelineExecutionStatus ToPipelineExecutionStatus(this TaskStatus status)
