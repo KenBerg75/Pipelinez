@@ -129,6 +129,21 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
     public event PipelinePartitionsRevokedEventHandler? OnPartitionsRevoked;
 
     /// <summary>
+    /// Occurs when a partition begins draining.
+    /// </summary>
+    public event PipelinePartitionDrainingEventHandler? OnPartitionDraining;
+
+    /// <summary>
+    /// Occurs when a partition has drained.
+    /// </summary>
+    public event PipelinePartitionDrainedEventHandler? OnPartitionDrained;
+
+    /// <summary>
+    /// Occurs when partition execution state changes.
+    /// </summary>
+    public event PipelinePartitionExecutionStateChangedEventHandler? OnPartitionExecutionStateChanged;
+
+    /// <summary>
     /// Occurs when the distributed worker begins stopping.
     /// </summary>
     public event PipelineWorkerStoppingEventHandler? OnWorkerStopping;
@@ -138,6 +153,8 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
     /// </summary>
     internal event PipelineContainerCompletedEventHandler<PipelineContainer<TPipelineRecord>>?
         OnPipelineContainerCompelted; 
+    internal event PipelineContainerFaultHandledEventHandler<PipelineContainer<TPipelineRecord>>?
+        OnPipelineContainerFaultHandled;
     
     /// <summary>
     /// Triggers a PipelineContainerCompleted event
@@ -188,12 +205,27 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
                     "Skipping faulted record in pipeline {PipelineName}. Component: {ComponentName}",
                     _name,
                     container.Fault.ComponentName);
+                OnPipelineContainerFaultHandled?.Invoke(
+                    this,
+                    new PipelineContainerFaultHandledEventHandlerArgs<PipelineContainer<TPipelineRecord>>(
+                        container,
+                        PipelineErrorAction.SkipRecord));
                 ObserveFlowControlState();
                 return PipelineErrorAction.SkipRecord;
             case PipelineErrorAction.StopPipeline:
+                OnPipelineContainerFaultHandled?.Invoke(
+                    this,
+                    new PipelineContainerFaultHandledEventHandlerArgs<PipelineContainer<TPipelineRecord>>(
+                        container,
+                        PipelineErrorAction.StopPipeline));
                 FaultPipeline(container.Fault);
                 return PipelineErrorAction.StopPipeline;
             case PipelineErrorAction.Rethrow:
+                OnPipelineContainerFaultHandled?.Invoke(
+                    this,
+                    new PipelineContainerFaultHandledEventHandlerArgs<PipelineContainer<TPipelineRecord>>(
+                        container,
+                        PipelineErrorAction.Rethrow));
                 FaultPipeline(container.Fault);
                 return PipelineErrorAction.Rethrow;
             default:
@@ -444,7 +476,8 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
                 _hostOptions.ExecutionMode,
                 _instanceId,
                 _workerId,
-                _ownedPartitions);
+                _ownedPartitions,
+                GetPartitionExecutionStates());
         }
     }
 
@@ -604,7 +637,8 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
                 _hostOptions.ExecutionMode,
                 _instanceId,
                 _workerId,
-                _ownedPartitions);
+                _ownedPartitions,
+                GetPartitionExecutionStates());
         }
 
         if (assignedPartitions.Count > 0)
@@ -634,7 +668,8 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
                 _hostOptions.ExecutionMode,
                 _instanceId,
                 _workerId,
-                _ownedPartitions);
+                _ownedPartitions,
+                GetPartitionExecutionStates());
         }
 
         if (revokedPartitions.Count > 0)
@@ -793,7 +828,8 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
                 _hostOptions.ExecutionMode,
                 _instanceId,
                 _workerId,
-                _ownedPartitions);
+                _ownedPartitions,
+                GetPartitionExecutionStates());
         }
     }
 
@@ -884,7 +920,8 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
                 _hostOptions.ExecutionMode,
                 _instanceId,
                 _workerId,
-                _ownedPartitions);
+                _ownedPartitions,
+                GetPartitionExecutionStates());
         }
 
         OnWorkerStarted?.Invoke(this, new PipelineWorkerStartedEventArgs(runtimeContext));
@@ -912,7 +949,8 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
                 _hostOptions.ExecutionMode,
                 _instanceId,
                 _workerId,
-                _ownedPartitions);
+                _ownedPartitions,
+                GetPartitionExecutionStates());
         }
 
         OnWorkerStopping?.Invoke(this, new PipelineWorkerStoppingEventArgs(runtimeContext));
@@ -967,6 +1005,49 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
             componentKind,
             DateTimeOffset.UtcNow,
             message ?? exception.Message);
+    }
+
+    internal void ReportPartitionDraining(PipelinePartitionLease partition)
+    {
+        Guard.Against.Null(partition, nameof(partition));
+
+        OnPartitionDraining?.Invoke(
+            this,
+            new PipelinePartitionDrainingEventArgs(
+                GetRuntimeContext(),
+                partition));
+    }
+
+    internal void ReportPartitionDrained(PipelinePartitionLease partition)
+    {
+        Guard.Against.Null(partition, nameof(partition));
+
+        OnPartitionDrained?.Invoke(
+            this,
+            new PipelinePartitionDrainedEventArgs(
+                GetRuntimeContext(),
+                partition));
+    }
+
+    internal void ReportPartitionExecutionStateChanged(PipelinePartitionExecutionState state)
+    {
+        Guard.Against.Null(state, nameof(state));
+
+        OnPartitionExecutionStateChanged?.Invoke(
+            this,
+            new PipelinePartitionExecutionStateChangedEventArgs(
+                GetRuntimeContext(),
+                state));
+    }
+
+    private IReadOnlyList<PipelinePartitionExecutionState> GetPartitionExecutionStates()
+    {
+        if (_source is IDistributedPipelineSource<TPipelineRecord> distributedSource)
+        {
+            return distributedSource.GetPartitionExecutionStates();
+        }
+
+        return Array.Empty<PipelinePartitionExecutionState>();
     }
 
 }

@@ -310,6 +310,7 @@ If a caller does not supply instance or worker identity, the runtime generates r
 - instance ID
 - worker ID
 - currently owned transport partitions or leases
+- current partition execution state for distributed-capable sources
 
 This gives host applications a simple way to understand what the current worker owns without having to parse transport-specific client objects.
 
@@ -332,9 +333,14 @@ The public event surface now includes worker lifecycle and rebalance hooks:
 - `OnWorkerStarted`
 - `OnPartitionsAssigned`
 - `OnPartitionsRevoked`
+- `OnPartitionDraining`
+- `OnPartitionDrained`
+- `OnPartitionExecutionStateChanged`
 - `OnWorkerStopping`
 
 These events carry `PipelineRuntimeContext` and lease data so host applications can log worker startup, assignment changes, drain behavior, and shutdown explicitly.
+
+For partition-aware Kafka execution, the runtime now also exposes `PipelinePartitionExecutionState` values so hosts can inspect whether a partition is assigned, draining, currently in flight, and what the highest completed offset is for that worker.
 
 ### Record-Level Distribution Context
 
@@ -482,6 +488,7 @@ Reported execution status is derived from task state and runtime fault state:
 - instance ID
 - worker ID
 - currently owned partitions or leases
+- current partition execution state
 
 For distributed sources, this status reflects live ownership while the worker is active. For Kafka specifically, owned partitions are cleared on shutdown when the consumer leaves the group and revocation is observed.
 
@@ -501,6 +508,8 @@ Kafka extends the builder through `KafkaPipelineBuilderExtensions`:
 - `WithKafkaSource(...)`
 - `WithKafkaDestination(...)`
 
+Kafka source configuration can now also include `KafkaPartitionScalingOptions`, either by setting `KafkaSourceOptions.PartitionScaling` directly or by using the overload that accepts partition scaling explicitly.
+
 This keeps `PipelineBuilder<T>` owned by the core assembly and keeps Kafka-specific construction behavior owned by the Kafka assembly.
 
 ### Kafka Source
@@ -514,10 +523,14 @@ This keeps `PipelineBuilder<T>` owned by the core assembly and keeps Kafka-speci
 - copies Kafka headers into `PipelineRecord.Headers`
 - stores source topic, partition, and offset in container metadata
 - maps topic/partition ownership into `PipelinePartitionLease` values
+- tracks partition-local execution state and in-flight work
+- applies partition-aware pause/resume behavior based on `KafkaPartitionScalingOptions`
 - reports partition assignment and revocation back into the core runtime
+- raises partition drain and partition execution-state events through the pipeline runtime
 - populates record-level distribution metadata for completed and faulted events
 
 When a record completes successfully, the source handles the internal container-completed event and stores the next Kafka offset.
+When partition-aware scaling is enabled, Kafka offset advancement is tracked per partition so contiguous completion can be stored safely even when within-partition ordering is intentionally relaxed.
 
 Important consumer behavior:
 
@@ -526,6 +539,26 @@ Important consumer behavior:
 
 So completion is tied to explicit offset storage rather than immediate consume-time storage.
 The Kafka consumer now relies on the broker's normal consumer-group offset behavior: committed offsets are resumed when they exist, while `StartOffsetFromBeginning` controls the `AutoOffsetReset` behavior for new groups without stored offsets.
+
+### Kafka Partition-Aware Scaling
+
+Kafka now has an explicit partition-aware scaling model.
+
+`KafkaPartitionScalingOptions` controls:
+
+- `ExecutionMode`
+- `MaxConcurrentPartitions`
+- `MaxInFlightPerPartition`
+- `RebalanceMode`
+- `EmitPartitionExecutionEvents`
+
+Supported execution modes are:
+
+- `PreservePartitionOrder`
+- `ParallelizeAcrossPartitions`
+- `RelaxOrderingWithinPartition`
+
+The default is to preserve ordering within a partition while still allowing concurrency across independently owned partitions. Relaxing ordering within a partition is now explicit and opt-in.
 
 ### Kafka Destination
 
@@ -609,6 +642,8 @@ The solution now includes two test layers.
 - distributed worker startup, rebalance, and shutdown behavior across multiple pipeline instances
 - record-level worker and partition context on successful and faulted records
 - partition reassignment when one distributed worker leaves the consumer group
+- partition-local ordering by default and opt-in out-of-order completion when within-partition concurrency is enabled
+- partition execution-state visibility in runtime context and distributed status
 
 At the time of this overview update, `dotnet test src\\Pipelinez.sln` passes with both the core and Kafka integration suites green.
 
@@ -625,6 +660,7 @@ The major architectural work called out in the earlier planning docs has been im
 - Kafka split into a real `Pipelinez.Kafka` assembly
 - Docker-backed Kafka integration tests
 - explicit distributed execution mode with worker identity, partition ownership, and rebalance events
+- explicit partition-aware Kafka scaling with partition execution state, drain events, and per-partition scheduling rules
 - explicit performance tuning controls, built-in performance snapshots, destination batching, and a benchmark project
 - explicit retry policies with retry history, retry events, and retry-aware performance counters
 - explicit flow-control policies with publish results, saturation status, and pressure metrics

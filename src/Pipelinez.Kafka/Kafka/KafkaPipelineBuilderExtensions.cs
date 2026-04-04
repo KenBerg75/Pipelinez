@@ -24,6 +24,22 @@ public static class KafkaPipelineBuilderExtensions
             config,
             recordMapper));
     }
+
+    public static PipelineBuilder<T> WithKafkaSource<T, TRecordKey, TRecordValue>(
+        this PipelineBuilder<T> builder,
+        KafkaSourceOptions config,
+        Func<TRecordKey, TRecordValue, T> recordMapper,
+        KafkaPartitionScalingOptions partitionScalingOptions) where TRecordKey : class where TRecordValue : class
+        where T : PipelineRecord
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(config);
+        ArgumentNullException.ThrowIfNull(recordMapper);
+        ArgumentNullException.ThrowIfNull(partitionScalingOptions);
+
+        config.PartitionScaling = partitionScalingOptions.Validate();
+        return builder.WithKafkaSource<T, TRecordKey, TRecordValue>(config, recordMapper);
+    }
     
     public static PipelineBuilder<T> WithKafkaDestination<T, TRecordKey, TRecordValue>(
         this PipelineBuilder<T> builder,

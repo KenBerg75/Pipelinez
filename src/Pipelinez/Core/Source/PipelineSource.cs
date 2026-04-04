@@ -108,6 +108,7 @@ public abstract class PipelineSourceBase<T> : IPipelineSource<T>, IPipelineExecu
     {
         _parentPipeline = parentPipeline;
         _parentPipeline.OnPipelineContainerCompelted += OnPipelineContainerComplete;
+        _parentPipeline.OnPipelineContainerFaultHandled += OnPipelineContainerFaultHandled;
         
         // Give a chance for inheritors to initialize
         Initialize();
@@ -118,6 +119,12 @@ public abstract class PipelineSourceBase<T> : IPipelineSource<T>, IPipelineExecu
     {
         // Nothing to do yet
         // should use to support transactional processing
+    }
+
+    internal virtual void OnPipelineContainerFaultHandled(
+        object sender,
+        PipelineContainerFaultHandledEventHandlerArgs<PipelineContainer<T>> e)
+    {
     }
 
     #endregion

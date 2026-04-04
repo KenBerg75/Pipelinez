@@ -123,6 +123,13 @@ The repo also includes:
 - a Kafka data generator in [`src/examples/Example.Kafka.DataGen`](src/examples/Example.Kafka.DataGen)
 - Docker-backed Kafka integration tests in [`src/tests/Pipelinez.Kafka.Tests`](src/tests/Pipelinez.Kafka.Tests)
 
+Kafka source configuration now also supports explicit partition-aware scaling through `KafkaPartitionScalingOptions`, including:
+
+- preserving order within a partition
+- parallelizing across owned partitions
+- opt-in relaxed ordering within a partition
+- partition drain visibility during rebalance
+
 ## Distributed Execution
 
 Pipelinez can run in `SingleProcess` mode or in explicit `Distributed` mode for distributed-capable sources such as Kafka.
@@ -131,7 +138,9 @@ In distributed mode, the runtime surfaces:
 
 - worker identity through `PipelineHostOptions`
 - current owned partitions through `GetRuntimeContext()`
+- current partition execution state through `GetRuntimeContext()` and `GetStatus()`
 - worker lifecycle and rebalance events
+- partition drain and partition execution-state events
 - record-level distribution context on completion and fault events
 
 Example shape:
@@ -158,6 +167,8 @@ pipeline.OnPartitionsAssigned += (_, args) =>
 ```
 
 Kafka-backed distributed execution is validated by multi-worker integration tests that scale workers in and out against a real Docker-hosted broker.
+
+For Kafka specifically, distributed execution now also exposes partition-aware scaling controls through `KafkaPartitionScalingOptions` so callers can choose whether to preserve partition order strictly or relax within-partition ordering deliberately.
 
 ## Performance Tuning
 
@@ -384,6 +395,7 @@ Current implemented capabilities include:
 - configurable flow-control policies with saturation status and publish result handling
 - async destination execution
 - distributed runtime mode and worker/partition observability
+- partition-aware Kafka scaling with partition execution state and drain events
 - performance tuning options, batching support, and runtime performance snapshots
 - Kafka source and destination support
 - Docker-backed Kafka integration coverage, including multi-worker distributed tests

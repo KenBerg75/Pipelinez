@@ -69,6 +69,9 @@ public sealed class KafkaPipelineDistributedTests(KafkaTestCluster cluster)
         Assert.Equal(PipelineExecutionMode.Distributed, activeDistributedStatus!.ExecutionMode);
         Assert.Equal("kafka-worker-a", activeDistributedStatus.WorkerId);
         Assert.Single(activeDistributedStatus.OwnedPartitions);
+        Assert.Single(activeDistributedStatus.PartitionExecution);
+        Assert.True(activeDistributedStatus.PartitionExecution[0].IsAssigned);
+        Assert.False(activeDistributedStatus.PartitionExecution[0].IsDraining);
 
         await pipeline.CompleteAsync().ConfigureAwait(false);
         await pipeline.Completion.ConfigureAwait(false);
@@ -94,6 +97,7 @@ public sealed class KafkaPipelineDistributedTests(KafkaTestCluster cluster)
         Assert.Equal(PipelineExecutionMode.Distributed, distributedStatus!.ExecutionMode);
         Assert.Equal("kafka-worker-a", distributedStatus.WorkerId);
         Assert.Empty(distributedStatus.OwnedPartitions);
+        Assert.Empty(distributedStatus.PartitionExecution);
         Assert.Equal(PipelineExecutionStatus.Completed, pipeline.GetStatus().Status);
     }
 

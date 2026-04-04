@@ -34,6 +34,9 @@ public class PipelineDistributedExecutionTests
         var workerStarted = new ConcurrentQueue<PipelineRuntimeContext>();
         var assignedEvents = new ConcurrentQueue<IReadOnlyList<PipelinePartitionLease>>();
         var revokedEvents = new ConcurrentQueue<IReadOnlyList<PipelinePartitionLease>>();
+        var drainingEvents = new ConcurrentQueue<PipelinePartitionLease>();
+        var drainedEvents = new ConcurrentQueue<PipelinePartitionLease>();
+        var executionStateEvents = new ConcurrentQueue<PipelinePartitionExecutionState>();
         var workerStopping = new ConcurrentQueue<PipelineRuntimeContext>();
 
         var pipeline = Pipeline<TestPipelineRecord>.New("distributed-runtime")
@@ -50,6 +53,9 @@ public class PipelineDistributedExecutionTests
         pipeline.OnWorkerStarted += (_, args) => workerStarted.Enqueue(args.RuntimeContext);
         pipeline.OnPartitionsAssigned += (_, args) => assignedEvents.Enqueue(args.Partitions);
         pipeline.OnPartitionsRevoked += (_, args) => revokedEvents.Enqueue(args.Partitions);
+        pipeline.OnPartitionDraining += (_, args) => drainingEvents.Enqueue(args.Partition);
+        pipeline.OnPartitionDrained += (_, args) => drainedEvents.Enqueue(args.Partition);
+        pipeline.OnPartitionExecutionStateChanged += (_, args) => executionStateEvents.Enqueue(args.State);
         pipeline.OnWorkerStopping += (_, args) => workerStopping.Enqueue(args.RuntimeContext);
 
         await pipeline.StartPipelineAsync();
@@ -59,11 +65,22 @@ public class PipelineDistributedExecutionTests
         var partition1 = new PipelinePartitionLease("lease-1", "TestTransport", "partition-1", runtimeContext.InstanceId, runtimeContext.WorkerId, 1);
 
         source.AssignPartitions(partition0, partition1);
+        source.SetPartitionExecutionState(new PipelinePartitionExecutionState(
+            partition0.LeaseId,
+            partition0.PartitionKey,
+            partition0.PartitionId,
+            isAssigned: true,
+            isDraining: false,
+            inFlightCount: 1,
+            highestCompletedOffset: 10));
         source.RevokePartitions(partition1);
 
         var activeContext = pipeline.GetRuntimeContext();
         Assert.Single(activeContext.OwnedPartitions);
         Assert.Equal("lease-0", activeContext.OwnedPartitions[0].LeaseId);
+        Assert.Contains(activeContext.PartitionExecution, state => state.LeaseId == "lease-0");
+        Assert.DoesNotContain(activeContext.PartitionExecution, state => state.LeaseId == "lease-1");
+        Assert.Equal(1, activeContext.PartitionExecution.Single(state => state.LeaseId == "lease-0").InFlightCount);
 
         var activeDistributedStatus = pipeline.GetStatus().DistributedStatus;
         Assert.NotNull(activeDistributedStatus);
@@ -71,6 +88,7 @@ public class PipelineDistributedExecutionTests
         Assert.Equal("worker-a", activeDistributedStatus.WorkerId);
         Assert.Single(activeDistributedStatus.OwnedPartitions);
         Assert.Equal("lease-0", activeDistributedStatus.OwnedPartitions[0].LeaseId);
+        Assert.Contains(activeDistributedStatus.PartitionExecution, state => state.LeaseId == "lease-0");
 
         await pipeline.CompleteAsync();
         await pipeline.Completion;
@@ -79,6 +97,9 @@ public class PipelineDistributedExecutionTests
         Assert.Single(workerStopping);
         Assert.Single(assignedEvents);
         Assert.Single(revokedEvents);
+        Assert.Single(drainingEvents);
+        Assert.Single(drainedEvents);
+        Assert.True(executionStateEvents.Count >= 3);
 
         var startedContext = Assert.Single(workerStarted);
         Assert.Equal(PipelineExecutionMode.Distributed, startedContext.ExecutionMode);
