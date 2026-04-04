@@ -1,7 +1,11 @@
+using Pipelinez.Core.Operational;
+
 namespace Pipelinez.Core.Performance;
 
 internal interface IPipelinePerformanceCollector
 {
+    void ConfigureMetricsEmitter(IPipelineMetricsEmitter? metricsEmitter);
+
     void RecordPublished(string componentName);
 
     void RecordCompleted(DateTimeOffset createdAtUtc);

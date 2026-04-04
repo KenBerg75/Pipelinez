@@ -13,6 +13,8 @@ Pipelinez is a small .NET 8 framework for building record-processing pipelines w
 - explicit flow control and saturation observability
 - optional distributed execution for transport-backed sources
 - explicit performance tuning and runtime performance snapshots
+- health snapshots, health checks, and meter-based runtime metrics
+- correlation-aware diagnostics for records and faults
 - transport extensions such as Kafka
 
 ## How It Works
@@ -351,6 +353,43 @@ pipeline.OnPipelineRecordDeadLettered += (_, args) =>
 
 Kafka-backed pipelines can route failures to a dead-letter topic through `WithKafkaDeadLetterDestination(...)`.
 
+## Operational Tooling
+
+Pipelinez now includes a first-class operational surface for hosts and operators.
+
+Available capabilities include:
+
+- `GetHealthStatus()`
+- `GetOperationalSnapshot()`
+- `PipelineHealthCheck<T>` for `Microsoft.Extensions.Diagnostics.HealthChecks`
+- meter-based runtime metrics under `Pipelinez.Runtime`
+- correlation IDs stamped into pipeline metadata and surfaced through event diagnostics
+
+Example shape:
+
+```csharp
+using Pipelinez.Core.Operational;
+
+var pipeline = Pipeline<MyRecord>.New("orders")
+    .UseOperationalOptions(new PipelineOperationalOptions
+    {
+        EnableHealthChecks = true,
+        EnableMetrics = true,
+        EnableCorrelationIds = true
+    })
+    .WithInMemorySource(new object())
+    .WithInMemoryDestination("config")
+    .Build();
+
+var health = pipeline.GetHealthStatus();
+var snapshot = pipeline.GetOperationalSnapshot();
+
+Console.WriteLine(health.State);
+Console.WriteLine(snapshot.Performance.RecordsPerSecond);
+```
+
+For OpenTelemetry-style metrics registration, add the `Pipelinez.Runtime` meter to your metrics pipeline.
+
 ## Error Handling
 
 Pipelinez supports explicit fault handling through `WithErrorHandler(...)`.
@@ -445,6 +484,7 @@ Current implemented capabilities include:
 - distributed runtime mode and worker/partition observability
 - partition-aware Kafka scaling with partition execution state and drain events
 - performance tuning options, batching support, and runtime performance snapshots
+- operational health snapshots, health-check integration, runtime meter metrics, and correlation IDs
 - Kafka source and destination support
 - Docker-backed Kafka integration coverage, including multi-worker distributed tests
 

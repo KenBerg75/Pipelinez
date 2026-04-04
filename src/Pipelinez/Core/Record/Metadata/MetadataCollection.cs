@@ -88,6 +88,9 @@ public class MetadataCollection : IList<MetadataRecord>
 
     public void Set(string key, string value)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        ArgumentNullException.ThrowIfNull(value);
+
         var existingRecord = GetByKey(key);
         if (existingRecord is not null)
         {

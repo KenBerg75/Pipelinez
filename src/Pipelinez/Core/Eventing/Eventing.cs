@@ -2,6 +2,7 @@ using Ardalis.GuardClauses;
 using Pipelinez.Core.DeadLettering;
 using Pipelinez.Core.Distributed;
 using Pipelinez.Core.FaultHandling;
+using Pipelinez.Core.Operational;
 using Pipelinez.Core.Record;
 
 namespace Pipelinez.Core.Eventing;
@@ -52,12 +53,16 @@ public sealed class PipelineRecordCompletedEventHandlerArgs<T>
 
     public PipelineRecordDistributionContext? Distribution { get; }
 
+    public PipelineRecordDiagnosticContext? Diagnostic { get; }
+
     public PipelineRecordCompletedEventHandlerArgs(
         T record,
-        PipelineRecordDistributionContext? distribution = null)
+        PipelineRecordDistributionContext? distribution = null,
+        PipelineRecordDiagnosticContext? diagnostic = null)
     {
         Record = record;
         Distribution = distribution;
+        Diagnostic = diagnostic;
     }
 }
 
@@ -91,12 +96,14 @@ public sealed class PipelineRecordFaultedEventArgs<T> where T : PipelineRecord
         T record,
         PipelineContainer<T> container,
         PipelineFaultState fault,
-        PipelineRecordDistributionContext? distribution = null)
+        PipelineRecordDistributionContext? distribution = null,
+        PipelineRecordDiagnosticContext? diagnostic = null)
     {
         Record = Guard.Against.Null(record, nameof(record));
         Container = Guard.Against.Null(container, nameof(container));
         Fault = Guard.Against.Null(fault, nameof(fault));
         Distribution = distribution;
+        Diagnostic = diagnostic;
     }
 
     public T Record { get; }
@@ -106,6 +113,8 @@ public sealed class PipelineRecordFaultedEventArgs<T> where T : PipelineRecord
     public PipelineFaultState Fault { get; }
 
     public PipelineRecordDistributionContext? Distribution { get; }
+
+    public PipelineRecordDiagnosticContext? Diagnostic { get; }
 }
 
 public sealed class PipelineRecordRetryingEventArgs<T> where T : PipelineRecord
@@ -117,7 +126,8 @@ public sealed class PipelineRecordRetryingEventArgs<T> where T : PipelineRecord
         int attemptNumber,
         int maxAttempts,
         TimeSpan delay,
-        PipelineRecordDistributionContext? distribution = null)
+        PipelineRecordDistributionContext? distribution = null,
+        PipelineRecordDiagnosticContext? diagnostic = null)
     {
         Record = Guard.Against.Null(record, nameof(record));
         Container = Guard.Against.Null(container, nameof(container));
@@ -126,6 +136,7 @@ public sealed class PipelineRecordRetryingEventArgs<T> where T : PipelineRecord
         MaxAttempts = Guard.Against.NegativeOrZero(maxAttempts, nameof(maxAttempts));
         Delay = delay;
         Distribution = distribution;
+        Diagnostic = diagnostic;
     }
 
     public T Record { get; }
@@ -141,6 +152,8 @@ public sealed class PipelineRecordRetryingEventArgs<T> where T : PipelineRecord
     public TimeSpan Delay { get; }
 
     public PipelineRecordDistributionContext? Distribution { get; }
+
+    public PipelineRecordDiagnosticContext? Diagnostic { get; }
 
     public string ComponentName => Fault.ComponentName;
 
@@ -173,11 +186,13 @@ public sealed class PipelinePublishRejectedEventArgs<T> where T : PipelineRecord
     public PipelinePublishRejectedEventArgs(
         T record,
         FlowControl.PipelinePublishResultReason reason,
-        DateTimeOffset observedAtUtc)
+        DateTimeOffset observedAtUtc,
+        PipelineRecordDiagnosticContext? diagnostic = null)
     {
         Record = Guard.Against.Null(record, nameof(record));
         Reason = reason;
         ObservedAtUtc = observedAtUtc;
+        Diagnostic = diagnostic;
     }
 
     public T Record { get; }
@@ -185,21 +200,27 @@ public sealed class PipelinePublishRejectedEventArgs<T> where T : PipelineRecord
     public FlowControl.PipelinePublishResultReason Reason { get; }
 
     public DateTimeOffset ObservedAtUtc { get; }
+
+    public PipelineRecordDiagnosticContext? Diagnostic { get; }
 }
 
 public sealed class PipelineRecordDeadLetteredEventArgs<T> where T : PipelineRecord
 {
     public PipelineRecordDeadLetteredEventArgs(
         T record,
-        PipelineDeadLetterRecord<T> deadLetterRecord)
+        PipelineDeadLetterRecord<T> deadLetterRecord,
+        PipelineRecordDiagnosticContext? diagnostic = null)
     {
         Record = Guard.Against.Null(record, nameof(record));
         DeadLetterRecord = Guard.Against.Null(deadLetterRecord, nameof(deadLetterRecord));
+        Diagnostic = diagnostic;
     }
 
     public T Record { get; }
 
     public PipelineDeadLetterRecord<T> DeadLetterRecord { get; }
+
+    public PipelineRecordDiagnosticContext? Diagnostic { get; }
 }
 
 public sealed class PipelineDeadLetterWriteFailedEventArgs<T> where T : PipelineRecord
@@ -207,11 +228,13 @@ public sealed class PipelineDeadLetterWriteFailedEventArgs<T> where T : Pipeline
     public PipelineDeadLetterWriteFailedEventArgs(
         T record,
         PipelineDeadLetterRecord<T> deadLetterRecord,
-        Exception exception)
+        Exception exception,
+        PipelineRecordDiagnosticContext? diagnostic = null)
     {
         Record = Guard.Against.Null(record, nameof(record));
         DeadLetterRecord = Guard.Against.Null(deadLetterRecord, nameof(deadLetterRecord));
         Exception = Guard.Against.Null(exception, nameof(exception));
+        Diagnostic = diagnostic;
     }
 
     public T Record { get; }
@@ -219,6 +242,8 @@ public sealed class PipelineDeadLetterWriteFailedEventArgs<T> where T : Pipeline
     public PipelineDeadLetterRecord<T> DeadLetterRecord { get; }
 
     public Exception Exception { get; }
+
+    public PipelineRecordDiagnosticContext? Diagnostic { get; }
 }
 
 public delegate void PipelineFaultedEventHandler(object sender, PipelineFaultedEventArgs args);

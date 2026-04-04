@@ -2,6 +2,7 @@ using System.Text.Json;
 using Confluent.Kafka;
 using Pipelinez.Core;
 using Pipelinez.Core.ErrorHandling;
+using Pipelinez.Core.Operational;
 using Pipelinez.Kafka;
 using Pipelinez.Kafka.Record;
 using Pipelinez.Kafka.Tests.Infrastructure;
@@ -49,6 +50,7 @@ public sealed class KafkaPipelineDeadLetterTests(KafkaTestCluster cluster)
                         value = deadLetter.Record.Value,
                         component = deadLetter.Fault.ComponentName,
                         retryCount = deadLetter.RetryHistory.Count,
+                        correlationId = deadLetter.Metadata.GetValue(PipelineOperationalMetadataKeys.CorrelationId),
                         topic = deadLetter.Metadata.GetValue(KafkaMetadataKeys.SOURCE_TOPIC_NAME),
                         partition = deadLetter.Metadata.GetValue(KafkaMetadataKeys.SOURCE_PARTITION),
                         offset = deadLetter.Metadata.GetValue(KafkaMetadataKeys.SOURCE_OFFSET)
@@ -91,12 +93,17 @@ public sealed class KafkaPipelineDeadLetterTests(KafkaTestCluster cluster)
         var deadLetterMessage = Assert.Single(deadLetterMessages);
         Assert.Equal("bad-1", deadLetterMessage.Message.Key);
 
+        Assert.Contains(
+            pipeline.GetHealthStatus().Reasons,
+            reason => reason.Contains("Dead-letter", StringComparison.OrdinalIgnoreCase));
+
         using var document = JsonDocument.Parse(deadLetterMessage.Message.Value);
         var root = document.RootElement;
         Assert.Equal("bad-1", root.GetProperty("key").GetString());
         Assert.Equal("bad", root.GetProperty("value").GetString());
         Assert.Equal(nameof(ConditionalFaultingKafkaSegment), root.GetProperty("component").GetString());
         Assert.Equal(0, root.GetProperty("retryCount").GetInt32());
+        Assert.False(string.IsNullOrWhiteSpace(root.GetProperty("correlationId").GetString()));
         Assert.Equal(sourceTopic, root.GetProperty("topic").GetString());
         Assert.Equal("0", root.GetProperty("partition").GetString());
         Assert.Equal("0", root.GetProperty("offset").GetString());
