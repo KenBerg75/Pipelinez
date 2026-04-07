@@ -1,5 +1,8 @@
 <Project>
   <PropertyGroup Condition="'$(MSBuildProjectName)' == 'Pipelinez' Or '$(MSBuildProjectName)' == 'Pipelinez.Kafka'">
+    <VersionPrefix Condition="'$(VersionPrefix)' == ''">1.0.0</VersionPrefix>
+    <Version Condition="'$(Version)' == '' And '$(VersionSuffix)' == ''">$(VersionPrefix)</Version>
+    <Version Condition="'$(Version)' == '' And '$(VersionSuffix)' != ''">$(VersionPrefix)-$(VersionSuffix)</Version>
     <Authors>Ken Berg</Authors>
     <Company>Pipelinez</Company>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

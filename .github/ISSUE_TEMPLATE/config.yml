@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security report
+    url: https://github.com/KenBerg75/Pipelinez/security/advisories/new
+    about: Please report security vulnerabilities privately instead of opening a public issue.

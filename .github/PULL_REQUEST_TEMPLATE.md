@@ -7,6 +7,17 @@
 - [ ] `dotnet build src/Pipelinez.sln`
 - [ ] `dotnet test src/Pipelinez.sln --logger "console;verbosity=minimal"`
 
+## Release Impact
+
+- [ ] Patch
+- [ ] Minor
+- [ ] Major
+- [ ] No release impact
+
+Notes:
+
+- describe release-note or migration impact
+
 ## Public API
 
 - [ ] No public API changes

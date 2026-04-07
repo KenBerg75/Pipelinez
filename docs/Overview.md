@@ -48,7 +48,14 @@ The repository is now configured for package generation of:
 - `Pipelinez.Kafka`
 
 That includes package metadata, XML docs, Source Link, symbol packages, and CI pack validation.
-Public release/version automation remains a separate concern.
+Public release automation is configured through tag-based GitHub Actions and NuGet Trusted Publishing.
+
+Versioning rules:
+
+- `Pipelinez` and `Pipelinez.Kafka` ship with aligned versions
+- stable releases use tags such as `v1.2.3`
+- preview releases use tags such as `v1.3.0-preview.1`
+- manual release workflow dispatch is intended for package validation and does not publish to NuGet.org
 
 ## Core Runtime Design
 

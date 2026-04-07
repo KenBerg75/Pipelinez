@@ -44,6 +44,8 @@ Types that are not intended as consumer extension points should remain internal.
 
 ## Compatibility Rules
 
+Pipelinez uses SemVer-style versioning for public releases. `Pipelinez` and `Pipelinez.Kafka` should be published with the same version number in each release.
+
 ### Patch Releases
 
 Patch releases may include:
@@ -119,3 +121,14 @@ If a change affects a public API:
 - add migration guidance when replacing an existing API
 
 For broader contributor guidance, see [CONTRIBUTING.md](../CONTRIBUTING.md).
+
+## Release Communication
+
+Release notes should make compatibility impact explicit:
+
+- patch releases should call out fixes and safe behavior changes
+- minor releases should call out additive APIs and new features
+- major releases should include migration guidance
+- preview releases should be marked clearly as preview
+
+Release notes are tracked in the repository changelog and mirrored into GitHub Releases.

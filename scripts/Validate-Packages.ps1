@@ -1,29 +1,99 @@
 param(
     [Parameter(Mandatory = $true)]
-    [string]$PackageDirectory
+    [string]$PackageDirectory,
+
+    [string]$PackageVersion
 )
 
 $ErrorActionPreference = 'Stop'
 
-function Get-PackageVersion {
+function Get-XmlPropertyValue {
     param(
         [Parameter(Mandatory = $true)]
-        [string]$ProjectPath
+        [string]$Path,
+
+        [Parameter(Mandatory = $true)]
+        [string[]]$PropertyNames
     )
 
-    [xml]$project = Get-Content -Path $ProjectPath
-    $propertyGroups = @($project.Project.PropertyGroup)
+    if (-not (Test-Path -Path $Path))
+    {
+        return $null
+    }
 
-    foreach ($propertyName in 'PackageVersion', 'Version', 'VersionPrefix')
+    [xml]$xml = Get-Content -Path $Path
+    $propertyGroups = @($xml.Project.PropertyGroup)
+
+    foreach ($propertyName in $PropertyNames)
     {
         foreach ($group in $propertyGroups)
         {
-            $value = $group.$propertyName
-            if ($null -ne $value -and -not [string]::IsNullOrWhiteSpace($value))
+            $values = @($group.$propertyName)
+            foreach ($value in $values)
             {
-                return $value.Trim()
+                if ($null -eq $value)
+                {
+                    continue
+                }
+
+                $textValue = if ($value -is [System.Xml.XmlElement])
+                {
+                    $value.InnerText
+                }
+                else
+                {
+                    $value.ToString()
+                }
+
+                if ([string]::IsNullOrWhiteSpace($textValue))
+                {
+                    continue
+                }
+
+                $trimmedValue = $textValue.Trim()
+                if ($trimmedValue.Contains('$('))
+                {
+                    continue
+                }
+
+                return $trimmedValue
             }
         }
+    }
+
+    return $null
+}
+
+function Get-PackageVersion {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ProjectPath,
+
+        [Parameter(Mandatory = $true)]
+        [string]$RepositoryRoot
+    )
+
+    if (-not [string]::IsNullOrWhiteSpace($PackageVersion))
+    {
+        return $PackageVersion.Trim()
+    }
+
+    $projectVersion = Get-XmlPropertyValue `
+        -Path $ProjectPath `
+        -PropertyNames @('PackageVersion', 'Version', 'VersionPrefix')
+
+    if (-not [string]::IsNullOrWhiteSpace($projectVersion))
+    {
+        return $projectVersion
+    }
+
+    $directoryBuildPropsVersion = Get-XmlPropertyValue `
+        -Path (Join-Path $RepositoryRoot 'Directory.Build.props') `
+        -PropertyNames @('PackageVersion', 'VersionPrefix', 'Version')
+
+    if (-not [string]::IsNullOrWhiteSpace($directoryBuildPropsVersion))
+    {
+        return $directoryBuildPropsVersion
     }
 
     return '1.0.0'
@@ -48,8 +118,13 @@ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $coreProjectPath = Join-Path (Join-Path $repoRoot 'src') (Join-Path 'Pipelinez' 'Pipelinez.csproj')
 $kafkaProjectPath = Join-Path (Join-Path $repoRoot 'src') (Join-Path 'Pipelinez.Kafka' 'Pipelinez.Kafka.csproj')
 
-$coreVersion = Get-PackageVersion -ProjectPath $coreProjectPath
-$kafkaVersion = Get-PackageVersion -ProjectPath $kafkaProjectPath
+$coreVersion = Get-PackageVersion -ProjectPath $coreProjectPath -RepositoryRoot $repoRoot
+$kafkaVersion = Get-PackageVersion -ProjectPath $kafkaProjectPath -RepositoryRoot $repoRoot
+
+if ($coreVersion -ne $kafkaVersion)
+{
+    throw "Pipelinez and Pipelinez.Kafka package versions must match. Core: $coreVersion Kafka: $kafkaVersion"
+}
 
 $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("pipelinez-package-smoke-" + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $tempRoot | Out-Null

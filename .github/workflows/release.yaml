@@ -1,0 +1,131 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Package version to validate, for example 1.2.3 or 1.3.0-preview.1. Manual dispatch validates only and does not publish."
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  validate-package:
+    name: Validate Package
+    runs-on: ubuntu-latest
+    outputs:
+      package-version: ${{ steps.version.outputs.package_version }}
+      is-prerelease: ${{ steps.version.outputs.is_prerelease }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Derive Version
+        id: version
+        shell: bash
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            PACKAGE_VERSION="${GITHUB_REF_NAME#v}"
+          else
+            PACKAGE_VERSION="${{ inputs.version }}"
+          fi
+
+          if ! [[ "$PACKAGE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z][0-9A-Za-z.-]*)?$ ]]; then
+            echo "Version '$PACKAGE_VERSION' is not a supported SemVer package version." >&2
+            exit 1
+          fi
+
+          echo "package_version=$PACKAGE_VERSION" >> "$GITHUB_OUTPUT"
+
+          if [[ "$PACKAGE_VERSION" == *-* ]]; then
+            echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Restore
+        run: dotnet restore src/Pipelinez.sln
+
+      - name: Build
+        run: dotnet build src/Pipelinez.sln --configuration Release --no-restore -p:Version=${{ steps.version.outputs.package_version }}
+
+      - name: Test
+        run: dotnet test src/Pipelinez.sln --configuration Release --no-build --logger "console;verbosity=minimal"
+
+      - name: Pack Pipelinez
+        run: dotnet pack src/Pipelinez/Pipelinez.csproj --configuration Release --no-build -o artifacts/packages -p:Version=${{ steps.version.outputs.package_version }} -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
+
+      - name: Pack Pipelinez.Kafka
+        run: dotnet pack src/Pipelinez.Kafka/Pipelinez.Kafka.csproj --configuration Release --no-build -o artifacts/packages -p:Version=${{ steps.version.outputs.package_version }} -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
+
+      - name: Validate Packages
+        shell: pwsh
+        run: ./scripts/Validate-Packages.ps1 -PackageDirectory artifacts/packages -PackageVersion ${{ steps.version.outputs.package_version }}
+
+      - name: Upload Packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipelinez-packages
+          path: artifacts/packages/*
+          if-no-files-found: error
+
+  publish:
+    name: Publish To NuGet
+    needs: validate-package
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    environment: nuget-publish
+    permissions:
+      actions: read
+      contents: write
+      id-token: write
+
+    steps:
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Download Packages
+        uses: actions/download-artifact@v4
+        with:
+          name: pipelinez-packages
+          path: artifacts/packages
+
+      - name: NuGet Login
+        id: nuget-login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ vars.NUGET_USER }}
+
+      - name: Push Packages
+        run: dotnet nuget push "artifacts/packages/*.nupkg" --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+      - name: Push Symbols
+        run: dotnet nuget push "artifacts/packages/*.snupkg" --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          prerelease: ${{ needs.validate-package.outputs.is-prerelease == 'true' }}
+          files: artifacts/packages/*
