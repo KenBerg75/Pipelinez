@@ -1,0 +1,25 @@
+name: Question
+description: Ask a usage or design question.
+title: "[Question]: "
+labels:
+  - question
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What would you like help understanding?
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Include relevant pipeline configuration, package versions, or transport details.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues and docs before opening this question.
+          required: true

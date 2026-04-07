@@ -49,7 +49,7 @@ dotnet add package Pipelinez.Kafka
 
 `Pipelinez.Kafka` depends on `Pipelinez`, so Kafka consumers do not need to add both explicitly unless they want to.
 
-Until public NuGet publishing is enabled, you can still build and pack the projects locally from this repository.
+Public package publishing is configured through GitHub tag releases and NuGet Trusted Publishing. Until the first public release is available on NuGet.org, you can still build and pack the projects locally from this repository.
 
 ## Quick Example
 
@@ -259,6 +259,15 @@ Pipelinez treats the public API of `Pipelinez` and `Pipelinez.Kafka` as an inten
 - public API approval tests protect both assemblies from accidental surface changes in normal PR and CI validation
 
 See [`docs/ApiStability.md`](docs/ApiStability.md) for the full policy and maintainer workflow.
+
+## Releases
+
+Pipelinez uses SemVer-style versions and publishes `Pipelinez` and `Pipelinez.Kafka` with aligned package versions.
+
+- stable releases use tags like `v1.2.3`
+- preview releases use tags like `v1.3.0-preview.1`
+- release notes are tracked in [`CHANGELOG.md`](CHANGELOG.md) and GitHub Releases
+- NuGet publishing uses Trusted Publishing rather than a long-lived API key
 
 ## Contributing
 

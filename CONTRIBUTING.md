@@ -6,9 +6,12 @@ Pipelinez is a reusable library, so contributions should optimize not only for c
 
 ## Development Basics
 
+- install the .NET 8 SDK
+- keep Docker running when you want to run Kafka integration tests locally
 - build the solution with `dotnet build src/Pipelinez.sln`
 - run the full test suite with `dotnet test src/Pipelinez.sln`
 - if you change performance-sensitive behavior, consider running the benchmark project too
+- if you change package metadata or release behavior, validate local packages with `./scripts/Validate-Packages.ps1 -PackageDirectory artifacts/packages`
 
 ## Public API Changes
 
@@ -75,3 +78,56 @@ That usually means some combination of:
 ## Pull Requests
 
 Keep pull requests focused and make public API changes explicit in the description. If your PR changes consumer-facing behavior, call that out directly so reviewers can evaluate compatibility impact separately from implementation details.
+
+## Release Impact
+
+Every non-trivial pull request should be easy to classify for release notes.
+
+Use this vocabulary in PR descriptions when it applies:
+
+- `patch`
+  bug fixes, documentation fixes, safe diagnostics improvements, or packaging fixes
+- `minor`
+  additive APIs, new features, new integrations, or preview APIs
+- `major`
+  breaking changes to stable APIs or runtime behavior that requires migration
+
+The `Pipelinez` and `Pipelinez.Kafka` packages are versioned together. A release should never intentionally publish different versions for the two packages.
+
+## Release Workflow
+
+Public releases are tag-based and use NuGet Trusted Publishing rather than a long-lived NuGet API key.
+
+Maintainer release flow:
+
+1. merge release-ready work into `main`
+2. confirm CI is green
+3. update `CHANGELOG.md`
+4. create a tag like `v1.2.3` or `v1.3.0-preview.1`
+5. push the tag
+6. let the release workflow validate, pack, publish to NuGet.org, and create a GitHub Release
+
+Manual release workflow dispatch is intended for package validation and does not publish to NuGet.org.
+
+## Agent-Assisted Maintenance
+
+Small, well-scoped repository maintenance work can be assigned to GitHub Copilot coding agent when the issue includes clear acceptance criteria.
+
+Good agent-assisted tasks include:
+
+- documentation refreshes
+- release-note draft preparation
+- issue-template updates
+- small regression-test additions
+- package smoke-test improvements
+
+Keep these tasks human-controlled:
+
+- approving release versions
+- creating release tags
+- approving publish environments
+- publishing packages
+- deciding breaking-change impact
+- security vulnerability disclosure
+
+Agent-created PRs must still pass normal validation and receive human review before merge.

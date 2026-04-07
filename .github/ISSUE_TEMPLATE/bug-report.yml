@@ -1,0 +1,78 @@
+name: Bug Report
+description: Report a reproducible problem in Pipelinez.
+title: "[Bug]: "
+labels:
+  - type:bug
+body:
+  - type: input
+    id: package-version
+    attributes:
+      label: Package version
+      description: Which Pipelinez package version are you using?
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: input
+    id: dotnet-version
+    attributes:
+      label: .NET version
+      placeholder: "8.0.x"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Core runtime
+        - Kafka transport
+        - Packaging
+        - Documentation
+        - Tests
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Please include the smallest set of steps, code, or configuration needed to reproduce the issue.
+      placeholder: |
+        1. Build a pipeline with ...
+        2. Publish ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or stack trace
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues before opening this one.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true

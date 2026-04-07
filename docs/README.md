@@ -55,4 +55,4 @@ dotnet add package Pipelinez
 dotnet add package Pipelinez.Kafka
 ```
 
-Release/version automation is tracked separately, so this docs set still focuses on the current repository and example workflow as the most directly runnable path.
+Public releases are configured through tag-based GitHub Actions and NuGet Trusted Publishing. Until the first public release is available on NuGet.org, the current repository and example workflow remain the most directly runnable path.
