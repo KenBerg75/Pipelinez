@@ -54,5 +54,6 @@ var pipeline = Pipeline<MyRecord>.New("orders")
 
 ## More Information
 
+- NuGet: https://www.nuget.org/packages/Pipelinez.Kafka
 - Repository: https://github.com/KenBerg75/Pipelinez
 - Kafka docs: https://github.com/KenBerg75/Pipelinez/blob/main/docs/transports/kafka.md

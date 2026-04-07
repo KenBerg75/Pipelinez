@@ -46,5 +46,6 @@ var pipeline = Pipeline<OrderRecord>.New("orders")
 
 ## More Information
 
+- NuGet: https://www.nuget.org/packages/Pipelinez
 - Repository: https://github.com/KenBerg75/Pipelinez
 - Docs: https://github.com/KenBerg75/Pipelinez/tree/main/docs

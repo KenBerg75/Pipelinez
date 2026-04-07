@@ -11,10 +11,10 @@ This guide shows the shape of a Kafka-backed pipeline and how to run the shipped
 - .NET 8 SDK
 - Docker running locally
 - either:
-  - a consumer project referencing the `Pipelinez.Kafka` package when published
+  - a consumer project referencing the [`Pipelinez.Kafka`](https://www.nuget.org/packages/Pipelinez.Kafka) package
   - or a local clone of this repository
 
-Expected package install command:
+Package install command:
 
 ```bash
 dotnet add package Pipelinez.Kafka

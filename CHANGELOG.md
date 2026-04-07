@@ -8,8 +8,15 @@ Pipelinez uses [Semantic Versioning](https://semver.org/). The `Pipelinez` and `
 
 ### Added
 
+- Nothing yet.
+
+## [1.0.0] - 2026-04-07
+
+### Added
+
 - Added a tag-based release workflow and repository setup for public NuGet publishing through NuGet Trusted Publishing.
 - Added baseline OSS repository files for issue templates, ownership, security reporting, and release tracking.
+- Published the first public `Pipelinez` and `Pipelinez.Kafka` packages to NuGet.org.
 
 ### Changed
 
@@ -17,4 +24,4 @@ Pipelinez uses [Semantic Versioning](https://semver.org/). The `Pipelinez` and `
 
 ### Migration Notes
 
-- No migration required. These changes prepare the repository for public releases and do not change runtime APIs.
+- No migration required for the first public release.

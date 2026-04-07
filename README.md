@@ -30,12 +30,12 @@ Pipelinez is not trying to replace large distributed stream-processing platforms
 
 ## Installation
 
-Package generation is configured for:
+The first public packages are available on NuGet.org:
 
-- `Pipelinez`
-- `Pipelinez.Kafka`
+- [`Pipelinez`](https://www.nuget.org/packages/Pipelinez)
+- [`Pipelinez.Kafka`](https://www.nuget.org/packages/Pipelinez.Kafka)
 
-Expected install commands for published packages:
+Install the core runtime:
 
 ```bash
 dotnet add package Pipelinez
@@ -49,7 +49,7 @@ dotnet add package Pipelinez.Kafka
 
 `Pipelinez.Kafka` depends on `Pipelinez`, so Kafka consumers do not need to add both explicitly unless they want to.
 
-Public package publishing is configured through GitHub tag releases and NuGet Trusted Publishing. Until the first public release is available on NuGet.org, you can still build and pack the projects locally from this repository.
+Public package publishing is configured through GitHub tag releases and NuGet Trusted Publishing.
 
 ## Quick Example
 
