@@ -42,12 +42,12 @@ Each record flows through the runtime inside a `PipelineContainer<T>`, which let
 
 ## Packaging Status
 
-The repository is now configured for package generation of:
+The public packages are available on NuGet.org:
 
-- `Pipelinez`
-- `Pipelinez.Kafka`
+- [`Pipelinez`](https://www.nuget.org/packages/Pipelinez)
+- [`Pipelinez.Kafka`](https://www.nuget.org/packages/Pipelinez.Kafka)
 
-That includes package metadata, XML docs, Source Link, symbol packages, and CI pack validation.
+The repository remains configured for package metadata, XML docs, Source Link, symbol packages, and CI pack validation.
 Public release automation is configured through tag-based GitHub Actions and NuGet Trusted Publishing.
 
 Versioning rules:

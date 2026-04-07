@@ -43,16 +43,16 @@ This folder contains the main documentation set for Pipelinez.
 
 ## Installation Note
 
-Packaging is now configured for:
+The public packages are available on NuGet.org:
 
-- `Pipelinez`
-- `Pipelinez.Kafka`
+- [`Pipelinez`](https://www.nuget.org/packages/Pipelinez)
+- [`Pipelinez.Kafka`](https://www.nuget.org/packages/Pipelinez.Kafka)
 
-Expected install commands for published packages are:
+Install with:
 
 ```bash
 dotnet add package Pipelinez
 dotnet add package Pipelinez.Kafka
 ```
 
-Public releases are configured through tag-based GitHub Actions and NuGet Trusted Publishing. Until the first public release is available on NuGet.org, the current repository and example workflow remain the most directly runnable path.
+Public releases are configured through tag-based GitHub Actions and NuGet Trusted Publishing.

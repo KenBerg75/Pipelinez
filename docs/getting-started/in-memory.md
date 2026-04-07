@@ -17,10 +17,10 @@ This guide walks through the smallest useful Pipelinez setup:
 
 - .NET 8 SDK
 - either:
-  - a consumer project referencing the `Pipelinez` package when published
+  - a consumer project referencing the [`Pipelinez`](https://www.nuget.org/packages/Pipelinez) package
   - or a local clone of this repository
 
-Expected package install command:
+Package install command:
 
 ```bash
 dotnet add package Pipelinez
