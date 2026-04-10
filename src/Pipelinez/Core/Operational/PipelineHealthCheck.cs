@@ -3,18 +3,30 @@ using Pipelinez.Core.Record;
 
 namespace Pipelinez.Core.Operational;
 
+/// <summary>
+/// Adapts a Pipelinez pipeline into a standard ASP.NET Core health check.
+/// </summary>
+/// <typeparam name="T">The pipeline record type handled by the pipeline.</typeparam>
 public sealed class PipelineHealthCheck<T> : IHealthCheck
     where T : PipelineRecord
 {
     private readonly IPipeline<T> _pipeline;
     private readonly bool _includeComponentDiagnostics;
 
+    /// <summary>
+    /// Initializes a new pipeline health check.
+    /// </summary>
+    /// <param name="pipeline">The pipeline to inspect.</param>
+    /// <param name="includeComponentDiagnostics">
+    /// A value indicating whether component status information should be included in the health-check payload.
+    /// </param>
     public PipelineHealthCheck(IPipeline<T> pipeline, bool includeComponentDiagnostics = true)
     {
         _pipeline = pipeline ?? throw new ArgumentNullException(nameof(pipeline));
         _includeComponentDiagnostics = includeComponentDiagnostics;
     }
 
+    /// <inheritdoc />
     public Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context,
         CancellationToken cancellationToken = default)

@@ -12,6 +12,10 @@ using Pipelinez.Core.Record.Metadata;
 
 namespace Pipelinez.Core.Source;
 
+/// <summary>
+/// Provides a base implementation for pipeline sources backed by a Dataflow buffer.
+/// </summary>
+/// <typeparam name="T">The pipeline record type produced by the source.</typeparam>
 public abstract class PipelineSourceBase<T> : IPipelineSource<T>, IPipelineExecutionConfigurable, IPipelinePerformanceAware, IPipelineFlowStatusProvider where T : PipelineRecord
 {
     private BufferBlock<PipelineContainer<T>>? _messageBuffer;
@@ -20,8 +24,14 @@ public abstract class PipelineSourceBase<T> : IPipelineSource<T>, IPipelineExecu
     private IPipelinePerformanceCollector? _performanceCollector;
     private string _componentName = "Source";
 
+    /// <summary>
+    /// Gets the logger used by the source.
+    /// </summary>
     protected ILogger<PipelineSourceBase<T>> Logger { get; }
 
+    /// <summary>
+    /// Initializes a new source base instance.
+    /// </summary>
     public PipelineSourceBase()
     {
         Logger = LoggingManager.Instance.CreateLogger<PipelineSourceBase<T>>();
@@ -29,16 +39,14 @@ public abstract class PipelineSourceBase<T> : IPipelineSource<T>, IPipelineExecu
     
     #region IPipelineSource
     
-    /// <summary>
-    /// Connect this source to the next segment in the pipeline
-    /// </summary>
-    /// <returns></returns>
+    /// <inheritdoc />
     public IDisposable ConnectTo(IFlowDestination<PipelineContainer<T>> target, DataflowLinkOptions? options = null)
     {
         options ??= new DataflowLinkOptions() { MaxMessages = DataflowBlockOptions.Unbounded };
         return MessageBuffer.LinkTo(target.AsTargetBlock(), options);
     }
     
+    /// <inheritdoc />
     public async Task StartAsync(CancellationTokenSource cancellationToken)
     {
         try
@@ -54,23 +62,27 @@ public abstract class PipelineSourceBase<T> : IPipelineSource<T>, IPipelineExecu
         }
     }
 
+    /// <inheritdoc />
     public async Task PublishAsync(T record)
     {
         var publishResult = await PublishAsync(record, new PipelinePublishOptions()).ConfigureAwait(false);
         HandleUnacceptedPublishResult(publishResult);
     }
 
+    /// <inheritdoc />
     public Task<PipelinePublishResult> PublishAsync(T record, PipelinePublishOptions options)
     {
         return PublishAsync(record, new MetadataCollection(), options);
     }
 
+    /// <inheritdoc />
     public async Task PublishAsync(T record, MetadataCollection metadata)
     {
         var publishResult = await PublishAsync(record, metadata, new PipelinePublishOptions()).ConfigureAwait(false);
         HandleUnacceptedPublishResult(publishResult);
     }
 
+    /// <inheritdoc />
     public async Task<PipelinePublishResult> PublishAsync(T record, MetadataCollection metadata, PipelinePublishOptions options)
     {
         EnsureCorrelationId(metadata);
@@ -98,15 +110,18 @@ public abstract class PipelineSourceBase<T> : IPipelineSource<T>, IPipelineExecu
         return publishResult;
     }
 
+    /// <inheritdoc />
     public void Complete()
     {
         Logger.LogInformation("Completing pipeline source");
         MessageBuffer.Complete();
     }
 
+    /// <inheritdoc />
     public Task Completion => MessageBuffer.Completion;
 
 
+    /// <inheritdoc />
     public void Initialize(Pipeline<T> parentPipeline)
     {
         _parentPipeline = parentPipeline;
@@ -117,6 +132,7 @@ public abstract class PipelineSourceBase<T> : IPipelineSource<T>, IPipelineExecu
         Initialize();
     }
 
+    /// <inheritdoc />
     public virtual void OnPipelineContainerComplete(object sender,
         PipelineContainerCompletedEventHandlerArgs<PipelineContainer<T>> e)
     {
@@ -134,6 +150,7 @@ public abstract class PipelineSourceBase<T> : IPipelineSource<T>, IPipelineExecu
 
     #region Performance
 
+    /// <inheritdoc />
     public void ConfigureExecutionOptions(PipelineExecutionOptions options)
     {
         var validated = Guard.Against.Null(options, nameof(options)).Validate();
@@ -141,6 +158,7 @@ public abstract class PipelineSourceBase<T> : IPipelineSource<T>, IPipelineExecu
         _executionOptions = validated;
     }
 
+    /// <inheritdoc />
     public PipelineExecutionOptions GetExecutionOptions()
     {
         return _executionOptions;
@@ -159,18 +177,21 @@ public abstract class PipelineSourceBase<T> : IPipelineSource<T>, IPipelineExecu
     #region Required Implementation
     
     /// <summary>
-    /// This method should contain the logic for the pipeline source.
-    /// Source method is async and should contain the complete application loop for the source
+    /// Executes the main source loop.
     /// </summary>
-    /// <returns></returns>
+    /// <param name="cancellationToken">The runtime cancellation source used to stop the source.</param>
+    /// <returns>A task that completes when the source loop exits.</returns>
     protected abstract Task MainLoop(CancellationTokenSource cancellationToken);
     /// <summary>
-    /// Method to provide an opportunity for the source to initialize
+    /// Provides an opportunity for the source to initialize transport-specific state.
     /// </summary>
     protected abstract void Initialize();
     
     #endregion
 
+    /// <summary>
+    /// Gets the parent pipeline.
+    /// </summary>
     protected Pipeline<T> ParentPipeline =>
         _parentPipeline ?? throw new InvalidOperationException("Pipeline source has not been initialized.");
 

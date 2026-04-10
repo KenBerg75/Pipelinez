@@ -56,3 +56,5 @@ dotnet add package Pipelinez.Kafka
 ```
 
 Public releases are configured through tag-based GitHub Actions and NuGet Trusted Publishing.
+
+Both public packages also ship XML IntelliSense documentation so API descriptions show up directly in supported IDEs.

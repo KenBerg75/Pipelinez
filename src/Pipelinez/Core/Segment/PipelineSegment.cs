@@ -12,6 +12,10 @@ using Pipelinez.Core.Retry;
 
 namespace Pipelinez.Core.Segment;
 
+/// <summary>
+/// Provides a base implementation for pipeline segments backed by a Dataflow transform block.
+/// </summary>
+/// <typeparam name="T">The pipeline record type processed by the segment.</typeparam>
 public abstract class PipelineSegment<T> : IPipelineSegment<T>, IPipelineExecutionConfigurable, IPipelinePerformanceAware, IPipelineRetryConfigurable<T>, IPipelineFlowStatusProvider where T : PipelineRecord
 {
     private TransformBlock<PipelineContainer<T>, PipelineContainer<T>>? _transformBlock;
@@ -22,10 +26,13 @@ public abstract class PipelineSegment<T> : IPipelineSegment<T>, IPipelineExecuti
     private string _componentName = "Segment";
 
     /// <summary>
-    /// Logger for the segment
+    /// Gets the logger used by the segment.
     /// </summary>
     protected ILogger<PipelineSegment<T>> Logger { get; }
 
+    /// <summary>
+    /// Initializes a new segment base instance.
+    /// </summary>
     public PipelineSegment()
     {
         Logger = LoggingManager.Instance.CreateLogger<PipelineSegment<T>>();
@@ -56,18 +63,14 @@ public abstract class PipelineSegment<T> : IPipelineSegment<T>, IPipelineExecuti
     
     #region IPipelineSegment
 
-    /// <summary>
-    /// Connect this source to the next segment in the pipeline
-    /// </summary>
-    /// <param name="target">IFlowDestination to connect to</param>
-    /// <param name="options"></param>
-    /// <returns></returns>
+    /// <inheritdoc />
     public IDisposable ConnectTo(IFlowDestination<PipelineContainer<T>> target, DataflowLinkOptions? options = null)
     {
         options ??= new DataflowLinkOptions() { MaxMessages = DataflowBlockOptions.Unbounded };
         return TransformBlock.LinkTo(target.AsTargetBlock(), options);
     }
 
+    /// <inheritdoc />
     public ITargetBlock<PipelineContainer<T>> AsTargetBlock()
     {
         return TransformBlock;
@@ -164,16 +167,18 @@ public abstract class PipelineSegment<T> : IPipelineSegment<T>, IPipelineExecuti
     #region Required Implementations
     
     /// <summary>
-    /// This method should contain the logic for the pipeline segment.
+    /// Executes the transformation performed by the segment.
     /// </summary>
-    /// <param name="arg"></param>
-    /// <returns></returns>
+    /// <param name="arg">The record to transform.</param>
+    /// <returns>The transformed record.</returns>
     public abstract Task<T> ExecuteAsync(T arg);
     
     #endregion
 
+    /// <inheritdoc />
     public Task Completion => TransformBlock.Completion;
 
+    /// <inheritdoc />
     public void ConfigureExecutionOptions(PipelineExecutionOptions options)
     {
         var validated = Guard.Against.Null(options, nameof(options)).Validate();
@@ -181,17 +186,20 @@ public abstract class PipelineSegment<T> : IPipelineSegment<T>, IPipelineExecuti
         _executionOptions = validated;
     }
 
+    /// <inheritdoc />
     public PipelineExecutionOptions GetExecutionOptions()
     {
         return _executionOptions;
     }
 
+    /// <inheritdoc />
     public void ConfigureRetryPolicy(PipelineRetryPolicy<T>? retryPolicy)
     {
         EnsureExecutionOptionsCanBeChanged();
         _retryPolicy = retryPolicy;
     }
 
+    /// <inheritdoc />
     public PipelineRetryPolicy<T>? GetRetryPolicy()
     {
         return _retryPolicy;

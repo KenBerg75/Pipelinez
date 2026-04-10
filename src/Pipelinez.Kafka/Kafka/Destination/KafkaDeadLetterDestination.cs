@@ -11,6 +11,12 @@ using Pipelinez.Kafka.Record;
 
 namespace Pipelinez.Kafka.Destination;
 
+/// <summary>
+/// Writes Pipelinez dead-letter records to a Kafka topic.
+/// </summary>
+/// <typeparam name="T">The pipeline record type being dead-lettered.</typeparam>
+/// <typeparam name="TRecordKey">The Kafka message key type.</typeparam>
+/// <typeparam name="TRecordValue">The Kafka message value type.</typeparam>
 public sealed class KafkaDeadLetterDestination<T, TRecordKey, TRecordValue>
     : IPipelineDeadLetterDestination<T>
     where T : PipelineRecord
@@ -22,6 +28,12 @@ public sealed class KafkaDeadLetterDestination<T, TRecordKey, TRecordValue>
     private readonly ILogger<KafkaDeadLetterDestination<T, TRecordKey, TRecordValue>> _logger;
     private IKafkaProducer<TRecordKey, TRecordValue>? _producer;
 
+    /// <summary>
+    /// Initializes a new Kafka dead-letter destination for the specified pipeline.
+    /// </summary>
+    /// <param name="pipelineName">The owning pipeline name.</param>
+    /// <param name="config">The Kafka destination configuration.</param>
+    /// <param name="messageMapper">Maps a dead-letter record into the Kafka message to publish.</param>
     public KafkaDeadLetterDestination(
         string pipelineName,
         KafkaDestinationOptions config,
@@ -35,6 +47,7 @@ public sealed class KafkaDeadLetterDestination<T, TRecordKey, TRecordValue>
             _config);
     }
 
+    /// <inheritdoc />
     public async Task WriteAsync(
         PipelineDeadLetterRecord<T> deadLetterRecord,
         CancellationToken cancellationToken)

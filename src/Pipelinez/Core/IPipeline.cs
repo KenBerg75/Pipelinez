@@ -9,43 +9,71 @@ using Pipelinez.Core.Status;
 
 namespace Pipelinez.Core;
 
+/// <summary>
+/// Represents a running pipeline that can accept, process, and complete records.
+/// </summary>
+/// <typeparam name="T">The pipeline record type processed by the pipeline.</typeparam>
 public interface IPipeline<T> where T : PipelineRecord
 {
     /// <summary>
-    /// Starts up the pipeline
+    /// Starts the pipeline runtime.
     /// </summary>
-    /// <param name="cancellationToken">A token allowing the cancellation of the pipeline</param>
-    /// <returns></returns>
+    /// <param name="cancellationToken">A token used to cancel startup or runtime execution.</param>
+    /// <returns>A task that completes once startup has finished.</returns>
     Task StartPipelineAsync(CancellationToken cancellationToken = default);
     
     /// <summary>
-    /// Publishes a record into the pipeline. Acts as a manual source for the pipeline.
+    /// Publishes a record into the pipeline using the default flow-control behavior.
     /// </summary>
-    /// <returns></returns>
+    /// <param name="record">The record to publish.</param>
     Task PublishAsync(T record);
 
     /// <summary>
     /// Publishes a record into the pipeline with explicit flow-control behavior.
     /// </summary>
+    /// <param name="record">The record to publish.</param>
+    /// <param name="options">The publish options to apply.</param>
+    /// <returns>The publish result.</returns>
     Task<PipelinePublishResult> PublishAsync(T record, PipelinePublishOptions options);
 
     /// <summary>
     /// Completes and shuts down the pipeline.
     /// </summary>
+    /// <returns>A task that completes once the pipeline has fully shut down.</returns>
     Task CompleteAsync();
 
     /// <summary>Gets a <see cref="T:System.Threading.Tasks.Task" /> that represents the asynchronous operation and completion of the pipeline.</summary>
     /// <returns>The task.</returns>
     Task Completion { get; }
 
+    /// <summary>
+    /// Gets the current runtime status snapshot for the pipeline.
+    /// </summary>
+    /// <returns>The current pipeline status.</returns>
     PipelineStatus GetStatus();
 
+    /// <summary>
+    /// Gets the current distributed runtime context for the pipeline.
+    /// </summary>
+    /// <returns>The current runtime context.</returns>
     PipelineRuntimeContext GetRuntimeContext();
 
+    /// <summary>
+    /// Gets the current performance snapshot for the pipeline.
+    /// </summary>
+    /// <returns>The current performance snapshot.</returns>
     PipelinePerformanceSnapshot GetPerformanceSnapshot();
 
+    /// <summary>
+    /// Gets the current health snapshot for the pipeline.
+    /// </summary>
+    /// <returns>The current health snapshot.</returns>
     PipelineHealthStatus GetHealthStatus();
 
+    /// <summary>
+    /// Gets the current operational snapshot for the pipeline.
+    /// </summary>
+    /// <returns>The current operational snapshot.</returns>
     PipelineOperationalSnapshot GetOperationalSnapshot();
     
     #region Eventing

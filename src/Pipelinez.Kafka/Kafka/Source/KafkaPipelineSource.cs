@@ -13,6 +13,12 @@ using Pipelinez.Kafka.Record;
 
 namespace Pipelinez.Kafka.Source;
 
+/// <summary>
+/// Consumes records from Kafka and publishes them into a Pipelinez pipeline.
+/// </summary>
+/// <typeparam name="T">The pipeline record type.</typeparam>
+/// <typeparam name="TRecordKey">The Kafka key type.</typeparam>
+/// <typeparam name="TRecordValue">The Kafka value type.</typeparam>
 public class KafkaPipelineSource<T, TRecordKey, TRecordValue> : PipelineSourceBase<T>, IDistributedPipelineSource<T>
     where T : PipelineRecord
     where TRecordKey : class
@@ -42,6 +48,12 @@ public class KafkaPipelineSource<T, TRecordKey, TRecordValue> : PipelineSourceBa
     private long _offsetsStored;
     private readonly Dictionary<int, long> _offsetTracker = new();
 
+    /// <summary>
+    /// Initializes a new Kafka-backed pipeline source.
+    /// </summary>
+    /// <param name="pipelineName">The owning pipeline name.</param>
+    /// <param name="options">The Kafka source configuration.</param>
+    /// <param name="recordMapper">Maps Kafka key and value payloads into pipeline records.</param>
     public KafkaPipelineSource(
         string pipelineName,
         KafkaSourceOptions options,
@@ -54,6 +66,7 @@ public class KafkaPipelineSource<T, TRecordKey, TRecordValue> : PipelineSourceBa
         _recordMapper = recordMapper ?? throw new ArgumentNullException(nameof(recordMapper));
     }
 
+    /// <inheritdoc />
     protected override void Initialize()
     {
         _logger.LogInformation("Initializing KafkaPipelineSource");
@@ -62,6 +75,7 @@ public class KafkaPipelineSource<T, TRecordKey, TRecordValue> : PipelineSourceBa
         Consumer.PartitionsRevoked += HandlePartitionsRevoked;
     }
 
+    /// <inheritdoc />
     protected override async Task MainLoop(CancellationTokenSource cancellationToken)
     {
         _logger.LogInformation("Starting KafkaPipelineSource Consumer");
@@ -145,6 +159,7 @@ public class KafkaPipelineSource<T, TRecordKey, TRecordValue> : PipelineSourceBa
         }).ConfigureAwait(false);
     }
 
+    /// <inheritdoc />
     public override void OnPipelineContainerComplete(object sender, PipelineContainerCompletedEventHandlerArgs<PipelineContainer<T>> e)
     {
         var topicPartitionOffset = TryGetSourceTopicPartitionOffset(e.Container.Metadata);
@@ -174,10 +189,13 @@ public class KafkaPipelineSource<T, TRecordKey, TRecordValue> : PipelineSourceBa
     private IKafkaConsumer<TRecordKey, TRecordValue> Consumer =>
         _consumer ?? throw new InvalidOperationException("Kafka consumer has not been initialized.");
 
+    /// <inheritdoc />
     public bool SupportsDistributedExecution => true;
 
+    /// <inheritdoc />
     public string TransportName => "Kafka";
 
+    /// <inheritdoc />
     public IReadOnlyList<PipelinePartitionLease> GetOwnedPartitions()
     {
         lock (_stateLock)
@@ -186,6 +204,7 @@ public class KafkaPipelineSource<T, TRecordKey, TRecordValue> : PipelineSourceBa
         }
     }
 
+    /// <inheritdoc />
     public IReadOnlyList<PipelinePartitionExecutionState> GetPartitionExecutionStates()
     {
         lock (_stateLock)

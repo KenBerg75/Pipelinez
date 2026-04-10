@@ -14,6 +14,10 @@ using Pipelinez.Core.Retry;
 
 namespace Pipelinez.Core.Destination;
 
+/// <summary>
+/// Provides a base implementation for pipeline destinations backed by a Dataflow buffer.
+/// </summary>
+/// <typeparam name="T">The pipeline record type written by the destination.</typeparam>
 public abstract class PipelineDestination<T> : IPipelineDestination<T>, IPipelineExecutionConfigurable, IPipelinePerformanceAware, IPipelineBatchingAware, IPipelineRetryConfigurable<T>, IPipelineFlowStatusProvider
     where T : PipelineRecord
 {
@@ -27,20 +31,29 @@ public abstract class PipelineDestination<T> : IPipelineDestination<T>, IPipelin
     private IPipelinePerformanceCollector? _performanceCollector;
     private string _componentName = "Destination";
 
+    /// <summary>
+    /// Gets the logger used by the destination.
+    /// </summary>
     protected ILogger<PipelineDestination<T>> Logger { get; }
 
+    /// <summary>
+    /// Initializes a new destination base instance.
+    /// </summary>
     protected PipelineDestination()
     {
         Logger = LoggingManager.Instance.CreateLogger<PipelineDestination<T>>();
     }
 
+    /// <inheritdoc />
     public Task Completion => _completionSource.Task;
 
+    /// <inheritdoc />
     public ITargetBlock<PipelineContainer<T>> AsTargetBlock()
     {
         return MessageBuffer;
     }
 
+    /// <inheritdoc />
     public async Task StartAsync(CancellationTokenSource cancellationToken)
     {
         try
@@ -56,16 +69,26 @@ public abstract class PipelineDestination<T> : IPipelineDestination<T>, IPipelin
         }
     }
 
+    /// <inheritdoc />
     public void Initialize(Pipeline<T> parentPipeline)
     {
         _parentPipeline = parentPipeline;
         Initialize();
     }
 
+    /// <summary>
+    /// Executes the destination logic for a successfully processed record.
+    /// </summary>
+    /// <param name="record">The record to write.</param>
+    /// <param name="cancellationToken">The cancellation token for the execution.</param>
     protected abstract Task ExecuteAsync(T record, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Provides an opportunity for the destination to initialize transport-specific state.
+    /// </summary>
     protected abstract void Initialize();
 
+    /// <inheritdoc />
     public void ConfigureExecutionOptions(PipelineExecutionOptions options)
     {
         var validated = Guard.Against.Null(options, nameof(options)).Validate();
@@ -73,17 +96,20 @@ public abstract class PipelineDestination<T> : IPipelineDestination<T>, IPipelin
         _executionOptions = validated;
     }
 
+    /// <inheritdoc />
     public PipelineExecutionOptions GetExecutionOptions()
     {
         return _executionOptions;
     }
 
+    /// <inheritdoc />
     public void ConfigureRetryPolicy(PipelineRetryPolicy<T>? retryPolicy)
     {
         EnsureExecutionOptionsCanBeChanged();
         _retryPolicy = retryPolicy;
     }
 
+    /// <inheritdoc />
     public PipelineRetryPolicy<T>? GetRetryPolicy()
     {
         return _retryPolicy;
