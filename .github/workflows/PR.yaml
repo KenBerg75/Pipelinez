@@ -55,8 +55,6 @@ jobs:
           failed-report: true
           github-report: true
           annotate: true
-          update-comment: true
-          comment-tag: pipelinez-test-results
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -73,6 +71,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Fail Workflow If Tests Failed
+        if: steps.test.outcome == 'failure'
+        shell: bash
+        run: exit 1
+
       - name: Pack Pipelinez
         run: dotnet pack src/Pipelinez/Pipelinez.csproj --configuration Release --no-build -o artifacts/packages -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
 
@@ -85,8 +88,3 @@ jobs:
       - name: Validate Packages
         shell: pwsh
         run: ./scripts/Validate-Packages.ps1 -PackageDirectory artifacts/packages
-
-      - name: Fail Workflow If Tests Failed
-        if: steps.test.outcome == 'failure'
-        shell: bash
-        run: exit 1
