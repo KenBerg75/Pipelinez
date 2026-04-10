@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: read
+  checks: write
   pull-requests: write
 
 concurrency:
@@ -20,7 +21,6 @@ env:
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
   TEST_RESULTS_DIR: ${{ github.workspace }}/artifacts/test-results
-  CTRF_REPORT_PATH: ${{ github.workspace }}/artifacts/ctrf/ctrf-report.json
 
 jobs:
   build-and-test:
@@ -43,68 +43,54 @@ jobs:
         run: dotnet build src/Pipelinez.sln --configuration Release --no-restore
 
       - name: Prepare Test Results Directory
-        run: |
-          mkdir -p "${TEST_RESULTS_DIR}"
-          mkdir -p "$(dirname "${CTRF_REPORT_PATH}")"
+        run: mkdir -p "${TEST_RESULTS_DIR}"
 
       - name: Test
         id: test
         continue-on-error: true
-        run: dotnet test src/Pipelinez.sln --configuration Release --no-build --logger "console;verbosity=minimal" --logger "junit;LogFilePath=${TEST_RESULTS_DIR}/{assembly}.xml;MethodFormat=Class;FailureBodyFormat=Verbose"
+        run: dotnet test src/Pipelinez.sln --configuration Release --no-build --results-directory "${TEST_RESULTS_DIR}" --logger "console;verbosity=minimal" --logger "trx;LogFilePrefix=pipelinez-tests"
 
-      - name: Convert JUnit Results To CTRF
+      - name: Publish Test Results
         if: always()
-        uses: ctrf-io/github-test-reporter@v1
+        uses: turing85/publish-report@v2
         with:
-          report-path: "${{ env.TEST_RESULTS_DIR }}/*.xml"
-          summary: false
-          annotate: false
-          integrations-config: |
-            {
-              "junit-to-ctrf": {
-                "enabled": true,
-                "action": "convert",
-                "options": {
-                  "output": "${{ env.CTRF_REPORT_PATH }}",
-                  "toolname": "junit-to-ctrf"
-                }
-              }
-            }
+          github-token: ${{ github.token }}
+          cancel-workflow-on-error: 'false'
+          comment-enabled: ${{ github.event.pull_request.head.repo.full_name == github.repository && 'true' || 'false' }}
+          comment-header: pipelinez-test-results
+          comment-message-success: |
+            ## Pipelinez Test Results
 
-      - name: Publish Test Summary
-        if: always()
-        uses: ctrf-io/github-test-reporter@v1
-        with:
-          report-path: "${{ env.CTRF_REPORT_PATH }}"
-          title: "Pipelinez Test Results"
-          summary-report: true
-          failed-report: true
-          github-report: true
-          annotate: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            `{0}` passed.
 
-      - name: Comment Test Results On Pull Request
-        if: always() && github.event.pull_request.head.repo.full_name == github.repository
-        uses: ctrf-io/github-test-reporter@v1
-        with:
-          report-path: "${{ env.CTRF_REPORT_PATH }}"
-          title: "Pipelinez Test Results"
-          pull-request-report: true
-          update-comment: true
-          comment-tag: pipelinez-test-results
-          on-fail-only: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            | Passed | Failed | Skipped |
+            |--------|--------|---------|
+            | ✅ {1} | ❌ {2} | ⚠️ {3} |
+
+            Full check details are available [here]({4}).
+          comment-message-failure: |
+            ## Pipelinez Test Results
+
+            `{0}` failed.
+
+            | Passed | Failed | Skipped |
+            |--------|--------|---------|
+            | ✅ {1} | ❌ {2} | ⚠️ {3} |
+
+            Full check details are available [here]({4}).
+          report-fail-on-error: 'false'
+          report-list-suites: failed
+          report-list-tests: failed
+          report-name: Pipelinez Tests
+          report-path: "${{ env.TEST_RESULTS_DIR }}/*.trx"
+          report-reporter: dotnet-trx
 
       - name: Upload Test Result Files
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: pr-test-results
-          path: |
-            ${{ env.TEST_RESULTS_DIR }}/*.xml
-            ${{ env.CTRF_REPORT_PATH }}
+          path: ${{ env.TEST_RESULTS_DIR }}/*.trx
           if-no-files-found: warn
 
       - name: Fail Workflow If Tests Failed
