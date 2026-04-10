@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
 
 concurrency:
   group: pr-${{ github.event.pull_request.number }}
@@ -40,7 +41,37 @@ jobs:
         run: dotnet build src/Pipelinez.sln --configuration Release --no-restore
 
       - name: Test
-        run: dotnet test src/Pipelinez.sln --configuration Release --no-build --logger "console;verbosity=minimal"
+        id: test
+        continue-on-error: true
+        run: dotnet test src/Pipelinez.sln --configuration Release --no-build --logger "console;verbosity=minimal" --logger "junit;LogFilePath=artifacts/test-results/{assembly}.xml;MethodFormat=Class;FailureBodyFormat=Verbose"
+
+      - name: Publish Test Summary
+        if: always()
+        uses: ctrf-io/github-test-reporter@v1
+        with:
+          report-path: "artifacts/test-results/*.xml"
+          title: "Pipelinez Test Results"
+          summary-report: true
+          failed-report: true
+          github-report: true
+          annotate: true
+          update-comment: true
+          comment-tag: pipelinez-test-results
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Comment Test Results On Pull Request
+        if: always() && github.event.pull_request.head.repo.full_name == github.repository
+        uses: ctrf-io/github-test-reporter@v1
+        with:
+          report-path: "artifacts/test-results/*.xml"
+          title: "Pipelinez Test Results"
+          pull-request-report: true
+          update-comment: true
+          comment-tag: pipelinez-test-results
+          on-fail-only: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pack Pipelinez
         run: dotnet pack src/Pipelinez/Pipelinez.csproj --configuration Release --no-build -o artifacts/packages -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
@@ -54,3 +85,8 @@ jobs:
       - name: Validate Packages
         shell: pwsh
         run: ./scripts/Validate-Packages.ps1 -PackageDirectory artifacts/packages
+
+      - name: Fail Workflow If Tests Failed
+        if: steps.test.outcome == 'failure'
+        shell: bash
+        run: exit 1
