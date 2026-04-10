@@ -48,6 +48,9 @@ jobs:
       - name: Pack Pipelinez.Kafka
         run: dotnet pack src/Pipelinez.Kafka/Pipelinez.Kafka.csproj --configuration Release --no-build -o artifacts/packages -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
 
+      - name: Pack Pipelinez.PostgreSql
+        run: dotnet pack src/Pipelinez.PostgreSql/Pipelinez.PostgreSql.csproj --configuration Release --no-build -o artifacts/packages -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
+
       - name: Validate Packages
         shell: pwsh
         run: ./scripts/Validate-Packages.ps1 -PackageDirectory artifacts/packages

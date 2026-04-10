@@ -20,6 +20,8 @@ Typed data pipelines for .NET.
   core runtime
 - `Pipelinez.Kafka`
   Kafka transport extensions
+- `Pipelinez.PostgreSql`
+  PostgreSQL destination and dead-letter transport extensions
 
 ## Install
 

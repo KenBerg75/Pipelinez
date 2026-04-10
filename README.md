@@ -49,6 +49,8 @@ dotnet add package Pipelinez.Kafka
 
 `Pipelinez.Kafka` depends on `Pipelinez`, so Kafka consumers do not need to add both explicitly unless they want to.
 
+The repository also contains `Pipelinez.PostgreSql`, a PostgreSQL destination and dead-letter transport extension that is currently available in-source and participates in the same pack and validation flow.
+
 Public package publishing is configured through GitHub tag releases and NuGet Trusted Publishing.
 
 The published packages include XML IntelliSense documentation, so the public API descriptions are available directly in editors like Visual Studio and Rider.
@@ -118,6 +120,7 @@ That container model is what allows Pipelinez to keep runtime behavior explicit 
 - explicit flow control, saturation visibility, and publish results
 - performance tuning, batching, and runtime performance snapshots
 - distributed execution and partition-aware Kafka scaling
+- PostgreSQL destination and dead-letter transport support
 - health checks, metrics, correlation IDs, and runtime events
 
 ## Kafka Support
@@ -171,10 +174,41 @@ For a full walkthrough, see:
 - [`src/examples/Example.Kafka.DataGen`](src/examples/Example.Kafka.DataGen)
 - [`src/tests/Pipelinez.Kafka.Tests`](src/tests/Pipelinez.Kafka.Tests)
 
+## PostgreSQL Support
+
+PostgreSQL support lives in the separate `Pipelinez.PostgreSql` package in this repository and currently focuses on:
+
+- PostgreSQL destination writes
+- PostgreSQL dead-letter writes
+- consumer-owned schema and table mapping
+- custom parameterized SQL through Dapper-backed execution
+
+Example shape:
+
+```csharp
+using Pipelinez.Core;
+using Pipelinez.PostgreSql;
+using Pipelinez.PostgreSql.Configuration;
+using Pipelinez.PostgreSql.Mapping;
+
+var pipeline = Pipeline<MyRecord>.New("postgres-pipeline")
+    .WithInMemorySource(new object())
+    .WithPostgreSqlDestination(
+        new PostgreSqlDestinationOptions
+        {
+            ConnectionString = "Host=localhost;Database=pipelinez;Username=postgres;Password=postgres"
+        },
+        PostgreSqlTableMap<MyRecord>.ForTable("app", "processed_records")
+            .Map("record_id", record => record.Id)
+            .MapJson("payload", record => record))
+    .Build();
+```
+
 ## Learn More
 
 - New to Pipelinez: [`docs/getting-started/in-memory.md`](docs/getting-started/in-memory.md)
 - Using Kafka: [`docs/getting-started/kafka.md`](docs/getting-started/kafka.md)
+- Using PostgreSQL destinations: [`docs/getting-started/postgresql-destination.md`](docs/getting-started/postgresql-destination.md)
 - Architecture overview: [`docs/Overview.md`](docs/Overview.md)
 - Runtime and transport internals: [`docs/README.md`](docs/README.md)
 - API compatibility policy: [`docs/ApiStability.md`](docs/ApiStability.md)
@@ -196,10 +230,14 @@ Feature-specific guides:
   core runtime
 - [`src/Pipelinez.Kafka`](src/Pipelinez.Kafka)
   Kafka transport extension
+- [`src/Pipelinez.PostgreSql`](src/Pipelinez.PostgreSql)
+  PostgreSQL destination and dead-letter transport extension
 - [`src/tests/Pipelinez.Tests`](src/tests/Pipelinez.Tests)
   core tests
 - [`src/tests/Pipelinez.Kafka.Tests`](src/tests/Pipelinez.Kafka.Tests)
   Kafka integration tests
+- [`src/tests/Pipelinez.PostgreSql.Tests`](src/tests/Pipelinez.PostgreSql.Tests)
+  PostgreSQL integration and approval tests
 - [`src/benchmarks/Pipelinez.Benchmarks`](src/benchmarks/Pipelinez.Benchmarks)
   BenchmarkDotNet-based performance benchmarks
 
@@ -250,6 +288,7 @@ Current implemented capabilities include:
 - performance tuning, batching, and runtime performance snapshots
 - operational health snapshots, health checks, metrics, and correlation IDs
 - Docker-backed Kafka integration coverage
+- Docker-backed PostgreSQL destination and dead-letter integration coverage
 - public API approval tests and repository-level API stability guidance
 
 ## API Stability

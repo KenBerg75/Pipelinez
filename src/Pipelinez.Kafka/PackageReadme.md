@@ -19,6 +19,11 @@ dotnet add package Pipelinez.Kafka
 
 `Pipelinez.Kafka` depends on `Pipelinez`, so you do not need to add both explicitly unless you prefer to do so.
 
+Related transport package in this repository:
+
+- `Pipelinez.PostgreSql`
+  PostgreSQL destination and dead-letter transport extensions
+
 ## Quick Example
 
 ```csharp

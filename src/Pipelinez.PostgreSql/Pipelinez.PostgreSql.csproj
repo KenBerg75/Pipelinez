@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <IsPackable>true</IsPackable>
+        <PackageId>Pipelinez.PostgreSql</PackageId>
+        <Title>Pipelinez.PostgreSql</Title>
+        <Description>PostgreSQL destination and dead-letter transport extensions for Pipelinez with consumer-owned schema mapping and Dapper-backed execution.</Description>
+        <PackageTags>pipeline;postgresql;postgres;dapper;dead-letter;dotnet</PackageTags>
+        <PackageReadmeFile>PackageReadme.md</PackageReadmeFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Dapper" Version="2.1.35" />
+        <PackageReference Include="Npgsql" Version="8.0.3" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Pipelinez\Pipelinez.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="PackageReadme.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+</Project>
