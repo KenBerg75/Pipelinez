@@ -1,0 +1,43 @@
+<testsuites>
+  <testsuite name="Pipelinez.PostgreSql.Tests.dll" tests="9" skipped="0" failures="0" errors="0" time="4.2223515" timestamp="2026-04-10T19:31:37" hostname="BERG-OFFICE" id="0" package="Pipelinez.PostgreSql.Tests.dll">
+    <properties />
+    <testcase classname="Pipelinez.PostgreSql.Tests.ApiApprovalTests" name="ApiApprovalTests.Pipelinez_PostgreSql_Public_Api_Matches_Approved_Baseline" time="0.0080134" />
+    <testcase classname="Pipelinez.PostgreSql.Tests.Unit.PostgreSqlTableMapTests" name="PostgreSqlTableMapTests.PostgreSqlConnectionFactory_Does_Not_Dispose_Externally_Owned_DataSource" time="0.0161577" />
+    <testcase classname="Pipelinez.PostgreSql.Tests.Unit.PostgreSqlTableMapTests" name="PostgreSqlTableMapTests.PostgreSqlTableMap_Validate_Requires_At_Least_One_Column" time="0.0010313" />
+    <testcase classname="Pipelinez.PostgreSql.Tests.Unit.PostgreSqlTableMapTests" name="PostgreSqlTableMapTests.PostgreSqlDestinationOptions_Validate_Rejects_Ambiguous_DataSource_Configuration" time="0.0003487" />
+    <testcase classname="Pipelinez.PostgreSql.Tests.Unit.PostgreSqlTableMapTests" name="PostgreSqlTableMapTests.PostgreSqlTableMap_Generated_Command_Uses_Quoted_Identifiers_And_Parameters" time="0.0074732" />
+    <testcase classname="Pipelinez.PostgreSql.Tests.EndToEnd.PostgreSqlPipelineDeadLetterTests" name="PostgreSqlPipelineDeadLetterTests.PostgreSqlDeadLetterDestination_Custom_Command_Writes_Faulted_Record" time="1.1304495" />
+    <testcase classname="Pipelinez.PostgreSql.Tests.EndToEnd.PostgreSqlPipelineDeadLetterTests" name="PostgreSqlPipelineDeadLetterTests.PostgreSqlDeadLetterDestination_TableMap_Writes_Faulted_Record_And_Allows_Later_Records_To_Continue" time="1.0263307" />
+    <testcase classname="Pipelinez.PostgreSql.Tests.EndToEnd.PostgreSqlPipelineDestinationTests" name="PostgreSqlPipelineDestinationTests.PostgreSqlDestination_TableMap_Writes_Record_To_Consumer_Owned_Table" time="1.0205808" />
+    <testcase classname="Pipelinez.PostgreSql.Tests.EndToEnd.PostgreSqlPipelineDestinationTests" name="PostgreSqlPipelineDestinationTests.PostgreSqlDestination_Custom_Command_Writes_Record_To_Consumer_Owned_Table" time="1.0119662" />
+    <system-out>
+Test Framework Informational Messages:
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.4.5+1caef2f33e (64-bit .NET 8.0.24)
+[xUnit.net 00:00:01.24]   Discovering: Pipelinez.PostgreSql.Tests
+[xUnit.net 00:00:01.25]   Discovered:  Pipelinez.PostgreSql.Tests
+[xUnit.net 00:00:01.25]   Starting:    Pipelinez.PostgreSql.Tests
+[testcontainers.org 00:00:00.07] Connected to Docker:
+  Host: npipe://./pipe/docker_engine
+  Server Version: 29.3.1
+  Kernel Version: 6.6.87.2-microsoft-standard-WSL2
+  API Version: 1.54
+  Operating System: Docker Desktop
+  Total Memory: 31.22 GB
+  Labels: 
+    com.docker.desktop.address=npipe://\\.\pipe\docker_cli
+[testcontainers.org 00:00:00.23] Docker container 078e00b84193 created
+[testcontainers.org 00:00:00.26] Start Docker container 078e00b84193
+[testcontainers.org 00:00:00.49] Wait for Docker container 078e00b84193 to complete readiness checks
+[testcontainers.org 00:00:01.53] Docker container 078e00b84193 ready
+[testcontainers.org 00:00:01.66] Docker container c1588608ce20 created
+[testcontainers.org 00:00:01.67] Start Docker container c1588608ce20
+[testcontainers.org 00:00:01.91] Wait for Docker container c1588608ce20 to complete readiness checks
+[testcontainers.org 00:00:01.92] Execute "pg_isready --host localhost --dbname pipelinez_tests --username postgres" at Docker container c1588608ce20
+[testcontainers.org 00:00:02.98] Execute "pg_isready --host localhost --dbname pipelinez_tests --username postgres" at Docker container c1588608ce20
+[testcontainers.org 00:00:04.06] Execute "pg_isready --host localhost --dbname pipelinez_tests --username postgres" at Docker container c1588608ce20
+[testcontainers.org 00:00:04.14] Docker container c1588608ce20 ready
+[testcontainers.org 00:00:08.34] Delete Docker container c1588608ce20
+[xUnit.net 00:00:10.03]   Finished:    Pipelinez.PostgreSql.Tests
+</system-out>
+  </testsuite>
+</testsuites>

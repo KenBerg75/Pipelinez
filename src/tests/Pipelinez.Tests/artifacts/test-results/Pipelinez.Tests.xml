@@ -1,0 +1,66 @@
+<testsuites>
+  <testsuite name="Pipelinez.Tests.dll" tests="53" skipped="0" failures="0" errors="0" time="27.5482045" timestamp="2026-04-10T19:31:38" hostname="BERG-OFFICE" id="0" package="Pipelinez.Tests.dll">
+    <properties />
+    <testcase classname="Pipelinez.Tests.UnitTest1" name="UnitTest1.Kafka_Builder_Extensions_Are_Exposed_From_Kafka_Assembly" time="0.0098778" />
+    <testcase classname="Pipelinez.Tests.UnitTest1" name="UnitTest1.PipelineBuilder_Does_Not_Expose_Legacy_String_Based_Kafka_Overloads" time="0.0002416" />
+    <testcase classname="Pipelinez.Tests.Core.SourceDestTests.PipelineCreation" name="PipelineCreation.Pipeline_Builds_With_Source_Segments_Dest" time="0.0150141" />
+    <testcase classname="Pipelinez.Tests.Core.SourceDestTests.PipelineCreation" name="PipelineCreation.Pipeline_Builds_With_Source_Dest" time="0.0001627" />
+    <testcase classname="Pipelinez.Tests.ApiApprovalTests" name="ApiApprovalTests.Pipelinez_Public_Api_Matches_Approved_Baseline" time="0.0201295" />
+    <testcase classname="Pipelinez.Tests.Core.FaultHandlingTests.PipelineFaultHandlingTests" name="PipelineFaultHandlingTests.Pipeline_Fault_Event_Subscriber_Exceptions_Do_Not_Replace_Original_Pipeline_Fault" time="0.0386680" />
+    <testcase classname="Pipelinez.Tests.Core.ErrorHandlingTests.PipelineErrorHandlerTests" name="PipelineErrorHandlerTests.Pipeline_ErrorHandler_Is_Called_When_A_Destination_Throws" time="0.0375872" />
+    <testcase classname="Pipelinez.Tests.Core.DistributedTests.PipelineDistributedExecutionTests" name="PipelineDistributedExecutionTests.Pipeline_Distributed_Record_Faulted_Event_Includes_Distribution_Context" time="0.0382274" />
+    <testcase classname="Pipelinez.Tests.Core.DeadLetterTests.PipelineDeadLetterTests" name="PipelineDeadLetterTests.Pipeline_DeadLetter_Write_Failure_Faults_The_Runtime_By_Default" time="0.0413038" />
+    <testcase classname="Pipelinez.Tests.Core.ErrorHandlingTests.PipelineErrorHandlerTests" name="PipelineErrorHandlerTests.Pipeline_ErrorHandler_Exceptions_Fault_The_Pipeline" time="0.0015246" />
+    <testcase classname="Pipelinez.Tests.Core.DistributedTests.PipelineDistributedExecutionTests" name="PipelineDistributedExecutionTests.Pipeline_Distributed_Record_Completed_Event_Includes_Distribution_Context" time="0.0015202" />
+    <testcase classname="Pipelinez.Tests.Core.DistributedTests.PipelineDistributedExecutionTests" name="PipelineDistributedExecutionTests.Pipeline_Build_Fails_When_Distributed_Mode_Is_Used_With_A_NonDistributed_Source" time="0.0006199" />
+    <testcase classname="Pipelinez.Tests.Core.FaultHandlingTests.PipelineFaultHandlingTests" name="PipelineFaultHandlingTests.Pipeline_Segment_Fault_Populates_Fault_State_History_And_Events" time="0.0043608" />
+    <testcase classname="Pipelinez.Tests.Core.FaultHandlingTests.PipelineFaultHandlingTests" name="PipelineFaultHandlingTests.Pipeline_Destination_Fault_Populates_Fault_State_And_Raises_Fault_Events" time="0.0014578" />
+    <testcase classname="Pipelinez.Tests.Core.DistributedTests.PipelineDistributedExecutionTests" name="PipelineDistributedExecutionTests.Pipeline_Distributed_Runtime_Context_Status_And_Events_Are_Populated" time="0.0043809" />
+    <testcase classname="Pipelinez.Tests.Core.FaultHandlingTests.PipelineFaultHandlingTests" name="PipelineFaultHandlingTests.Pipeline_Fault_Event_Is_Raised_Before_Completion_Faults" time="0.0012266" />
+    <testcase classname="Pipelinez.Tests.Core.DestinationTests.AsyncDestinationExecutionTests" name="AsyncDestinationExecutionTests.Pipeline_Completion_Waits_For_Async_Destination_Work" time="1.0212966" />
+    <testcase classname="Pipelinez.Tests.Core.SourceDestTests.PipelineExecution" name="PipelineExecution.Pipeline_Executes_With_Source_Dest" time="1.0213927" />
+    <testcase classname="Pipelinez.Tests.Core.RetryTests.PipelineRetryPolicyTests" name="PipelineRetryPolicyTests.Pipeline_Retry_Exhaustion_Flows_Into_Error_Handler_Context" time="1.0217314" />
+    <testcase classname="Pipelinez.Tests.Core.SegmentTests.PipelineSegmentTests" name="PipelineSegmentTests.Pipeline_Multiple_Segment_Operates_As_Expected" time="1.0216805" />
+    <testcase classname="Pipelinez.Tests.Core.LoggingTests.PipelineLoggingTests" name="PipelineLoggingTests.Pipeline_Segment_Logging_Operates_As_Expected" time="1.0220782" />
+    <testcase classname="Pipelinez.Tests.Core.OperationalTests.PipelineOperationalToolingTests" name="PipelineOperationalToolingTests.Pipeline_Metrics_Are_Emitted_Through_Runtime_Meter" time="1.0220669" />
+    <testcase classname="Pipelinez.Tests.Core.FlowControlTests.PipelineFlowControlTests" name="PipelineFlowControlTests.Pipeline_Publish_With_Timeout_Returns_TimedOut_Result_When_Saturated" time="1.0221352" />
+    <testcase classname="Pipelinez.Tests.Core.LoggingTests.PipelineLoggingTests" name="PipelineLoggingTests.Pipeline_Segment_Logging_Throws_With_Null" time="0.0002074" />
+    <testcase classname="Pipelinez.Tests.Core.PerformanceTests.PipelinePerformanceTests" name="PipelinePerformanceTests.Pipeline_Batching_Uses_Configured_Batch_Size_And_Flushes_On_Completion" time="1.0241239" />
+    <testcase classname="Pipelinez.Tests.Core.DestinationTests.AsyncDestinationExecutionTests" name="AsyncDestinationExecutionTests.Async_Destination_Exception_Faults_The_Pipeline" time="0.0025779" />
+    <testcase classname="Pipelinez.Tests.Core.OperationalTests.PipelineOperationalToolingTests" name="PipelineOperationalToolingTests.Pipeline_Health_Check_Maps_Unhealthy_Runtime" time="0.0055252" />
+    <testcase classname="Pipelinez.Tests.Core.ErrorHandlingTests.PipelineErrorHandlerTests" name="PipelineErrorHandlerTests.Pipeline_ErrorHandler_SkipRecord_Allows_Later_Records_To_Continue" time="1.0098761" />
+    <testcase classname="Pipelinez.Tests.Core.DeadLetterTests.PipelineDeadLetterTests" name="PipelineDeadLetterTests.Pipeline_DeadLetter_Writes_Faulted_Record_And_Allows_Later_Records_To_Continue" time="1.0100301" />
+    <testcase classname="Pipelinez.Tests.Core.ErrorHandlingTests.PipelineErrorHandlerTests" name="PipelineErrorHandlerTests.Pipeline_ErrorHandler_Is_Called_When_A_Segment_Throws_And_StopPipeline_Faults_The_Runtime" time="0.0017716" />
+    <testcase classname="Pipelinez.Tests.Core.DeadLetterTests.PipelineDeadLetterTests" name="PipelineDeadLetterTests.Pipeline_DeadLetter_Without_Configured_Destination_Faults_The_Runtime" time="0.0017133" />
+    <testcase classname="Pipelinez.Tests.Core.FlowControlTests.PipelineFlowControlTests" name="PipelineFlowControlTests.Pipeline_Publish_With_RejectPolicy_Returns_Rejected_Result_When_Saturated" time="1.0032813" />
+    <testcase classname="Pipelinez.Tests.Core.SegmentTests.PipelineSegmentTests" name="PipelineSegmentTests.Pipeline_Segment_Operates_As_Expected" time="1.0036457" />
+    <testcase classname="Pipelinez.Tests.Core.SourceDestTests.PipelineExecution" name="PipelineExecution.Pipeline_Executes_Multiple_With_Source_Dest" time="1.0039617" />
+    <testcase classname="Pipelinez.Tests.Core.RetryTests.PipelineRetryPolicyTests" name="PipelineRetryPolicyTests.Pipeline_Segment_Retry_Recovers_And_Emits_Retry_Event" time="1.0038973" />
+    <testcase classname="Pipelinez.Tests.Core.OperationalTests.PipelineOperationalToolingTests" name="PipelineOperationalToolingTests.Pipeline_Operational_Snapshot_Includes_Last_Completion_And_Last_DeadLetter_Timestamps" time="1.0131410" />
+    <testcase classname="Pipelinez.Tests.Core.PerformanceTests.PipelinePerformanceTests" name="PipelinePerformanceTests.Pipeline_Performance_Options_Enable_Parallel_Segment_Execution" time="1.0168582" />
+    <testcase classname="Pipelinez.Tests.Core.PerformanceTests.PipelinePerformanceTests" name="PipelinePerformanceTests.Pipeline_Build_Applies_Pipeline_Wide_Performance_Options_To_Components" time="0.0016435" />
+    <testcase classname="Pipelinez.Tests.Core.PerformanceTests.PipelinePerformanceTests" name="PipelinePerformanceTests.Pipeline_Build_Component_Overrides_Take_Precedence_Over_Pipeline_Defaults" time="0.0006879" />
+    <testcase classname="Pipelinez.Tests.Core.DeadLetterTests.PipelineDeadLetterTests" name="PipelineDeadLetterTests.Pipeline_DeadLetter_Write_Failure_Can_Be_Configured_To_Continue" time="1.0036830" />
+    <testcase classname="Pipelinez.Tests.Core.SegmentTests.PipelineSegmentTests" name="PipelineSegmentTests.Pipeline_Multiple_Segment_Ordering_Operates_As_Expected" time="1.0053414" />
+    <testcase classname="Pipelinez.Tests.Core.RetryTests.PipelineRetryPolicyTests" name="PipelineRetryPolicyTests.Pipeline_Retry_Filter_Does_Not_Retry_NonMatching_Exceptions" time="1.0051880" />
+    <testcase classname="Pipelinez.Tests.Core.SourceDestTests.PipelineExecution" name="PipelineExecution.Pipeline_Start_Throws_On_Double_Start" time="1.0053077" />
+    <testcase classname="Pipelinez.Tests.Core.FlowControlTests.PipelineFlowControlTests" name="PipelineFlowControlTests.Pipeline_Status_Events_And_PerformanceSnapshot_Report_FlowControl_State" time="1.0053390" />
+    <testcase classname="Pipelinez.Tests.Core.SourceDestTests.PipelineExecution" name="PipelineExecution.Pipeline_Publish_Throws_Before_Start" time="0.0004649" />
+    <testcase classname="Pipelinez.Tests.Core.SourceDestTests.PipelineExecution" name="PipelineExecution.Pipeline_Complete_Throws_Before_Start" time="0.0003458" />
+    <testcase classname="Pipelinez.Tests.Core.OperationalTests.PipelineOperationalToolingTests" name="PipelineOperationalToolingTests.Pipeline_Correlation_Id_Is_Generated_And_Preserved" time="1.0060231" />
+    <testcase classname="Pipelinez.Tests.Core.PerformanceTests.PipelinePerformanceTests" name="PipelinePerformanceTests.Pipeline_Performance_Snapshot_Tracks_Published_Completed_And_Faulted_Records" time="1.0036004" />
+    <testcase classname="Pipelinez.Tests.Core.PerformanceTests.PipelinePerformanceTests" name="PipelinePerformanceTests.Pipeline_Batching_Fails_For_NonBatched_Destinations" time="0.0002705" />
+    <testcase classname="Pipelinez.Tests.Core.FlowControlTests.PipelineFlowControlTests" name="PipelineFlowControlTests.Pipeline_Publish_With_CancelPolicy_Returns_Canceled_Result_When_Saturated" time="1.0110020" />
+    <testcase classname="Pipelinez.Tests.Core.RetryTests.PipelineRetryPolicyTests" name="PipelineRetryPolicyTests.Pipeline_Destination_Retry_Recovers_And_Completes" time="1.0112575" />
+    <testcase classname="Pipelinez.Tests.Core.OperationalTests.PipelineOperationalToolingTests" name="PipelineOperationalToolingTests.Pipeline_Health_Status_Transitions_Across_Runtime_Lifecycle" time="1.0099504" />
+    <testcase classname="Pipelinez.Tests.Core.OperationalTests.PipelineOperationalToolingTests" name="PipelineOperationalToolingTests.Pipeline_Health_Status_Becomes_Degraded_When_DeadLetter_Threshold_Is_Exceeded" time="1.0088043" />
+    <system-out>
+Test Framework Informational Messages:
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.4.5+1caef2f33e (64-bit .NET 8.0.24)
+[xUnit.net 00:00:01.09]   Discovering: Pipelinez.Tests
+[xUnit.net 00:00:01.11]   Discovered:  Pipelinez.Tests
+[xUnit.net 00:00:01.11]   Starting:    Pipelinez.Tests
+[xUnit.net 00:00:06.21]   Finished:    Pipelinez.Tests
+</system-out>
+  </testsuite>
+</testsuites>

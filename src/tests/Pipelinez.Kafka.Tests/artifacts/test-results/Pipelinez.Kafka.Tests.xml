@@ -1,0 +1,59 @@
+<testsuites>
+  <testsuite name="Pipelinez.Kafka.Tests.dll" tests="15" skipped="0" failures="0" errors="0" time="39.4359307" timestamp="2026-04-10T19:31:38" hostname="BERG-OFFICE" id="0" package="Pipelinez.Kafka.Tests.dll">
+    <properties />
+    <testcase classname="Pipelinez.Kafka.Tests.ApiApprovalTests" name="ApiApprovalTests.Pipelinez_Kafka_Public_Api_Matches_Approved_Baseline" time="0.0132093" />
+    <testcase classname="Pipelinez.Kafka.Tests.EndToEnd.KafkaPartitionAwareScalingTests" name="KafkaPartitionAwareScalingTests.KafkaPipeline_PreservePartitionOrder_While_Allowing_CrossPartition_Progress" time="2.1607548" />
+    <testcase classname="Pipelinez.Kafka.Tests.EndToEnd.KafkaPartitionAwareScalingTests" name="KafkaPartitionAwareScalingTests.KafkaPipeline_RelaxedWithinPartition_Can_Complete_Out_Of_Order_When_Enabled" time="0.8934401" />
+    <testcase classname="Pipelinez.Kafka.Tests.EndToEnd.KafkaPipelineDeadLetterTests" name="KafkaPipelineDeadLetterTests.KafkaPipeline_DeadLetter_Publishes_Faulted_Record_To_DeadLetter_Topic_And_Continues" time="2.8908261" />
+    <testcase classname="Pipelinez.Kafka.Tests.EndToEnd.KafkaPipelineDistributedTests" name="KafkaPipelineDistributedTests.KafkaPipeline_Distributed_Mode_Rebalances_Across_Workers_And_Reassigns_On_Shutdown" time="6.8940108" />
+    <testcase classname="Pipelinez.Kafka.Tests.EndToEnd.KafkaPipelineDistributedTests" name="KafkaPipelineDistributedTests.KafkaPipeline_Distributed_Mode_Populates_Status_Events_And_Record_Distribution_Context" time="0.6201740" />
+    <testcase classname="Pipelinez.Kafka.Tests.EndToEnd.KafkaPipelineFaultTests" name="KafkaPipelineFaultTests.KafkaPipeline_Rethrow_Preserves_Original_Exception" time="3.8709964" />
+    <testcase classname="Pipelinez.Kafka.Tests.EndToEnd.KafkaPipelineFaultTests" name="KafkaPipelineFaultTests.KafkaPipeline_StopPipeline_Faults_And_Prevents_Later_Output" time="3.8364569" />
+    <testcase classname="Pipelinez.Kafka.Tests.EndToEnd.KafkaPipelineFlowControlTests" name="KafkaPipelineFlowControlTests.KafkaPipeline_DownstreamPressure_Slows_Ingress_Without_Faulting" time="2.6334725" />
+    <testcase classname="Pipelinez.Kafka.Tests.EndToEnd.KafkaPipelineFlowTests" name="KafkaPipelineFlowTests.KafkaPipeline_DestinationFault_SkipRecord_Continues_Processing" time="1.6603693" />
+    <testcase classname="Pipelinez.Kafka.Tests.EndToEnd.KafkaPipelineFlowTests" name="KafkaPipelineFlowTests.KafkaPipeline_Processes_Records_EndToEnd_And_Preserves_Headers" time="1.8934342" />
+    <testcase classname="Pipelinez.Kafka.Tests.EndToEnd.KafkaPipelineFlowTests" name="KafkaPipelineFlowTests.KafkaPipeline_SkipRecord_Continues_And_Raises_RecordFaulted" time="2.3520947" />
+    <testcase classname="Pipelinez.Kafka.Tests.EndToEnd.KafkaPipelineOffsetTests" name="KafkaPipelineOffsetTests.KafkaPipeline_Faulted_Record_Does_Not_Advance_Committed_Offset" time="0.6170577" />
+    <testcase classname="Pipelinez.Kafka.Tests.EndToEnd.KafkaPipelineOffsetTests" name="KafkaPipelineOffsetTests.KafkaPipeline_Successful_Offsets_Are_Reused_And_Prevent_Replay" time="7.4533126" />
+    <testcase classname="Pipelinez.Kafka.Tests.EndToEnd.KafkaPipelineRetryTests" name="KafkaPipelineRetryTests.KafkaPipeline_Segment_Retry_Recovers_And_Produces_Output" time="1.6463213" />
+    <system-out>
+Test Framework Informational Messages:
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.4.5+1caef2f33e (64-bit .NET 8.0.24)
+[xUnit.net 00:00:01.23]   Discovering: Pipelinez.Kafka.Tests
+[xUnit.net 00:00:01.25]   Discovered:  Pipelinez.Kafka.Tests
+[xUnit.net 00:00:01.25]   Starting:    Pipelinez.Kafka.Tests
+[testcontainers.org 00:00:00.06] Connected to Docker:
+  Host: npipe://./pipe/docker_engine
+  Server Version: 29.3.1
+  Kernel Version: 6.6.87.2-microsoft-standard-WSL2
+  API Version: 1.54
+  Operating System: Docker Desktop
+  Total Memory: 31.22 GB
+  Labels: 
+    com.docker.desktop.address=npipe://\\.\pipe\docker_cli
+[testcontainers.org 00:00:00.25] Docker container 7d5db41c8e9c created
+[testcontainers.org 00:00:00.28] Start Docker container 7d5db41c8e9c
+[testcontainers.org 00:00:00.51] Wait for Docker container 7d5db41c8e9c to complete readiness checks
+[testcontainers.org 00:00:01.54] Docker container 7d5db41c8e9c ready
+[testcontainers.org 00:00:01.69] Docker container 0681d7576511 created
+[testcontainers.org 00:00:01.69] Start Docker container 0681d7576511
+[testcontainers.org 00:00:01.95] Add file to tar archive: Content length: 390 byte(s), Target file: "/testcontainers.sh", UID: 0, GID: 0, Mode: 0755
+[testcontainers.org 00:00:01.95] Copy tar archive to container: Content length: 390 byte(s), Docker container: 0681d7576511
+[testcontainers.org 00:00:01.96] Wait for Docker container 0681d7576511 to complete readiness checks
+[testcontainers.org 00:00:06.07] Docker container 0681d7576511 ready
+[testcontainers.org 00:00:45.51] Delete Docker container 0681d7576511
+%6|1775849545.208|FAIL|KafkaPipeline_Segment_Retry_Recovers_And_Produces_Output-pub#producer-78| [thrd:127.0.0.1:51119/bootstrap]: 127.0.0.1:51119/1: Disconnected: verify that security.protocol is correctly configured, broker might require SASL authentication (after 1237ms in state UP)
+%6|1775849545.208|FAIL|KafkaPipeline_Faulted_Record_Does_Not_Advance_Committed_Offset-pub#producer-60| [thrd:127.0.0.1:51119/bootstrap]: 127.0.0.1:51119/1: Disconnected (after 9305ms in state UP)
+%6|1775849545.208|FAIL|KafkaPipeline_Successful_Offsets_Are_Reused_And_Prevent_Replay-run-2-pub#producer-73| [thrd:127.0.0.1:51119/bootstrap]: 127.0.0.1:51119/1: Disconnected (after 6911ms in state UP)
+%6|1775849545.208|FAIL|KafkaPipeline_SkipRecord_Continues_And_Raises_RecordFaulted-pub#producer-54| [thrd:127.0.0.1:51119/bootstrap]: 127.0.0.1:51119/1: Disconnected (after 11650ms in state UP)
+%6|1775849545.208|FAIL|KafkaPipeline_StopPipeline_Faults_And_Prevents_Later_Output-pub#producer-36| [thrd:127.0.0.1:51119/bootstrap]: 127.0.0.1:51119/1: Disconnected (after 21679ms in state UP)
+%6|1775849545.209|FAIL|KafkaPipeline_DeadLetter_Publishes_Faulted_Record_To_DeadLetter_Topic_And_Continues-pub#producer-11| [thrd:127.0.0.1:51119/bootstrap]: 127.0.0.1:51119/1: Disconnected (after 35739ms in state UP)
+%6|1775849545.209|FAIL|KafkaPipeline_Processes_Records_EndToEnd_And_Preserves_Headers-pub#producer-48| [thrd:127.0.0.1:51119/bootstrap]: 127.0.0.1:51119/1: Disconnected (after 13558ms in state UP)
+%6|1775849545.209|FAIL|KafkaPipeline_Successful_Offsets_Are_Reused_And_Prevent_Replay-run-1-pub#producer-68| [thrd:127.0.0.1:51119/bootstrap]: 127.0.0.1:51119/1: Disconnected (after 8342ms in state UP)
+%6|1775849545.209|FAIL|KafkaPipeline_Rethrow_Preserves_Original_Exception-pub#producer-30| [thrd:127.0.0.1:51119/bootstrap]: 127.0.0.1:51119/1: Disconnected (after 25543ms in state UP)
+%6|1775849545.209|FAIL|KafkaPipeline_DeadLetter_Publishes_Faulted_Record_To_DeadLetter_Topic_And_Continues-pub#producer-13| [thrd:127.0.0.1:51119/bootstrap]: 127.0.0.1:51119/1: Disconnected (after 35738ms in state UP)
+%6|1775849545.365|FAIL|KafkaPipeline_Successful_Offsets_Are_Reused_And_Prevent_Replay-run-2-pub#producer-73| [thrd:127.0.0.1:51119/bootstrap]: 127.0.0.1:51119/1: Disconnected while requesting ApiVersion: might be caused by incorrect security.protocol configuration (connecting to a SSL listener?) or broker version is &lt; 0.10 (see api.version.request) (after 0ms in state APIVERSION_QUERY)
+[xUnit.net 00:00:47.28]   Finished:    Pipelinez.Kafka.Tests
+</system-out>
+  </testsuite>
+</testsuites>
