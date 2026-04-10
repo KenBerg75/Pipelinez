@@ -1,0 +1,39 @@
+Assembly: Pipelinez.PostgreSql
+
+public class Pipelinez.PostgreSql.Configuration.PostgreSqlDeadLetterOptions : Pipelinez.PostgreSql.Configuration.PostgreSqlOptions
+  CTOR public Pipelinez.PostgreSql.Configuration.PostgreSqlDeadLetterOptions()
+  METHOD public Pipelinez.PostgreSql.Configuration.PostgreSqlDeadLetterOptions Validate()
+
+public class Pipelinez.PostgreSql.Configuration.PostgreSqlDestinationOptions : Pipelinez.PostgreSql.Configuration.PostgreSqlOptions
+  CTOR public Pipelinez.PostgreSql.Configuration.PostgreSqlDestinationOptions()
+  METHOD public Pipelinez.PostgreSql.Configuration.PostgreSqlDestinationOptions Validate()
+
+public abstract class Pipelinez.PostgreSql.Configuration.PostgreSqlOptions
+  PROPERTY public System.Nullable<int> CommandTimeoutSeconds { get; init; }
+  PROPERTY public System.Action<Npgsql.NpgsqlConnectionStringBuilder> ConfigureConnectionString { get; init; }
+  PROPERTY public System.Action<Npgsql.NpgsqlDataSourceBuilder> ConfigureDataSource { get; init; }
+  PROPERTY public string ConnectionString { get; init; }
+  PROPERTY public Npgsql.NpgsqlDataSource DataSource { get; init; }
+  PROPERTY public bool EnableSensitiveLogging { get; init; }
+  PROPERTY public System.Text.Json.JsonSerializerOptions SerializerOptions { get; init; }
+
+public class Pipelinez.PostgreSql.Mapping.PostgreSqlCommandDefinition
+  CTOR public Pipelinez.PostgreSql.Mapping.PostgreSqlCommandDefinition(string commandText, object parameters, System.Nullable<int> commandTimeoutSeconds = null)
+  PROPERTY public string CommandText { get; }
+  PROPERTY public System.Nullable<int> CommandTimeoutSeconds { get; }
+  PROPERTY public object Parameters { get; }
+  METHOD public Pipelinez.PostgreSql.Mapping.PostgreSqlCommandDefinition Validate()
+
+public class Pipelinez.PostgreSql.Mapping.PostgreSqlTableMap<TModel>
+  PROPERTY public string SchemaName { get; }
+  PROPERTY public string TableName { get; }
+  METHOD public static Pipelinez.PostgreSql.Mapping.PostgreSqlTableMap<TModel> ForTable(string schemaName, string tableName)
+  METHOD public Pipelinez.PostgreSql.Mapping.PostgreSqlTableMap<TModel> Map<TValue>(string columnName, System.Func<TModel, TValue> valueFactory)
+  METHOD public Pipelinez.PostgreSql.Mapping.PostgreSqlTableMap<TModel> MapJson<TValue>(string columnName, System.Func<TModel, TValue> valueFactory)
+  METHOD public Pipelinez.PostgreSql.Mapping.PostgreSqlTableMap<TModel> Validate()
+
+public static class Pipelinez.PostgreSql.PostgreSqlPipelineBuilderExtensions
+  METHOD public static Pipelinez.Core.PipelineBuilder<TRecord> WithPostgreSqlDeadLetterDestination<TRecord>(Pipelinez.Core.PipelineBuilder<TRecord> builder, Pipelinez.PostgreSql.Configuration.PostgreSqlDeadLetterOptions options, Pipelinez.PostgreSql.Mapping.PostgreSqlTableMap<Pipelinez.Core.DeadLettering.PipelineDeadLetterRecord<TRecord>> tableMap) where TRecord : Pipelinez.Core.Record.PipelineRecord
+  METHOD public static Pipelinez.Core.PipelineBuilder<TRecord> WithPostgreSqlDeadLetterDestination<TRecord>(Pipelinez.Core.PipelineBuilder<TRecord> builder, Pipelinez.PostgreSql.Configuration.PostgreSqlDeadLetterOptions options, System.Func<Pipelinez.Core.DeadLettering.PipelineDeadLetterRecord<TRecord>, Pipelinez.PostgreSql.Mapping.PostgreSqlCommandDefinition> commandFactory) where TRecord : Pipelinez.Core.Record.PipelineRecord
+  METHOD public static Pipelinez.Core.PipelineBuilder<TRecord> WithPostgreSqlDestination<TRecord>(Pipelinez.Core.PipelineBuilder<TRecord> builder, Pipelinez.PostgreSql.Configuration.PostgreSqlDestinationOptions options, Pipelinez.PostgreSql.Mapping.PostgreSqlTableMap<TRecord> tableMap) where TRecord : Pipelinez.Core.Record.PipelineRecord
+  METHOD public static Pipelinez.Core.PipelineBuilder<TRecord> WithPostgreSqlDestination<TRecord>(Pipelinez.Core.PipelineBuilder<TRecord> builder, Pipelinez.PostgreSql.Configuration.PostgreSqlDestinationOptions options, System.Func<TRecord, Pipelinez.PostgreSql.Mapping.PostgreSqlCommandDefinition> commandFactory) where TRecord : Pipelinez.Core.Record.PipelineRecord

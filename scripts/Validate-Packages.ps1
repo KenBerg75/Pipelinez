@@ -117,13 +117,20 @@ $resolvedPackageDirectory = (Resolve-Path -Path $PackageDirectory).Path
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $coreProjectPath = Join-Path (Join-Path $repoRoot 'src') (Join-Path 'Pipelinez' 'Pipelinez.csproj')
 $kafkaProjectPath = Join-Path (Join-Path $repoRoot 'src') (Join-Path 'Pipelinez.Kafka' 'Pipelinez.Kafka.csproj')
+$postgresProjectPath = Join-Path (Join-Path $repoRoot 'src') (Join-Path 'Pipelinez.PostgreSql' 'Pipelinez.PostgreSql.csproj')
 
 $coreVersion = Get-PackageVersion -ProjectPath $coreProjectPath -RepositoryRoot $repoRoot
 $kafkaVersion = Get-PackageVersion -ProjectPath $kafkaProjectPath -RepositoryRoot $repoRoot
+$postgresVersion = Get-PackageVersion -ProjectPath $postgresProjectPath -RepositoryRoot $repoRoot
 
 if ($coreVersion -ne $kafkaVersion)
 {
     throw "Pipelinez and Pipelinez.Kafka package versions must match. Core: $coreVersion Kafka: $kafkaVersion"
+}
+
+if ($coreVersion -ne $postgresVersion)
+{
+    throw "Pipelinez, Pipelinez.Kafka, and Pipelinez.PostgreSql package versions must match. Core: $coreVersion Kafka: $kafkaVersion PostgreSql: $postgresVersion"
 }
 
 $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("pipelinez-package-smoke-" + [guid]::NewGuid().ToString('N'))
@@ -212,6 +219,39 @@ public sealed class KafkaSmokeRecord : PipelineRecord
 }
 "@ | Set-Content -Path (Join-Path $kafkaSmokeDirectory 'Program.cs')
     Invoke-DotNet -Arguments @('build', (Join-Path $kafkaSmokeDirectory 'KafkaSmoke.csproj'), '--configfile', $nugetConfigPath, '--configuration', 'Release')
+
+    $postgresSmokeDirectory = Join-Path $tempRoot 'PostgreSqlSmoke'
+    Invoke-DotNet -Arguments @('new', 'console', '--framework', 'net8.0', '--output', $postgresSmokeDirectory)
+    Invoke-DotNet -Arguments @('add', (Join-Path $postgresSmokeDirectory 'PostgreSqlSmoke.csproj'), 'package', 'Pipelinez.PostgreSql', '--version', $postgresVersion, '--source', $resolvedPackageDirectory)
+    @"
+using Pipelinez.Core;
+using Pipelinez.Core.Record;
+using Pipelinez.PostgreSql;
+using Pipelinez.PostgreSql.Configuration;
+using Pipelinez.PostgreSql.Mapping;
+
+var options = new PostgreSqlDestinationOptions
+{
+    ConnectionString = "Host=localhost;Database=pipelinez;Username=postgres;Password=postgres"
+};
+
+var pipeline = Pipeline<PostgreSqlSmokeRecord>.New("orders")
+    .WithInMemorySource(new object())
+    .WithPostgreSqlDestination(
+        options,
+        PostgreSqlTableMap<PostgreSqlSmokeRecord>.ForTable("app", "orders")
+            .Map("order_id", record => record.Id)
+            .MapJson("payload", record => record))
+    .Build();
+
+Console.WriteLine(pipeline.GetStatus().Status);
+
+public sealed class PostgreSqlSmokeRecord : PipelineRecord
+{
+    public required string Id { get; init; }
+}
+"@ | Set-Content -Path (Join-Path $postgresSmokeDirectory 'Program.cs')
+    Invoke-DotNet -Arguments @('build', (Join-Path $postgresSmokeDirectory 'PostgreSqlSmoke.csproj'), '--configfile', $nugetConfigPath, '--configuration', 'Release')
 
     Write-Host "Package smoke validation succeeded."
 }

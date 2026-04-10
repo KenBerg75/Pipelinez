@@ -27,10 +27,14 @@ Each record flows through the runtime inside a `PipelineContainer<T>`, which let
   the transport-agnostic pipeline runtime
 - `src/Pipelinez.Kafka`
   the Kafka transport extension assembly
+- `src/Pipelinez.PostgreSql`
+  the PostgreSQL destination and dead-letter transport extension assembly
 - `src/tests/Pipelinez.Tests`
   unit and runtime tests for core pipeline behavior
 - `src/tests/Pipelinez.Kafka.Tests`
   Docker-backed Kafka integration tests using Testcontainers
+- `src/tests/Pipelinez.PostgreSql.Tests`
+  Docker-backed PostgreSQL destination and dead-letter integration tests using Testcontainers
 - `src/benchmarks/Pipelinez.Benchmarks`
   BenchmarkDotNet project for repeatable in-memory performance measurements
 - `src/examples/Example.Kafka`
@@ -48,6 +52,7 @@ The public packages are available on NuGet.org:
 - [`Pipelinez.Kafka`](https://www.nuget.org/packages/Pipelinez.Kafka)
 
 The repository remains configured for package metadata, XML docs, Source Link, symbol packages, and CI pack validation.
+The repository also contains `Pipelinez.PostgreSql`, which follows the same packaging model and local package validation flow.
 Public release automation is configured through tag-based GitHub Actions and NuGet Trusted Publishing.
 
 Versioning rules:
@@ -85,6 +90,11 @@ Kafka integrates through extension methods in `Pipelinez.Kafka`, not through par
 - `WithKafkaSource(...)`
 - `WithKafkaDestination(...)`
 - `WithKafkaDeadLetterDestination(...)`
+
+PostgreSQL also integrates through extension methods in `Pipelinez.PostgreSql`. The PostgreSQL assembly adds:
+
+- `WithPostgreSqlDestination(...)`
+- `WithPostgreSqlDeadLetterDestination(...)`
 
 `Build()` validates that a source and destination exist, creates a `Pipeline<T>`, links all blocks, and initializes the source and destination.
 If distributed execution is requested, `Build()` also validates that the configured source implements the distributed source contract.
@@ -750,6 +760,50 @@ The Kafka config path now supports both:
 
 Schema-registry-backed JSON and Avro serializer/deserializer configuration remains part of the public Kafka surface.
 
+## PostgreSQL Integration
+
+PostgreSQL support lives in the separate `Pipelinez.PostgreSql` assembly under `src/Pipelinez.PostgreSql`.
+
+### Builder Surface
+
+PostgreSQL extends the builder through `PostgreSqlPipelineBuilderExtensions`:
+
+- `WithPostgreSqlDestination(...)`
+- `WithPostgreSqlDeadLetterDestination(...)`
+
+This keeps `PipelineBuilder<T>` transport-agnostic while still exposing PostgreSQL-specific construction behavior where it belongs.
+
+### PostgreSQL Destination
+
+The PostgreSQL destination:
+
+- maps a pipeline record either through `PostgreSqlTableMap<T>` or a custom `PostgreSqlCommandDefinition`
+- generates parameterized `INSERT` statements for table-map-backed writes
+- executes commands through Dapper on top of `Npgsql`
+- only completes the record after PostgreSQL acknowledges the write
+
+The transport is intentionally schema-agnostic. Consumers choose the schema, table, and column names that make sense for their system.
+
+### PostgreSQL Dead-Letter Destination
+
+The PostgreSQL dead-letter destination supports two shapes:
+
+- `PostgreSqlTableMap<PipelineDeadLetterRecord<T>>`
+- `Func<PipelineDeadLetterRecord<T>, PostgreSqlCommandDefinition>`
+
+That allows consumers to use either a simple mapped dead-letter table or a fully custom SQL write for audit/compliance scenarios.
+
+### Configuration
+
+PostgreSQL configuration supports:
+
+- `ConnectionString`
+- `ConfigureConnectionString`
+- `ConfigureDataSource`
+- externally supplied `NpgsqlDataSource`
+
+This gives consumers full control over pooling and driver configuration while keeping Pipelinez responsible only for command execution.
+
 ## Examples
 
 ### `Example.Kafka`
@@ -808,6 +862,17 @@ The solution now includes two test layers.
 - partition-local ordering by default and opt-in out-of-order completion when within-partition concurrency is enabled
 - partition execution-state visibility in runtime context and distributed status
 
+### PostgreSQL Integration Tests
+
+`src/tests/Pipelinez.PostgreSql.Tests` uses Docker and `Testcontainers.PostgreSql` to validate:
+
+- direct record-to-table mapping into consumer-owned schemas and tables
+- custom parameterized SQL execution
+- dead-letter table mapping
+- dead-letter custom SQL execution
+- option validation and generated SQL safety
+- public API approval coverage for the PostgreSQL package
+
 At the time of this overview update, `dotnet test src\\Pipelinez.sln` passes with both the core and Kafka integration suites green.
 
 ## Current State
@@ -827,6 +892,7 @@ The major architectural work called out in the earlier planning docs has been im
 - explicit performance tuning controls, built-in performance snapshots, destination batching, and a benchmark project
 - explicit retry policies with retry history, retry events, and retry-aware performance counters
 - explicit dead-letter flows with in-memory and Kafka dead-letter destinations
+- explicit PostgreSQL destination and dead-letter transport support
 - explicit flow-control policies with publish results, saturation status, and pressure metrics
 - explicit operational tooling with health snapshots, health checks, meter metrics, and correlation-aware diagnostics
 

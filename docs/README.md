@@ -15,6 +15,8 @@ This folder contains the main documentation set for Pipelinez.
   first end-to-end pipeline without external infrastructure
 - [Kafka Pipeline](getting-started/kafka.md)
   first Kafka-backed pipeline using the example Docker workflow
+- [PostgreSQL Destination](getting-started/postgresql-destination.md)
+  first PostgreSQL-backed destination and dead-letter pipeline shape
 
 ## Guides
 
@@ -30,6 +32,7 @@ This folder contains the main documentation set for Pipelinez.
 ## Transport Docs
 
 - [Kafka](transports/kafka.md)
+- [PostgreSQL](transports/postgresql.md)
 
 ## Operations
 
@@ -39,6 +42,7 @@ This folder contains the main documentation set for Pipelinez.
 
 - [Runtime](architecture/runtime.md)
 - [Kafka Internals](architecture/kafka.md)
+- [PostgreSQL Internals](architecture/postgresql.md)
 - [Testing](architecture/testing.md)
 
 ## Installation Note
@@ -56,5 +60,7 @@ dotnet add package Pipelinez.Kafka
 ```
 
 Public releases are configured through tag-based GitHub Actions and NuGet Trusted Publishing.
+
+The repository also contains `Pipelinez.PostgreSql`, which is packable in-source and follows the same packaging and validation flow.
 
 Both public packages also ship XML IntelliSense documentation so API descriptions show up directly in supported IDEs.

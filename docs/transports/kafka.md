@@ -12,8 +12,6 @@ Audience: application developers and operators using the Kafka transport extensi
 
 ## Current Transport Status
 
-Kafka is the only transport extension currently implemented in this repository.
-
 Kafka support lives in:
 
 - `src/Pipelinez.Kafka`

@@ -5,7 +5,7 @@ Audience: contributors and maintainers extending the test suite.
 ## What This Covers
 
 - the current test layers
-- what belongs in core tests versus Kafka integration tests
+- what belongs in core tests versus transport integration tests
 - API approval testing
 
 ## Test Layers
@@ -36,12 +36,25 @@ This suite validates:
 - distributed worker ownership and rebalance
 - partition-aware execution
 
+### PostgreSQL Integration Tests
+
+`src/tests/Pipelinez.PostgreSql.Tests` covers real PostgreSQL behavior using Docker/Testcontainers.
+
+This suite validates:
+
+- direct destination writes through generated table maps
+- custom SQL destination writes
+- dead-letter table mapping
+- dead-letter custom SQL writes
+- connection-configuration validation and API approval coverage
+
 ## API Approval Tests
 
 The repository now also includes public API approval tests for:
 
 - `Pipelinez`
 - `Pipelinez.Kafka`
+- `Pipelinez.PostgreSql`
 
 Those tests compare the compiled public surface to checked-in approved baselines.
 
@@ -51,6 +64,7 @@ Baseline refresh workflow:
 $env:PIPELINEZ_UPDATE_API_BASELINES='1'
 dotnet test src/tests/Pipelinez.Tests/Pipelinez.Tests.csproj --filter ApiApprovalTests
 dotnet test src/tests/Pipelinez.Kafka.Tests/Pipelinez.Kafka.Tests.csproj --filter ApiApprovalTests
+dotnet test src/tests/Pipelinez.PostgreSql.Tests/Pipelinez.PostgreSql.Tests.csproj --filter ApiApprovalTests
 ```
 
 Then run:
@@ -70,6 +84,11 @@ Use Kafka integration tests when:
 
 - the behavior depends on a real broker
 - the scenario depends on Kafka offsets, partitions, rebalance, or headers
+
+Use PostgreSQL integration tests when:
+
+- the behavior depends on real PostgreSQL execution
+- the scenario validates generated SQL, custom SQL, or dead-letter table writes
 
 ## Related Docs
 
