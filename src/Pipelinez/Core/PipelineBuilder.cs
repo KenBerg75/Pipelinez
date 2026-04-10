@@ -15,6 +15,10 @@ using Pipelinez.Core.Source;
 
 namespace Pipelinez.Core;
 
+/// <summary>
+/// Builds a Pipelinez pipeline by composing a source, zero or more segments, and a destination.
+/// </summary>
+/// <typeparam name="T">The pipeline record type processed by the pipeline.</typeparam>
 public class PipelineBuilder<T>(string pipelineName)
     where T : PipelineRecord
 {
@@ -23,6 +27,9 @@ public class PipelineBuilder<T>(string pipelineName)
         PipelineExecutionOptions? ExecutionOptions,
         PipelineRetryPolicy<T>? RetryPolicy);
 
+    /// <summary>
+    /// Gets the logical name of the pipeline being built.
+    /// </summary>
     public string PipelineName { get; } = Guard.Against.NullOrWhiteSpace(pipelineName, nameof(pipelineName));
 
     #region Pipeline Components
@@ -46,6 +53,11 @@ public class PipelineBuilder<T>(string pipelineName)
 
     #region Sources
 
+    /// <summary>
+    /// Configures the pipeline source.
+    /// </summary>
+    /// <param name="source">The source to use.</param>
+    /// <returns>The builder instance.</returns>
     public PipelineBuilder<T> WithSource(IPipelineSource<T> source)
     {
         _source = Guard.Against.Null(source, nameof(source));
@@ -53,6 +65,12 @@ public class PipelineBuilder<T>(string pipelineName)
         return this;
     }
 
+    /// <summary>
+    /// Configures the pipeline source with explicit execution options.
+    /// </summary>
+    /// <param name="source">The source to use.</param>
+    /// <param name="executionOptions">The execution options to apply to the source.</param>
+    /// <returns>The builder instance.</returns>
     public PipelineBuilder<T> WithSource(IPipelineSource<T> source, PipelineExecutionOptions executionOptions)
     {
         _source = Guard.Against.Null(source, nameof(source));
@@ -60,6 +78,11 @@ public class PipelineBuilder<T>(string pipelineName)
         return this;
     }
 
+    /// <summary>
+    /// Configures the built-in in-memory source.
+    /// </summary>
+    /// <param name="config">Reserved source configuration input.</param>
+    /// <returns>The builder instance.</returns>
     public PipelineBuilder<T> WithInMemorySource(object config)
     {
         return WithSource(new InMemoryPipelineSource<T>());
@@ -69,6 +92,12 @@ public class PipelineBuilder<T>(string pipelineName)
 
     #region Segments
 
+    /// <summary>
+    /// Adds a segment to the pipeline.
+    /// </summary>
+    /// <param name="segment">The segment to add.</param>
+    /// <param name="config">Reserved segment configuration input.</param>
+    /// <returns>The builder instance.</returns>
     public PipelineBuilder<T> AddSegment(IPipelineSegment<T> segment, object config)
     {
         _segments.Add(new PipelineSegmentRegistration(
@@ -78,6 +107,13 @@ public class PipelineBuilder<T>(string pipelineName)
         return this;
     }
 
+    /// <summary>
+    /// Adds a segment to the pipeline with explicit execution options.
+    /// </summary>
+    /// <param name="segment">The segment to add.</param>
+    /// <param name="config">Reserved segment configuration input.</param>
+    /// <param name="executionOptions">The execution options to apply to the segment.</param>
+    /// <returns>The builder instance.</returns>
     public PipelineBuilder<T> AddSegment(
         IPipelineSegment<T> segment,
         object config,
@@ -90,6 +126,13 @@ public class PipelineBuilder<T>(string pipelineName)
         return this;
     }
 
+    /// <summary>
+    /// Adds a segment to the pipeline with an explicit retry policy.
+    /// </summary>
+    /// <param name="segment">The segment to add.</param>
+    /// <param name="config">Reserved segment configuration input.</param>
+    /// <param name="retryPolicy">The retry policy to apply to the segment.</param>
+    /// <returns>The builder instance.</returns>
     public PipelineBuilder<T> AddSegment(
         IPipelineSegment<T> segment,
         object config,
@@ -102,6 +145,14 @@ public class PipelineBuilder<T>(string pipelineName)
         return this;
     }
 
+    /// <summary>
+    /// Adds a segment to the pipeline with explicit execution options and retry policy.
+    /// </summary>
+    /// <param name="segment">The segment to add.</param>
+    /// <param name="config">Reserved segment configuration input.</param>
+    /// <param name="executionOptions">The execution options to apply to the segment.</param>
+    /// <param name="retryPolicy">The retry policy to apply to the segment.</param>
+    /// <returns>The builder instance.</returns>
     public PipelineBuilder<T> AddSegment(
         IPipelineSegment<T> segment,
         object config,
@@ -119,6 +170,11 @@ public class PipelineBuilder<T>(string pipelineName)
 
     #region Destinations
 
+    /// <summary>
+    /// Configures the pipeline destination.
+    /// </summary>
+    /// <param name="destination">The destination to use.</param>
+    /// <returns>The builder instance.</returns>
     public PipelineBuilder<T> WithDestination(IPipelineDestination<T> destination)
     {
         _destination = Guard.Against.Null(destination, nameof(destination));
@@ -127,6 +183,12 @@ public class PipelineBuilder<T>(string pipelineName)
         return this;
     }
 
+    /// <summary>
+    /// Configures the pipeline destination with explicit execution options.
+    /// </summary>
+    /// <param name="destination">The destination to use.</param>
+    /// <param name="executionOptions">The execution options to apply to the destination.</param>
+    /// <returns>The builder instance.</returns>
     public PipelineBuilder<T> WithDestination(IPipelineDestination<T> destination, PipelineExecutionOptions executionOptions)
     {
         _destination = Guard.Against.Null(destination, nameof(destination));
@@ -135,6 +197,12 @@ public class PipelineBuilder<T>(string pipelineName)
         return this;
     }
 
+    /// <summary>
+    /// Configures the pipeline destination with an explicit retry policy.
+    /// </summary>
+    /// <param name="destination">The destination to use.</param>
+    /// <param name="retryPolicy">The retry policy to apply to the destination.</param>
+    /// <returns>The builder instance.</returns>
     public PipelineBuilder<T> WithDestination(IPipelineDestination<T> destination, PipelineRetryPolicy<T> retryPolicy)
     {
         _destination = Guard.Against.Null(destination, nameof(destination));
@@ -143,6 +211,13 @@ public class PipelineBuilder<T>(string pipelineName)
         return this;
     }
 
+    /// <summary>
+    /// Configures the pipeline destination with explicit execution options and retry policy.
+    /// </summary>
+    /// <param name="destination">The destination to use.</param>
+    /// <param name="executionOptions">The execution options to apply to the destination.</param>
+    /// <param name="retryPolicy">The retry policy to apply to the destination.</param>
+    /// <returns>The builder instance.</returns>
     public PipelineBuilder<T> WithDestination(
         IPipelineDestination<T> destination,
         PipelineExecutionOptions executionOptions,
@@ -154,11 +229,21 @@ public class PipelineBuilder<T>(string pipelineName)
         return this;
     }
 
+    /// <summary>
+    /// Configures the built-in in-memory destination.
+    /// </summary>
+    /// <param name="config">Reserved destination configuration input.</param>
+    /// <returns>The builder instance.</returns>
     public PipelineBuilder<T> WithInMemoryDestination(string config)
     {
         return WithDestination(new InMemoryPipelineDestination<T>());
     }
 
+    /// <summary>
+    /// Configures the dead-letter destination used for terminally handled faults.
+    /// </summary>
+    /// <param name="deadLetterDestination">The dead-letter destination to use.</param>
+    /// <returns>The builder instance.</returns>
     public PipelineBuilder<T> WithDeadLetterDestination(IPipelineDeadLetterDestination<T> deadLetterDestination)
     {
         _deadLetterDestination = Guard.Against.Null(deadLetterDestination, nameof(deadLetterDestination));
@@ -169,6 +254,11 @@ public class PipelineBuilder<T>(string pipelineName)
 
     #region Logging
 
+    /// <summary>
+    /// Configures the logger factory used by pipeline components.
+    /// </summary>
+    /// <param name="logFactory">The logger factory to use.</param>
+    /// <returns>The builder instance.</returns>
     public PipelineBuilder<T> UseLogger(ILoggerFactory logFactory)
     {
         LoggingManager.Instance.AssignLogFactory(logFactory);
@@ -179,12 +269,22 @@ public class PipelineBuilder<T>(string pipelineName)
 
     #region Hosting
 
+    /// <summary>
+    /// Configures dead-letter behavior for the pipeline.
+    /// </summary>
+    /// <param name="options">The dead-letter options to apply.</param>
+    /// <returns>The builder instance.</returns>
     public PipelineBuilder<T> UseDeadLetterOptions(PipelineDeadLetterOptions options)
     {
         _deadLetterOptions = Guard.Against.Null(options, nameof(options)).Validate();
         return this;
     }
 
+    /// <summary>
+    /// Configures host-level execution options.
+    /// </summary>
+    /// <param name="options">The host options to apply.</param>
+    /// <returns>The builder instance.</returns>
     public PipelineBuilder<T> UseHostOptions(PipelineHostOptions options)
     {
         _hostOptions = Guard.Against.Null(options, nameof(options));
@@ -195,12 +295,22 @@ public class PipelineBuilder<T>(string pipelineName)
 
     #region Flow Control
 
+    /// <summary>
+    /// Configures operational tooling behavior for the pipeline.
+    /// </summary>
+    /// <param name="options">The operational options to apply.</param>
+    /// <returns>The builder instance.</returns>
     public PipelineBuilder<T> UseOperationalOptions(PipelineOperationalOptions options)
     {
         _operationalOptions = Guard.Against.Null(options, nameof(options)).Validate();
         return this;
     }
 
+    /// <summary>
+    /// Configures pipeline-wide flow-control behavior.
+    /// </summary>
+    /// <param name="options">The flow-control options to apply.</param>
+    /// <returns>The builder instance.</returns>
     public PipelineBuilder<T> UseFlowControlOptions(PipelineFlowControlOptions options)
     {
         _flowControlOptions = Guard.Against.Null(options, nameof(options)).Validate();
@@ -211,6 +321,11 @@ public class PipelineBuilder<T>(string pipelineName)
 
     #region Performance
 
+    /// <summary>
+    /// Configures performance and execution-tuning options for the pipeline.
+    /// </summary>
+    /// <param name="options">The performance options to apply.</param>
+    /// <returns>The builder instance.</returns>
     public PipelineBuilder<T> UsePerformanceOptions(PipelinePerformanceOptions options)
     {
         _performanceOptions = Guard.Against.Null(options, nameof(options)).Validate();
@@ -221,6 +336,11 @@ public class PipelineBuilder<T>(string pipelineName)
 
     #region Retry
 
+    /// <summary>
+    /// Configures default retry behavior for segments and destinations.
+    /// </summary>
+    /// <param name="options">The retry options to apply.</param>
+    /// <returns>The builder instance.</returns>
     public PipelineBuilder<T> UseRetryOptions(PipelineRetryOptions<T> options)
     {
         _retryOptions = Guard.Against.Null(options, nameof(options));
@@ -231,12 +351,22 @@ public class PipelineBuilder<T>(string pipelineName)
 
     #region Error Handling
 
+    /// <summary>
+    /// Configures the asynchronous error handler used after retries are exhausted.
+    /// </summary>
+    /// <param name="errorHandler">The error handler to use.</param>
+    /// <returns>The builder instance.</returns>
     public PipelineBuilder<T> WithErrorHandler(PipelineErrorHandler<T> errorHandler)
     {
         _errorHandler = Guard.Against.Null(errorHandler, nameof(errorHandler));
         return this;
     }
 
+    /// <summary>
+    /// Configures the synchronous error handler used after retries are exhausted.
+    /// </summary>
+    /// <param name="errorHandler">The error handler to use.</param>
+    /// <returns>The builder instance.</returns>
     public PipelineBuilder<T> WithErrorHandler(Func<PipelineErrorContext<T>, PipelineErrorAction> errorHandler)
     {
         Guard.Against.Null(errorHandler, nameof(errorHandler));
@@ -248,6 +378,10 @@ public class PipelineBuilder<T>(string pipelineName)
 
     #region Build
 
+    /// <summary>
+    /// Builds the pipeline using the configured components and options.
+    /// </summary>
+    /// <returns>The built pipeline instance.</returns>
     public IPipeline<T> Build()
     {
         Guard.Against.Null(_source, message: "Pipeline must have a source defined before it is built");

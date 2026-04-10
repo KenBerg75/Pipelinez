@@ -3,10 +3,14 @@ using System.Threading.Tasks.Dataflow;
 namespace Pipelinez.Core.Flow;
 
 /// <summary>
-/// Defines an interface that would be implemented by a target for a pipeline flow
+/// Defines a destination that can accept input from an upstream flow source.
 /// </summary>
-/// <typeparam name="TInput">Type this flow will accept</typeparam>
+/// <typeparam name="TInput">The type of messages accepted by the destination.</typeparam>
 public interface IFlowDestination<TInput>
 {
+    /// <summary>
+    /// Gets the underlying Dataflow target block used to receive messages.
+    /// </summary>
+    /// <returns>The target block that should receive linked input.</returns>
     ITargetBlock<TInput> AsTargetBlock();
 }

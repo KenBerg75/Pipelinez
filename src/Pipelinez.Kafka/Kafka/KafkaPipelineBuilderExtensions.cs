@@ -8,8 +8,21 @@ using Pipelinez.Kafka.Source;
 
 namespace Pipelinez.Kafka;
 
+/// <summary>
+/// Provides Kafka transport extension methods for <see cref="PipelineBuilder{T}" />.
+/// </summary>
 public static class KafkaPipelineBuilderExtensions
 {
+    /// <summary>
+    /// Configures the pipeline to consume records from Kafka.
+    /// </summary>
+    /// <typeparam name="T">The pipeline record type.</typeparam>
+    /// <typeparam name="TRecordKey">The Kafka key type.</typeparam>
+    /// <typeparam name="TRecordValue">The Kafka value type.</typeparam>
+    /// <param name="builder">The pipeline builder to configure.</param>
+    /// <param name="config">The Kafka source configuration.</param>
+    /// <param name="recordMapper">Maps the Kafka key and value into a pipeline record.</param>
+    /// <returns>The same builder for chaining.</returns>
     public static PipelineBuilder<T> WithKafkaSource<T, TRecordKey, TRecordValue>(
         this PipelineBuilder<T> builder,
         KafkaSourceOptions config,
@@ -26,6 +39,17 @@ public static class KafkaPipelineBuilderExtensions
             recordMapper));
     }
 
+    /// <summary>
+    /// Configures the pipeline to consume records from Kafka with explicit partition scaling behavior.
+    /// </summary>
+    /// <typeparam name="T">The pipeline record type.</typeparam>
+    /// <typeparam name="TRecordKey">The Kafka key type.</typeparam>
+    /// <typeparam name="TRecordValue">The Kafka value type.</typeparam>
+    /// <param name="builder">The pipeline builder to configure.</param>
+    /// <param name="config">The Kafka source configuration.</param>
+    /// <param name="recordMapper">Maps the Kafka key and value into a pipeline record.</param>
+    /// <param name="partitionScalingOptions">The partition-aware execution settings to apply.</param>
+    /// <returns>The same builder for chaining.</returns>
     public static PipelineBuilder<T> WithKafkaSource<T, TRecordKey, TRecordValue>(
         this PipelineBuilder<T> builder,
         KafkaSourceOptions config,
@@ -41,7 +65,17 @@ public static class KafkaPipelineBuilderExtensions
         config.PartitionScaling = partitionScalingOptions.Validate();
         return builder.WithKafkaSource<T, TRecordKey, TRecordValue>(config, recordMapper);
     }
-    
+
+    /// <summary>
+    /// Configures the pipeline to publish records to Kafka.
+    /// </summary>
+    /// <typeparam name="T">The pipeline record type.</typeparam>
+    /// <typeparam name="TRecordKey">The Kafka key type.</typeparam>
+    /// <typeparam name="TRecordValue">The Kafka value type.</typeparam>
+    /// <param name="builder">The pipeline builder to configure.</param>
+    /// <param name="config">The Kafka destination configuration.</param>
+    /// <param name="recordMapper">Maps a pipeline record to the Kafka message to publish.</param>
+    /// <returns>The same builder for chaining.</returns>
     public static PipelineBuilder<T> WithKafkaDestination<T, TRecordKey, TRecordValue>(
         this PipelineBuilder<T> builder,
         KafkaDestinationOptions config,
@@ -58,6 +92,16 @@ public static class KafkaPipelineBuilderExtensions
             recordMapper));
     }
 
+    /// <summary>
+    /// Configures the pipeline to write dead-letter records to Kafka.
+    /// </summary>
+    /// <typeparam name="T">The pipeline record type.</typeparam>
+    /// <typeparam name="TRecordKey">The Kafka key type.</typeparam>
+    /// <typeparam name="TRecordValue">The Kafka value type.</typeparam>
+    /// <param name="builder">The pipeline builder to configure.</param>
+    /// <param name="config">The Kafka destination configuration.</param>
+    /// <param name="recordMapper">Maps the dead-letter envelope into the Kafka message to publish.</param>
+    /// <returns>The same builder for chaining.</returns>
     public static PipelineBuilder<T> WithKafkaDeadLetterDestination<T, TRecordKey, TRecordValue>(
         this PipelineBuilder<T> builder,
         KafkaDestinationOptions config,

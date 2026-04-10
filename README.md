@@ -51,6 +51,8 @@ dotnet add package Pipelinez.Kafka
 
 Public package publishing is configured through GitHub tag releases and NuGet Trusted Publishing.
 
+The published packages include XML IntelliSense documentation, so the public API descriptions are available directly in editors like Visual Studio and Rider.
+
 ## Quick Example
 
 This example creates an in-memory pipeline that receives an `OrderRecord`, applies a discount, and completes through an in-memory destination.

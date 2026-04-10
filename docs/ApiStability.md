@@ -96,6 +96,8 @@ The repository now includes public API approval tests for:
 
 These tests compare the compiled public surface against checked-in approved baselines. Any unintended public API change causes the test suite to fail, which means the existing PR and CI workflows also catch it automatically.
 
+The public package projects also enforce XML documentation coverage for public APIs. Missing XML docs on public members fail the build through `CS1591`, which keeps IntelliSense quality aligned with the approved public surface.
+
 Approved baselines live in:
 
 - `src/tests/Pipelinez.Tests/ApprovedApi/Pipelinez.publicapi.txt`
@@ -117,6 +119,7 @@ If a change affects a public API:
 
 - decide whether the API is stable or preview
 - update the approved API baseline intentionally
+- update or add XML documentation for the changed public members
 - update consumer-facing docs when usage changes
 - add migration guidance when replacing an existing API
 

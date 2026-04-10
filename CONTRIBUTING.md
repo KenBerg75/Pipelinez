@@ -64,6 +64,21 @@ Then run the full suite:
 dotnet test src/Pipelinez.sln --logger "console;verbosity=minimal"
 ```
 
+## Public API XML Documentation
+
+Both public packages enforce XML documentation coverage for public APIs during normal builds.
+
+That means:
+
+- every new public type needs a meaningful XML `<summary>`
+- public constructors, methods, properties, and events need XML docs or intentional `<inheritdoc />`
+- option/configuration properties should document important defaults and behavior interactions
+- event docs should call out important ordering or lifecycle guarantees when they matter
+
+The compiler enforces this with `CS1591` as an error for `Pipelinez` and `Pipelinez.Kafka`.
+
+If you add or change a public API, make the XML documentation update in the same pull request.
+
 ## Documentation
 
 If your change affects how consumers use the library, update the relevant docs in the same pull request.

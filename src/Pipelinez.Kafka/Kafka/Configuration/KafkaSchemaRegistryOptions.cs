@@ -1,13 +1,38 @@
 namespace Pipelinez.Kafka.Configuration;
 
+/// <summary>
+/// Configures Confluent Schema Registry connectivity and serializer selection for Kafka transports.
+/// </summary>
 public class KafkaSchemaRegistryOptions
 {
     private string _server = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the Schema Registry username.
+    /// </summary>
     public string User { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the Schema Registry password.
+    /// </summary>
     public string Password { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the configured key serializer name, such as <c>AVRO</c> or <c>JSON</c>.
+    /// </summary>
     public string KeySerializer { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the configured value serializer name, such as <c>AVRO</c> or <c>JSON</c>.
+    /// </summary>
     public string ValueSerializer { get; set; } = string.Empty;
-    
+
+    /// <summary>
+    /// Gets or sets the Schema Registry server address.
+    /// </summary>
+    /// <remarks>
+    /// When an <c>https://</c> prefix is not provided, one is added automatically when the value is read.
+    /// </remarks>
     public string Server
     {
         get => GetSchemaServer();

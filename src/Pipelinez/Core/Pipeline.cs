@@ -20,6 +20,10 @@ using Pipelinez.Core.Status;
 
 namespace Pipelinez.Core;
 
+/// <summary>
+/// Implements the Pipelinez runtime for a specific record type.
+/// </summary>
+/// <typeparam name="TPipelineRecord">The pipeline record type processed by the runtime.</typeparam>
 public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipelineRecord : PipelineRecord
 {
     private enum PipelineRuntimeState
@@ -35,10 +39,10 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
     #region Builder
     
     /// <summary>
-    /// Initiates the build of a new pipeline with the specified PipelineRecord type
+    /// Creates a builder for a new pipeline with the specified name.
     /// </summary>
-    /// <param name="pipelineName">Name of the pipeline</param>
-    /// <returns></returns>
+    /// <param name="pipelineName">The logical name of the pipeline.</param>
+    /// <returns>A pipeline builder for the specified record type.</returns>
     public static PipelineBuilder<TPipelineRecord> New(string pipelineName)
     {
         return new PipelineBuilder<TPipelineRecord>(pipelineName);
@@ -84,6 +88,9 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
     
     #region Logging
     
+    /// <summary>
+    /// Gets the logger used by the pipeline runtime.
+    /// </summary>
     protected ILogger<Pipeline<TPipelineRecord>> Logger { get; }
     
     #endregion
@@ -98,63 +105,45 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
     
     #region Eventing
 
-    /// <summary>
-    /// Occurs when a record in the pipeline has completed traversing the pipeline
-    /// </summary>
+    /// <inheritdoc />
     public event PipelineRecordCompletedEventHandler<TPipelineRecord>? OnPipelineRecordCompleted;
 
-    /// <summary>
-    /// Occurs when a record in the pipeline faults.
-    /// </summary>
+    /// <inheritdoc />
     public event PipelineRecordFaultedEventHandler<TPipelineRecord>? OnPipelineRecordFaulted;
 
-    /// <summary>
-    /// Occurs when a record is about to be retried after a transient failure.
-    /// </summary>
+    /// <inheritdoc />
     public event PipelineRecordRetryingEventHandler<TPipelineRecord>? OnPipelineRecordRetrying;
+    /// <inheritdoc />
     public event PipelineRecordDeadLetteredEventHandler<TPipelineRecord>? OnPipelineRecordDeadLettered;
+    /// <inheritdoc />
     public event PipelineDeadLetterWriteFailedEventHandler<TPipelineRecord>? OnPipelineDeadLetterWriteFailed;
+    /// <inheritdoc />
     public event PipelineSaturationChangedEventHandler? OnSaturationChanged;
+    /// <inheritdoc />
     public event PipelinePublishRejectedEventHandler<TPipelineRecord>? OnPublishRejected;
 
-    /// <summary>
-    /// Occurs when the pipeline transitions into a faulted state.
-    /// </summary>
+    /// <inheritdoc />
     public event PipelineFaultedEventHandler? OnPipelineFaulted;
 
-    /// <summary>
-    /// Occurs when the distributed worker starts.
-    /// </summary>
+    /// <inheritdoc />
     public event PipelineWorkerStartedEventHandler? OnWorkerStarted;
 
-    /// <summary>
-    /// Occurs when partitions are assigned to the current distributed worker.
-    /// </summary>
+    /// <inheritdoc />
     public event PipelinePartitionsAssignedEventHandler? OnPartitionsAssigned;
 
-    /// <summary>
-    /// Occurs when partitions are revoked from the current distributed worker.
-    /// </summary>
+    /// <inheritdoc />
     public event PipelinePartitionsRevokedEventHandler? OnPartitionsRevoked;
 
-    /// <summary>
-    /// Occurs when a partition begins draining.
-    /// </summary>
+    /// <inheritdoc />
     public event PipelinePartitionDrainingEventHandler? OnPartitionDraining;
 
-    /// <summary>
-    /// Occurs when a partition has drained.
-    /// </summary>
+    /// <inheritdoc />
     public event PipelinePartitionDrainedEventHandler? OnPartitionDrained;
 
-    /// <summary>
-    /// Occurs when partition execution state changes.
-    /// </summary>
+    /// <inheritdoc />
     public event PipelinePartitionExecutionStateChangedEventHandler? OnPartitionExecutionStateChanged;
 
-    /// <summary>
-    /// Occurs when the distributed worker begins stopping.
-    /// </summary>
+    /// <inheritdoc />
     public event PipelineWorkerStoppingEventHandler? OnWorkerStopping;
 
     /// <summary>
@@ -352,7 +341,7 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
 
     #endregion
     
-    // Initiates the pipeline
+    /// <inheritdoc />
     public Task StartPipelineAsync(CancellationToken cancellationToken = default)
     {
         CancellationTokenSource runtimeCancellationTokenSource;
@@ -400,12 +389,14 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
         return Task.CompletedTask;
     }
 
+    /// <inheritdoc />
     public async Task PublishAsync(TPipelineRecord record)
     {
         var publishResult = await PublishAsync(record, new PipelinePublishOptions()).ConfigureAwait(false);
         publishResult.ThrowIfNotAccepted();
     }
 
+    /// <inheritdoc />
     public async Task<PipelinePublishResult> PublishAsync(
         TPipelineRecord record,
         PipelinePublishOptions options)
@@ -416,6 +407,7 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
         return await _source.PublishAsync(record, Guard.Against.Null(options, nameof(options)).Validate()).ConfigureAwait(false);
     }
 
+    /// <inheritdoc />
     public async Task CompleteAsync()
     {
         Task completionTask = Completion;
@@ -476,10 +468,10 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
         }
     }
     
-    /// <summary>Gets a <see cref="T:System.Threading.Tasks.Task" /> that represents the asynchronous operation and completion of the pipeline.</summary>
-    /// <returns>The task.</returns>
+    /// <inheritdoc />
     public Task Completion => _completionSource.Task;
 
+    /// <inheritdoc />
     public PipelineStatus GetStatus()
     {
         var flowControlStatus = GetFlowControlStatus();
@@ -505,6 +497,7 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
             flowControlStatus);
     }
 
+    /// <inheritdoc />
     public PipelineRuntimeContext GetRuntimeContext()
     {
         lock (_distributionLock)
@@ -519,11 +512,13 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
         }
     }
 
+    /// <inheritdoc />
     public PipelinePerformanceSnapshot GetPerformanceSnapshot()
     {
         return _performanceCollector.CreateSnapshot();
     }
 
+    /// <inheritdoc />
     public PipelineHealthStatus GetHealthStatus()
     {
         var status = GetStatus();
@@ -541,6 +536,7 @@ public class Pipeline<TPipelineRecord> : IPipeline<TPipelineRecord> where TPipel
             _pipelineFault);
     }
 
+    /// <inheritdoc />
     public PipelineOperationalSnapshot GetOperationalSnapshot()
     {
         var status = GetStatus();
