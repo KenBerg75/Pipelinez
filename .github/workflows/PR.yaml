@@ -20,6 +20,7 @@ env:
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
   TEST_RESULTS_DIR: ${{ github.workspace }}/artifacts/test-results
+  CTRF_REPORT_PATH: ${{ github.workspace }}/artifacts/ctrf/ctrf-report.json
 
 jobs:
   build-and-test:
@@ -42,18 +43,39 @@ jobs:
         run: dotnet build src/Pipelinez.sln --configuration Release --no-restore
 
       - name: Prepare Test Results Directory
-        run: mkdir -p "${TEST_RESULTS_DIR}"
+        run: |
+          mkdir -p "${TEST_RESULTS_DIR}"
+          mkdir -p "$(dirname "${CTRF_REPORT_PATH}")"
 
       - name: Test
         id: test
         continue-on-error: true
         run: dotnet test src/Pipelinez.sln --configuration Release --no-build --logger "console;verbosity=minimal" --logger "junit;LogFilePath=${TEST_RESULTS_DIR}/{assembly}.xml;MethodFormat=Class;FailureBodyFormat=Verbose"
 
-      - name: Publish Test Summary
+      - name: Convert JUnit Results To CTRF
         if: always()
         uses: ctrf-io/github-test-reporter@v1
         with:
           report-path: "${{ env.TEST_RESULTS_DIR }}/*.xml"
+          summary: false
+          annotate: false
+          integrations-config: |
+            {
+              "junit-to-ctrf": {
+                "enabled": true,
+                "action": "convert",
+                "options": {
+                  "output": "${{ env.CTRF_REPORT_PATH }}",
+                  "toolname": "junit-to-ctrf"
+                }
+              }
+            }
+
+      - name: Publish Test Summary
+        if: always()
+        uses: ctrf-io/github-test-reporter@v1
+        with:
+          report-path: "${{ env.CTRF_REPORT_PATH }}"
           title: "Pipelinez Test Results"
           summary-report: true
           failed-report: true
@@ -66,7 +88,7 @@ jobs:
         if: always() && github.event.pull_request.head.repo.full_name == github.repository
         uses: ctrf-io/github-test-reporter@v1
         with:
-          report-path: "${{ env.TEST_RESULTS_DIR }}/*.xml"
+          report-path: "${{ env.CTRF_REPORT_PATH }}"
           title: "Pipelinez Test Results"
           pull-request-report: true
           update-comment: true
@@ -80,7 +102,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pr-test-results
-          path: ${{ env.TEST_RESULTS_DIR }}/*.xml
+          path: |
+            ${{ env.TEST_RESULTS_DIR }}/*.xml
+            ${{ env.CTRF_REPORT_PATH }}
           if-no-files-found: warn
 
       - name: Fail Workflow If Tests Failed
