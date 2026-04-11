@@ -12,7 +12,7 @@ Pipelinez is a reusable library, so contributions should optimize not only for c
 - run the full test suite with `dotnet test src/Pipelinez.sln`
 - if you change performance-sensitive behavior, consider running the benchmark project too
 - if you change package metadata or release behavior, validate local packages with `./scripts/Validate-Packages.ps1 -PackageDirectory artifacts/packages`
-- if you change public API documentation or docs-site configuration, build generated docs with `dotnet docfx docs-site/docfx.json`
+- if you change public API documentation or generated docs configuration, build generated docs with `dotnet docfx docs/docfx.json`
 
 ## Public API Changes
 
@@ -84,7 +84,7 @@ Generated API documentation is built with DocFX:
 
 ```powershell
 dotnet tool restore
-dotnet docfx docs-site/docfx.json
+dotnet docfx docs/docfx.json
 ```
 
 The generated site is deployed from `main` through the `Docs` GitHub Actions workflow.
@@ -96,8 +96,8 @@ If your change affects how consumers use the library, update the relevant docs i
 That usually means some combination of:
 
 - `README.md`
-- `docs/Overview.md`
-- `docs/ApiStability.md`
+- `documentation/Overview.md`
+- `documentation/ApiStability.md`
 - examples under `src/examples`
 
 ## Pull Requests

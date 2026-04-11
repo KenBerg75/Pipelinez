@@ -73,5 +73,5 @@ public sealed class OrderRecord : PipelineRecord
 - NuGet: https://www.nuget.org/packages/Pipelinez.PostgreSql
 - Repository: https://github.com/KenBerg75/Pipelinez
 - API reference: https://kenberg75.github.io/Pipelinez/api/
-- Getting started: https://github.com/KenBerg75/Pipelinez/blob/main/docs/getting-started/postgresql-destination.md
-- PostgreSQL docs: https://github.com/KenBerg75/Pipelinez/blob/main/docs/transports/postgresql.md
+- Getting started: https://github.com/KenBerg75/Pipelinez/blob/main/documentation/getting-started/postgresql-destination.md
+- PostgreSQL docs: https://github.com/KenBerg75/Pipelinez/blob/main/documentation/transports/postgresql.md

@@ -39,6 +39,7 @@ This folder contains the main documentation set for Pipelinez.
 ## Operations
 
 - [Troubleshooting](operations/troubleshooting.md)
+- [Repository Topics](operations/repository-topics.md)
 
 ## Architecture
 

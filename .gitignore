@@ -44,5 +44,5 @@ msbuild.wrn
 /todo/
 /BenchmarkDotNet.Artifacts/
 /artifacts/
-/docs-site/api/
-/docs-site/_site/
+/docs/api/
+/docs/_site/

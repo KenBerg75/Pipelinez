@@ -7,7 +7,7 @@ on:
   pull_request:
     paths:
       - "docs/**"
-      - "docs-site/**"
+      - "documentation/**"
       - "src/Pipelinez/**"
       - "src/Pipelinez.Kafka/**"
       - "src/Pipelinez.PostgreSql/**"
@@ -44,13 +44,13 @@ jobs:
         run: dotnet tool restore
 
       - name: Build Documentation
-        run: dotnet docfx docs-site/docfx.json
+        run: dotnet docfx docs/docfx.json
 
       - name: Upload Documentation Site
         if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs-site/_site
+          path: docs/_site
 
   deploy-docs:
     name: Deploy Documentation

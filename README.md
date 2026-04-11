@@ -185,7 +185,7 @@ var pipeline = Pipeline<MyRecord>.New("kafka-pipeline")
 
 For a full walkthrough, see:
 
-- [`docs/getting-started/kafka.md`](docs/getting-started/kafka.md)
+- [`documentation/getting-started/kafka.md`](documentation/getting-started/kafka.md)
 - [`src/examples/Example.Kafka`](src/examples/Example.Kafka)
 - [`src/examples/Example.Kafka.DataGen`](src/examples/Example.Kafka.DataGen)
 - [`src/tests/Pipelinez.Kafka.Tests`](src/tests/Pipelinez.Kafka.Tests)
@@ -222,24 +222,24 @@ var pipeline = Pipeline<MyRecord>.New("postgres-pipeline")
 
 ## Learn More
 
-- New to Pipelinez: [`docs/getting-started/in-memory.md`](docs/getting-started/in-memory.md)
-- Using Kafka: [`docs/getting-started/kafka.md`](docs/getting-started/kafka.md)
-- Using PostgreSQL destinations: [`docs/getting-started/postgresql-destination.md`](docs/getting-started/postgresql-destination.md)
-- Architecture overview: [`docs/Overview.md`](docs/Overview.md)
-- Runtime and transport internals: [`docs/README.md`](docs/README.md)
+- New to Pipelinez: [`documentation/getting-started/in-memory.md`](documentation/getting-started/in-memory.md)
+- Using Kafka: [`documentation/getting-started/kafka.md`](documentation/getting-started/kafka.md)
+- Using PostgreSQL destinations: [`documentation/getting-started/postgresql-destination.md`](documentation/getting-started/postgresql-destination.md)
+- Architecture overview: [`documentation/Overview.md`](documentation/Overview.md)
+- Runtime and transport internals: [`documentation/README.md`](documentation/README.md)
 - API reference: [`kenberg75.github.io/Pipelinez/api`](https://kenberg75.github.io/Pipelinez/api/)
-- API compatibility policy: [`docs/ApiStability.md`](docs/ApiStability.md)
+- API compatibility policy: [`documentation/ApiStability.md`](documentation/ApiStability.md)
 
 Feature-specific guides:
 
-- lifecycle: [`docs/guides/lifecycle.md`](docs/guides/lifecycle.md)
-- error handling: [`docs/guides/error-handling.md`](docs/guides/error-handling.md)
-- retry: [`docs/guides/retry.md`](docs/guides/retry.md)
-- dead-lettering: [`docs/guides/dead-lettering.md`](docs/guides/dead-lettering.md)
-- flow control: [`docs/guides/flow-control.md`](docs/guides/flow-control.md)
-- distributed execution: [`docs/guides/distributed-execution.md`](docs/guides/distributed-execution.md)
-- performance: [`docs/guides/performance.md`](docs/guides/performance.md)
-- operational tooling: [`docs/guides/operational-tooling.md`](docs/guides/operational-tooling.md)
+- lifecycle: [`documentation/guides/lifecycle.md`](documentation/guides/lifecycle.md)
+- error handling: [`documentation/guides/error-handling.md`](documentation/guides/error-handling.md)
+- retry: [`documentation/guides/retry.md`](documentation/guides/retry.md)
+- dead-lettering: [`documentation/guides/dead-lettering.md`](documentation/guides/dead-lettering.md)
+- flow control: [`documentation/guides/flow-control.md`](documentation/guides/flow-control.md)
+- distributed execution: [`documentation/guides/distributed-execution.md`](documentation/guides/distributed-execution.md)
+- performance: [`documentation/guides/performance.md`](documentation/guides/performance.md)
+- operational tooling: [`documentation/guides/operational-tooling.md`](documentation/guides/operational-tooling.md)
 
 ## Project Layout
 
@@ -257,8 +257,10 @@ Feature-specific guides:
   PostgreSQL integration and approval tests
 - [`src/benchmarks/Pipelinez.Benchmarks`](src/benchmarks/Pipelinez.Benchmarks)
   BenchmarkDotNet-based performance benchmarks
-- [`docs-site`](docs-site)
+- [`docs`](docs)
   DocFX configuration for generated API documentation and the GitHub Pages site
+- [`documentation`](documentation)
+  conceptual documentation source used by the generated site
 
 ## Running Locally
 
@@ -318,7 +320,7 @@ Pipelinez treats the public API of `Pipelinez` and `Pipelinez.Kafka` as an inten
 - preview APIs should be explicitly marked and documented when introduced
 - public API approval tests protect both assemblies from accidental surface changes in normal PR and CI validation
 
-See [`docs/ApiStability.md`](docs/ApiStability.md) for the full policy and maintainer workflow.
+See [`documentation/ApiStability.md`](documentation/ApiStability.md) for the full policy and maintainer workflow.
 
 ## Releases
 

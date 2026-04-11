@@ -24,7 +24,7 @@
         ]
       },
       {
-        "src": "../docs",
+        "src": "../documentation",
         "files": [
           "**/*.md",
           "toc.yml"
