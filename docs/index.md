@@ -5,7 +5,7 @@ Pipelinez is a .NET 8 library for building typed, observable source -> segment -
 ## Start Here
 
 - <a href="https://kenberg75.github.io/Pipelinez/articles/README.html">Conceptual documentation</a>
-- <a href="https://kenberg75.github.io/Pipelinez/api/index.html">API reference</a>
+- <a href="https://kenberg75.github.io/Pipelinez/api/Pipelinez.Core.html">API reference</a>
 - <a href="https://kenberg75.github.io/Pipelinez/articles/getting-started/in-memory.html">In-memory quickstart</a>
 - <a href="https://kenberg75.github.io/Pipelinez/articles/getting-started/kafka.html">Kafka quickstart</a>
 - <a href="https://kenberg75.github.io/Pipelinez/articles/getting-started/postgresql-destination.html">PostgreSQL destination quickstart</a>

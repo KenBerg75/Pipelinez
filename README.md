@@ -69,7 +69,7 @@ dotnet add package Pipelinez.PostgreSql
 
 Public package publishing is configured through GitHub tag releases and NuGet Trusted Publishing.
 
-The published packages include XML IntelliSense documentation, so the public API descriptions are available directly in editors like Visual Studio and Rider. Browsable generated API documentation is published at [`kenberg75.github.io/Pipelinez/api`](https://kenberg75.github.io/Pipelinez/api/).
+The published packages include XML IntelliSense documentation, so the public API descriptions are available directly in editors like Visual Studio and Rider. Browsable generated API documentation is published at [`kenberg75.github.io/Pipelinez/api/Pipelinez.Core.html`](https://kenberg75.github.io/Pipelinez/api/Pipelinez.Core.html).
 
 ## Quick Example
 
@@ -227,7 +227,7 @@ var pipeline = Pipeline<MyRecord>.New("postgres-pipeline")
 - Using PostgreSQL destinations: [`documentation/getting-started/postgresql-destination.md`](documentation/getting-started/postgresql-destination.md)
 - Architecture overview: [`documentation/Overview.md`](documentation/Overview.md)
 - Runtime and transport internals: [`documentation/README.md`](documentation/README.md)
-- API reference: [`kenberg75.github.io/Pipelinez/api`](https://kenberg75.github.io/Pipelinez/api/)
+- API reference: [`kenberg75.github.io/Pipelinez/api/Pipelinez.Core.html`](https://kenberg75.github.io/Pipelinez/api/Pipelinez.Core.html)
 - API compatibility policy: [`documentation/ApiStability.md`](documentation/ApiStability.md)
 
 Feature-specific guides:

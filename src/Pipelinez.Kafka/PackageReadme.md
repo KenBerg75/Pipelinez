@@ -85,6 +85,6 @@ public sealed class MyRecord : PipelineRecord
 
 - NuGet: https://www.nuget.org/packages/Pipelinez.Kafka
 - Repository: https://github.com/KenBerg75/Pipelinez
-- API reference: https://kenberg75.github.io/Pipelinez/api/
+- API reference: https://kenberg75.github.io/Pipelinez/api/Pipelinez.Core.html
 - Getting started: https://github.com/KenBerg75/Pipelinez/blob/main/documentation/getting-started/kafka.md
 - Kafka docs: https://github.com/KenBerg75/Pipelinez/blob/main/documentation/transports/kafka.md
