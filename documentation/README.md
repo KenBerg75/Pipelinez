@@ -6,7 +6,7 @@ This folder contains the main documentation set for Pipelinez.
 
 - [Overview](Overview.md)
   architectural overview of the current runtime
-- [Generated API Reference](https://kenberg75.github.io/Pipelinez/api/)
+- [Generated API Reference](https://kenberg75.github.io/Pipelinez/api/Pipelinez.Core.html)
   browsable API documentation generated from public XML docs
 - [API Stability](ApiStability.md)
   public API compatibility policy and maintainer workflow
@@ -66,4 +66,4 @@ dotnet add package Pipelinez.PostgreSql
 
 Public releases are configured through tag-based GitHub Actions and NuGet Trusted Publishing.
 
-All public packages also ship XML IntelliSense documentation so API descriptions show up directly in supported IDEs. The same XML documentation is used to generate the public API reference at https://kenberg75.github.io/Pipelinez/api/.
+All public packages also ship XML IntelliSense documentation so API descriptions show up directly in supported IDEs. The same XML documentation is used to generate the public API reference at https://kenberg75.github.io/Pipelinez/api/Pipelinez.Core.html.
