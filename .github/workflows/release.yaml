@@ -32,10 +32,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 8.0.x
 
@@ -94,7 +94,7 @@ jobs:
           upload-release-assets: false
 
       - name: Upload Packages
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pipelinez-packages
           path: artifacts/packages/*
@@ -113,12 +113,12 @@ jobs:
 
     steps:
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 8.0.x
 
       - name: Download Packages
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: pipelinez-packages
           path: artifacts/packages
