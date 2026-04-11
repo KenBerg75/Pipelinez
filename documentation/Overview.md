@@ -873,7 +873,7 @@ The solution now includes two test layers.
 - option validation and generated SQL safety
 - public API approval coverage for the PostgreSQL package
 
-At the time of this overview update, `dotnet test src\\Pipelinez.sln` passes with both the core and Kafka integration suites green.
+At the time of this overview update, `dotnet test src\\Pipelinez.sln` passes with the core, Kafka, and PostgreSQL test suites green.
 
 ## Current State
 
@@ -895,6 +895,7 @@ The major architectural work called out in the earlier planning docs has been im
 - explicit PostgreSQL destination and dead-letter transport support
 - explicit flow-control policies with publish results, saturation status, and pressure metrics
 - explicit operational tooling with health snapshots, health checks, meter metrics, and correlation-aware diagnostics
+- explicit dependency and security automation with Dependabot, Dependency Review, CodeQL, OpenSSF Scorecard, and release SBOM generation
 
 The remaining work is mostly future evolution work rather than foundational cleanup. Likely areas include broader transport coverage, schema-registry integration tests, and further runtime ergonomics.
 
@@ -902,8 +903,8 @@ The remaining work is mostly future evolution work rather than foundational clea
 
 Pipelinez now also has explicit public API governance in place.
 
-- the repository treats `Pipelinez` and `Pipelinez.Kafka` as intentional consumer contracts
-- public API approval tests snapshot the compiled surface of both assemblies
+- the repository treats `Pipelinez`, `Pipelinez.Kafka`, and `Pipelinez.PostgreSql` as intentional consumer contracts
+- public API approval tests snapshot the compiled surface of all public package assemblies
 - accidental API changes now fail the normal test suite, which means they are also caught by the existing PR and CI workflows
 - contributor guidance now distinguishes stable, preview, and internal-only surface area
 

@@ -40,6 +40,8 @@
   items:
     - name: Troubleshooting
       href: operations/troubleshooting.md
+    - name: Security Automation
+      href: operations/security-automation.md
 - name: Architecture
   items:
     - name: Runtime
