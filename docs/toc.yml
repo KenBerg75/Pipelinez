@@ -1,52 +1,6 @@
-- name: Documentation Home
-  href: README.md
-- name: Overview
-  href: Overview.md
-- name: API Stability
-  href: ApiStability.md
-- name: Getting Started
-  items:
-    - name: In-Memory Pipeline
-      href: getting-started/in-memory.md
-    - name: Kafka Pipeline
-      href: getting-started/kafka.md
-    - name: PostgreSQL Destination
-      href: getting-started/postgresql-destination.md
-- name: Guides
-  items:
-    - name: Lifecycle
-      href: guides/lifecycle.md
-    - name: Error Handling
-      href: guides/error-handling.md
-    - name: Retry
-      href: guides/retry.md
-    - name: Dead-Lettering
-      href: guides/dead-lettering.md
-    - name: Flow Control
-      href: guides/flow-control.md
-    - name: Distributed Execution
-      href: guides/distributed-execution.md
-    - name: Performance
-      href: guides/performance.md
-    - name: Operational Tooling
-      href: guides/operational-tooling.md
-- name: Transports
-  items:
-    - name: Kafka
-      href: transports/kafka.md
-    - name: PostgreSQL
-      href: transports/postgresql.md
-- name: Operations
-  items:
-    - name: Troubleshooting
-      href: operations/troubleshooting.md
-- name: Architecture
-  items:
-    - name: Runtime
-      href: architecture/runtime.md
-    - name: Kafka Internals
-      href: architecture/kafka.md
-    - name: PostgreSQL Internals
-      href: architecture/postgresql.md
-    - name: Testing
-      href: architecture/testing.md
+- name: Home
+  href: index.md
+- name: Articles
+  href: https://kenberg75.github.io/Pipelinez/articles/README.html
+- name: API Reference
+  href: api/

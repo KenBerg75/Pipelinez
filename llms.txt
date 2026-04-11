@@ -50,19 +50,19 @@ dotnet add package Pipelinez.PostgreSql
 ## Key Docs
 
 - Root overview: `README.md`
-- Documentation index: `docs/README.md`
-- Architecture overview: `docs/Overview.md`
-- In-memory quickstart: `docs/getting-started/in-memory.md`
-- Kafka quickstart: `docs/getting-started/kafka.md`
-- PostgreSQL destination quickstart: `docs/getting-started/postgresql-destination.md`
-- Kafka transport docs: `docs/transports/kafka.md`
-- PostgreSQL transport docs: `docs/transports/postgresql.md`
-- Lifecycle guide: `docs/guides/lifecycle.md`
-- Retry guide: `docs/guides/retry.md`
-- Dead-lettering guide: `docs/guides/dead-lettering.md`
-- Flow-control guide: `docs/guides/flow-control.md`
-- Operational tooling guide: `docs/guides/operational-tooling.md`
-- API stability policy: `docs/ApiStability.md`
+- Documentation index: `documentation/README.md`
+- Architecture overview: `documentation/Overview.md`
+- In-memory quickstart: `documentation/getting-started/in-memory.md`
+- Kafka quickstart: `documentation/getting-started/kafka.md`
+- PostgreSQL destination quickstart: `documentation/getting-started/postgresql-destination.md`
+- Kafka transport docs: `documentation/transports/kafka.md`
+- PostgreSQL transport docs: `documentation/transports/postgresql.md`
+- Lifecycle guide: `documentation/guides/lifecycle.md`
+- Retry guide: `documentation/guides/retry.md`
+- Dead-lettering guide: `documentation/guides/dead-lettering.md`
+- Flow-control guide: `documentation/guides/flow-control.md`
+- Operational tooling guide: `documentation/guides/operational-tooling.md`
+- API stability policy: `documentation/ApiStability.md`
 - Contributing guide: `CONTRIBUTING.md`
 
 ## Minimal In-Memory Example
