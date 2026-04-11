@@ -12,6 +12,7 @@ Pipelinez is a reusable library, so contributions should optimize not only for c
 - run the full test suite with `dotnet test src/Pipelinez.sln`
 - if you change performance-sensitive behavior, consider running the benchmark project too
 - if you change package metadata or release behavior, validate local packages with `./scripts/Validate-Packages.ps1 -PackageDirectory artifacts/packages`
+- if you change public API documentation or docs-site configuration, build generated docs with `dotnet docfx docs-site/docfx.json`
 
 ## Public API Changes
 
@@ -66,7 +67,7 @@ dotnet test src/Pipelinez.sln --logger "console;verbosity=minimal"
 
 ## Public API XML Documentation
 
-Both public packages enforce XML documentation coverage for public APIs during normal builds.
+All public packages enforce XML documentation coverage for public APIs during normal builds.
 
 That means:
 
@@ -75,9 +76,18 @@ That means:
 - option/configuration properties should document important defaults and behavior interactions
 - event docs should call out important ordering or lifecycle guarantees when they matter
 
-The compiler enforces this with `CS1591` as an error for `Pipelinez` and `Pipelinez.Kafka`.
+The compiler enforces this with `CS1591` as an error for `Pipelinez`, `Pipelinez.Kafka`, and `Pipelinez.PostgreSql`.
 
 If you add or change a public API, make the XML documentation update in the same pull request.
+
+Generated API documentation is built with DocFX:
+
+```powershell
+dotnet tool restore
+dotnet docfx docs-site/docfx.json
+```
+
+The generated site is deployed from `main` through the `Docs` GitHub Actions workflow.
 
 ## Documentation
 

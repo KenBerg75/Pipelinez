@@ -1,0 +1,94 @@
+# Pipelinez
+
+> Typed, observable record-processing pipelines for .NET.
+
+Pipelinez is a .NET 8 library for building typed source -> segment -> destination record-processing pipelines inside normal application code. It provides lifecycle management, retries, dead-lettering, flow control, performance snapshots, health/metrics, and transport extensions.
+
+## Packages
+
+- `Pipelinez`: core runtime for typed records, sources, segments, destinations, retry, dead-lettering, flow control, performance, and operational tooling.
+- `Pipelinez.Kafka`: Kafka source, destination, dead-letter topic, distributed worker, and partition-aware scaling extensions.
+- `Pipelinez.PostgreSql`: PostgreSQL destination and dead-letter write extensions with consumer-owned schema mapping and custom SQL support.
+
+## Install
+
+```bash
+dotnet add package Pipelinez
+dotnet add package Pipelinez.Kafka
+dotnet add package Pipelinez.PostgreSql
+```
+
+## Use Pipelinez When
+
+- You are building a .NET background worker or service that processes records through typed steps.
+- You want a source -> segment -> destination pipeline model instead of hand-wiring TPL Dataflow and runtime plumbing.
+- You need retry, dead-lettering, error policies, backpressure, health, metrics, and correlation around record processing.
+- You need Kafka-backed ingestion, Kafka publishing, Kafka dead-lettering, or partition-aware Kafka workers.
+- You need to write successful records or dead-letter records to PostgreSQL tables owned by your application.
+
+## Do Not Use Pipelinez When
+
+- You need a full distributed stream-processing platform with a large external cluster runtime.
+- You primarily need an enterprise service bus with sagas, durable orchestration, routing conventions, and many broker abstractions.
+- You only need low-level TPL Dataflow blocks and want to manage lifecycle, retries, metrics, and error handling yourself.
+
+## Common Package Selection
+
+- In-memory or custom transport pipeline: install `Pipelinez`.
+- Kafka source or destination: install `Pipelinez.Kafka`.
+- PostgreSQL destination or dead-letter table: install `Pipelinez.PostgreSql`.
+- Kafka input with PostgreSQL output: install `Pipelinez.Kafka` and `Pipelinez.PostgreSql`.
+
+## Key Concepts
+
+- `PipelineRecord`: base type for records processed by a pipeline.
+- `Pipeline<T>`: builder entry point and runtime object.
+- `PipelineSegment<T>`: typed processing step.
+- `PipelineContainer<T>`: runtime wrapper that carries record metadata, fault state, retry history, and execution history.
+- `PipelineErrorAction`: terminal action returned by error handlers, including skip, stop, rethrow, and dead-letter behavior.
+
+## Key Docs
+
+- Root overview: `README.md`
+- Documentation index: `docs/README.md`
+- Architecture overview: `docs/Overview.md`
+- In-memory quickstart: `docs/getting-started/in-memory.md`
+- Kafka quickstart: `docs/getting-started/kafka.md`
+- PostgreSQL destination quickstart: `docs/getting-started/postgresql-destination.md`
+- Kafka transport docs: `docs/transports/kafka.md`
+- PostgreSQL transport docs: `docs/transports/postgresql.md`
+- Lifecycle guide: `docs/guides/lifecycle.md`
+- Retry guide: `docs/guides/retry.md`
+- Dead-lettering guide: `docs/guides/dead-lettering.md`
+- Flow-control guide: `docs/guides/flow-control.md`
+- Operational tooling guide: `docs/guides/operational-tooling.md`
+- API stability policy: `docs/ApiStability.md`
+- Contributing guide: `CONTRIBUTING.md`
+
+## Minimal In-Memory Example
+
+```csharp
+using Pipelinez.Core;
+using Pipelinez.Core.Record;
+
+public sealed class OrderRecord : PipelineRecord
+{
+    public required string Id { get; init; }
+}
+
+var pipeline = Pipeline<OrderRecord>.New("orders")
+    .WithInMemorySource(new object())
+    .WithInMemoryDestination("in-memory")
+    .Build();
+
+await pipeline.StartPipelineAsync();
+await pipeline.PublishAsync(new OrderRecord { Id = "A-100" });
+await pipeline.CompleteAsync();
+await pipeline.Completion;
+```
+
+## Repository
+
+- GitHub: `https://github.com/KenBerg75/Pipelinez`
+- License: MIT
+- Target framework: .NET 8

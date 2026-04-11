@@ -8,8 +8,8 @@
         <IsPackable>true</IsPackable>
         <PackageId>Pipelinez</PackageId>
         <Title>Pipelinez</Title>
-        <Description>Typed data pipelines for .NET with explicit lifecycle, flow control, retry, dead-lettering, distributed execution, performance tuning, and operational tooling.</Description>
-        <PackageTags>pipeline;dataflow;etl;messaging;distributed;retry;observability;dotnet</PackageTags>
+        <Description>Typed, observable record-processing pipelines for .NET with source-to-destination flow, retries, dead-lettering, backpressure, metrics, and transport extensions.</Description>
+        <PackageTags>pipeline;pipelines;dataflow;etl;messaging;workflow;stream-processing;retry;dead-letter;backpressure;observability;dotnet;csharp</PackageTags>
         <PackageReadmeFile>PackageReadme.md</PackageReadmeFile>
     </PropertyGroup>
 

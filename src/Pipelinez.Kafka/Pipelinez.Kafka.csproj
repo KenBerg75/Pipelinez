@@ -8,8 +8,8 @@
         <IsPackable>true</IsPackable>
         <PackageId>Pipelinez.Kafka</PackageId>
         <Title>Pipelinez.Kafka</Title>
-        <Description>Kafka transport extensions for Pipelinez, including Kafka-backed sources, destinations, dead-lettering, distributed execution, and partition-aware scaling.</Description>
-        <PackageTags>pipeline;kafka;confluent;messaging;distributed;dotnet</PackageTags>
+        <Description>Kafka transport extensions for Pipelinez with Kafka sources, destinations, dead-letter topics, distributed workers, and partition-aware stream processing.</Description>
+        <PackageTags>pipeline;kafka;apache-kafka;confluent;messaging;stream-processing;distributed;partitioning;dead-letter;dotnet;csharp</PackageTags>
         <PackageReadmeFile>PackageReadme.md</PackageReadmeFile>
     </PropertyGroup>
 

@@ -2,6 +2,13 @@
 
 Typed, observable record-processing pipelines for .NET.
 
+[![NuGet](https://img.shields.io/nuget/v/Pipelinez.svg)](https://www.nuget.org/packages/Pipelinez)
+[![NuGet Kafka](https://img.shields.io/nuget/v/Pipelinez.Kafka.svg)](https://www.nuget.org/packages/Pipelinez.Kafka)
+[![NuGet PostgreSQL](https://img.shields.io/nuget/v/Pipelinez.PostgreSql.svg)](https://www.nuget.org/packages/Pipelinez.PostgreSql)
+[![CI](https://github.com/KenBerg75/Pipelinez/actions/workflows/CI.yaml/badge.svg)](https://github.com/KenBerg75/Pipelinez/actions/workflows/CI.yaml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![.NET](https://img.shields.io/badge/.NET-8.0-512BD4)](https://dotnet.microsoft.com/)
+
 Pipelinez is a .NET 8 library for building typed record-processing pipelines inside normal application code. It gives you a consistent way to move records from a source, through one or more processing steps, into a destination, with built-in lifecycle management, retries, dead-lettering, flow control, and runtime observability.
 
 If your application needs to ingest, enrich, transform, route, or publish records without hand-wiring the surrounding runtime behavior each time, Pipelinez is the layer that organizes that work.
@@ -30,10 +37,13 @@ Pipelinez is not trying to replace large distributed stream-processing platforms
 
 ## Installation
 
-The first public packages are available on NuGet.org:
+The public packages are available on NuGet.org:
 
-- [`Pipelinez`](https://www.nuget.org/packages/Pipelinez)
-- [`Pipelinez.Kafka`](https://www.nuget.org/packages/Pipelinez.Kafka)
+| Package | Purpose | Install |
+| --- | --- | --- |
+| [`Pipelinez`](https://www.nuget.org/packages/Pipelinez) | Core typed pipeline runtime | `dotnet add package Pipelinez` |
+| [`Pipelinez.Kafka`](https://www.nuget.org/packages/Pipelinez.Kafka) | Kafka source, destination, dead-lettering, distributed execution, and partition-aware scaling | `dotnet add package Pipelinez.Kafka` |
+| [`Pipelinez.PostgreSql`](https://www.nuget.org/packages/Pipelinez.PostgreSql) | PostgreSQL destination and dead-letter writes with consumer-owned schema mapping | `dotnet add package Pipelinez.PostgreSql` |
 
 Install the core runtime:
 
@@ -49,11 +59,17 @@ dotnet add package Pipelinez.Kafka
 
 `Pipelinez.Kafka` depends on `Pipelinez`, so Kafka consumers do not need to add both explicitly unless they want to.
 
-The repository also contains `Pipelinez.PostgreSql`, a PostgreSQL destination and dead-letter transport extension that is currently available in-source and participates in the same pack and validation flow.
+For PostgreSQL destination or dead-letter support:
+
+```bash
+dotnet add package Pipelinez.PostgreSql
+```
+
+`Pipelinez.PostgreSql` also depends on `Pipelinez`, so PostgreSQL consumers do not need to add both explicitly unless they want to.
 
 Public package publishing is configured through GitHub tag releases and NuGet Trusted Publishing.
 
-The published packages include XML IntelliSense documentation, so the public API descriptions are available directly in editors like Visual Studio and Rider.
+The published packages include XML IntelliSense documentation, so the public API descriptions are available directly in editors like Visual Studio and Rider. Browsable generated API documentation is published at [`kenberg75.github.io/Pipelinez/api`](https://kenberg75.github.io/Pipelinez/api/).
 
 ## Quick Example
 
@@ -211,6 +227,7 @@ var pipeline = Pipeline<MyRecord>.New("postgres-pipeline")
 - Using PostgreSQL destinations: [`docs/getting-started/postgresql-destination.md`](docs/getting-started/postgresql-destination.md)
 - Architecture overview: [`docs/Overview.md`](docs/Overview.md)
 - Runtime and transport internals: [`docs/README.md`](docs/README.md)
+- API reference: [`kenberg75.github.io/Pipelinez/api`](https://kenberg75.github.io/Pipelinez/api/)
 - API compatibility policy: [`docs/ApiStability.md`](docs/ApiStability.md)
 
 Feature-specific guides:
@@ -240,6 +257,8 @@ Feature-specific guides:
   PostgreSQL integration and approval tests
 - [`src/benchmarks/Pipelinez.Benchmarks`](src/benchmarks/Pipelinez.Benchmarks)
   BenchmarkDotNet-based performance benchmarks
+- [`docs-site`](docs-site)
+  DocFX configuration for generated API documentation and the GitHub Pages site
 
 ## Running Locally
 

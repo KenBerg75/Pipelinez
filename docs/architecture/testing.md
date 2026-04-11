@@ -94,4 +94,4 @@ Use PostgreSQL integration tests when:
 
 - [Overview](../Overview.md)
 - [API Stability](../ApiStability.md)
-- [Contributing](../../CONTRIBUTING.md)
+- [Contributing](https://github.com/KenBerg75/Pipelinez/blob/main/CONTRIBUTING.md)

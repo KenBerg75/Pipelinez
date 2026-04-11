@@ -1,0 +1,57 @@
+{
+  "$schema": "https://dotnet.github.io/docfx/schemas/docfx.schema.json",
+  "metadata": [
+    {
+      "src": [
+        {
+          "src": "..",
+          "files": [
+            "src/Pipelinez/Pipelinez.csproj",
+            "src/Pipelinez.Kafka/Pipelinez.Kafka.csproj",
+            "src/Pipelinez.PostgreSql/Pipelinez.PostgreSql.csproj"
+          ]
+        }
+      ],
+      "dest": "api"
+    }
+  ],
+  "build": {
+    "content": [
+      {
+        "files": [
+          "index.md",
+          "toc.yml"
+        ]
+      },
+      {
+        "src": "../docs",
+        "files": [
+          "**/*.md",
+          "toc.yml"
+        ],
+        "dest": "articles"
+      },
+      {
+        "files": [
+          "api/**.yml",
+          "api/index.md"
+        ]
+      }
+    ],
+    "dest": "_site",
+    "globalMetadata": {
+      "_appName": "Pipelinez",
+      "_appTitle": "Pipelinez API Documentation",
+      "_enableSearch": true,
+      "_disableContribution": true,
+      "_disableBreadcrumb": false,
+      "_gitContribute": {
+        "repo": "https://github.com/KenBerg75/Pipelinez"
+      }
+    },
+    "template": [
+      "default",
+      "modern"
+    ]
+  }
+}
