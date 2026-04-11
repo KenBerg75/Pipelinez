@@ -19,6 +19,6 @@
   </PropertyGroup>
 
   <ItemGroup Condition="'$(MSBuildProjectName)' == 'Pipelinez' Or '$(MSBuildProjectName)' == 'Pipelinez.Kafka' Or '$(MSBuildProjectName)' == 'Pipelinez.PostgreSql'">
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.201" PrivateAssets="All" />
   </ItemGroup>
 </Project>
