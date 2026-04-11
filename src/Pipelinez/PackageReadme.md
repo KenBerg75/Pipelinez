@@ -1,8 +1,12 @@
 # Pipelinez
 
-Typed data pipelines for .NET.
+Typed, observable record-processing pipelines for .NET.
 
-`Pipelinez` is the core runtime package. It provides:
+`Pipelinez` is the core runtime package for building source -> segment -> destination pipelines inside normal .NET applications. Use it when you need to ingest, enrich, transform, route, or publish records with consistent lifecycle management, retries, dead-lettering, flow control, and observability.
+
+## What This Package Does
+
+`Pipelinez` provides:
 
 - typed records
 - sources, segments, and destinations
@@ -14,7 +18,11 @@ Typed data pipelines for .NET.
 - distributed execution abstractions
 - performance and operational tooling
 
-## Package Layout
+## When To Use This Package
+
+Use `Pipelinez` when your application needs a typed pipeline runtime around record-processing logic and you do not want to hand-wire TPL Dataflow blocks, retry behavior, dead-letter handling, backpressure, metrics, and health reporting for every pipeline.
+
+## Related Packages
 
 - `Pipelinez`
   core runtime

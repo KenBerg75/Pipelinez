@@ -8,8 +8,8 @@
         <IsPackable>true</IsPackable>
         <PackageId>Pipelinez.PostgreSql</PackageId>
         <Title>Pipelinez.PostgreSql</Title>
-        <Description>PostgreSQL destination and dead-letter transport extensions for Pipelinez with consumer-owned schema mapping and Dapper-backed execution.</Description>
-        <PackageTags>pipeline;postgresql;postgres;dapper;dead-letter;dotnet</PackageTags>
+        <Description>PostgreSQL destination and dead-letter extensions for Pipelinez with consumer-owned schema mapping, custom SQL, and Dapper-backed database writes.</Description>
+        <PackageTags>pipeline;postgresql;postgres;database;destination;dapper;dead-letter;outbox;etl;dotnet;csharp</PackageTags>
         <PackageReadmeFile>PackageReadme.md</PackageReadmeFile>
     </PropertyGroup>
 

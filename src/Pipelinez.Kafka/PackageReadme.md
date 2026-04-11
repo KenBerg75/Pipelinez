@@ -2,6 +2,10 @@
 
 Kafka transport extensions for Pipelinez.
 
+Use `Pipelinez.Kafka` when a Pipelinez pipeline needs to read from Kafka topics, write to Kafka topics, dead-letter failed records to Kafka, or run partition-aware distributed Kafka workers.
+
+## What This Package Does
+
 `Pipelinez.Kafka` adds:
 
 - `WithKafkaSource(...)`
@@ -10,6 +14,10 @@ Kafka transport extensions for Pipelinez.
 - Kafka configuration types
 - Kafka-backed distributed execution support
 - partition-aware scaling controls
+
+## When To Use This Package
+
+Use this package when Kafka is part of your record-processing pipeline and you want Pipelinez to manage the pipeline lifecycle, retries, dead-lettering, backpressure, worker ownership, and partition-aware execution around Kafka records.
 
 ## Install
 
@@ -21,6 +29,8 @@ dotnet add package Pipelinez.Kafka
 
 Related transport package in this repository:
 
+- `Pipelinez`
+  core pipeline runtime
 - `Pipelinez.PostgreSql`
   PostgreSQL destination and dead-letter transport extensions
 

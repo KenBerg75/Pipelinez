@@ -2,6 +2,10 @@
 
 PostgreSQL transport extensions for Pipelinez.
 
+Use `Pipelinez.PostgreSql` when a Pipelinez pipeline needs to write successful records or dead-letter records to PostgreSQL tables owned by your application.
+
+## What This Package Does
+
 `Pipelinez.PostgreSql` adds:
 
 - `WithPostgreSqlDestination(...)`
@@ -10,6 +14,10 @@ PostgreSQL transport extensions for Pipelinez.
 - custom parameterized SQL execution through `PostgreSqlCommandDefinition`
 - Dapper-backed PostgreSQL writes for normal and dead-letter flows
 
+## When To Use This Package
+
+Use this package when PostgreSQL is a pipeline destination or dead-letter store. The package does not require a Pipelinez-owned schema; your application controls table names, column names, and custom SQL.
+
 ## Install
 
 ```bash
@@ -17,6 +25,11 @@ dotnet add package Pipelinez.PostgreSql
 ```
 
 `Pipelinez.PostgreSql` depends on `Pipelinez`, so you do not need to add both explicitly unless you prefer to do so.
+
+Related package:
+
+- `Pipelinez`
+  core pipeline runtime
 
 ## Quick Example
 
@@ -47,5 +60,6 @@ public sealed class OrderRecord : PipelineRecord
 
 ## More Information
 
+- NuGet: https://www.nuget.org/packages/Pipelinez.PostgreSql
 - Repository: https://github.com/KenBerg75/Pipelinez
-- Docs: https://github.com/KenBerg75/Pipelinez/tree/main/docs
+- PostgreSQL docs: https://github.com/KenBerg75/Pipelinez/blob/main/docs/transports/postgresql.md
