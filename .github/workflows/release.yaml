@@ -84,6 +84,15 @@ jobs:
         shell: pwsh
         run: ./scripts/Validate-Packages.ps1 -PackageDirectory artifacts/packages -PackageVersion ${{ steps.version.outputs.package_version }}
 
+      - name: Generate Package SBOM
+        uses: anchore/sbom-action@v0.24.0
+        with:
+          path: artifacts/packages
+          format: spdx-json
+          output-file: artifacts/packages/pipelinez-packages.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
       - name: Upload Packages
         uses: actions/upload-artifact@v4
         with:

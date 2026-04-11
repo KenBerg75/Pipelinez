@@ -40,6 +40,7 @@ This folder contains the main documentation set for Pipelinez.
 
 - [Troubleshooting](operations/troubleshooting.md)
 - [Repository Topics](operations/repository-topics.md)
+- [Security Automation](operations/security-automation.md)
 
 ## Architecture
 

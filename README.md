@@ -6,6 +6,8 @@ Typed, observable record-processing pipelines for .NET.
 [![NuGet Kafka](https://img.shields.io/nuget/v/Pipelinez.Kafka.svg)](https://www.nuget.org/packages/Pipelinez.Kafka)
 [![NuGet PostgreSQL](https://img.shields.io/nuget/v/Pipelinez.PostgreSql.svg)](https://www.nuget.org/packages/Pipelinez.PostgreSql)
 [![CI](https://github.com/KenBerg75/Pipelinez/actions/workflows/CI.yaml/badge.svg)](https://github.com/KenBerg75/Pipelinez/actions/workflows/CI.yaml)
+[![CodeQL](https://github.com/KenBerg75/Pipelinez/actions/workflows/codeql.yaml/badge.svg)](https://github.com/KenBerg75/Pipelinez/actions/workflows/codeql.yaml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/KenBerg75/Pipelinez/badge)](https://scorecard.dev/viewer/?uri=github.com/KenBerg75/Pipelinez)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-8.0-512BD4)](https://dotnet.microsoft.com/)
 
@@ -311,6 +313,7 @@ Current implemented capabilities include:
 - Docker-backed Kafka integration coverage
 - Docker-backed PostgreSQL destination and dead-letter integration coverage
 - public API approval tests and repository-level API stability guidance
+- Dependabot, Dependency Review, CodeQL, OpenSSF Scorecard, and release SBOM automation
 
 ## API Stability
 
@@ -324,7 +327,7 @@ See [`documentation/ApiStability.md`](documentation/ApiStability.md) for the ful
 
 ## Releases
 
-Pipelinez uses SemVer-style versions and publishes `Pipelinez` and `Pipelinez.Kafka` with aligned package versions.
+Pipelinez uses SemVer-style versions and publishes `Pipelinez`, `Pipelinez.Kafka`, and `Pipelinez.PostgreSql` with aligned package versions.
 
 - stable releases use tags like `v1.2.3`
 - preview releases use tags like `v1.3.0-preview.1`

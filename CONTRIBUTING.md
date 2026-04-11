@@ -100,6 +100,20 @@ That usually means some combination of:
 - `documentation/ApiStability.md`
 - examples under `src/examples`
 
+## Dependency And Security Automation
+
+Dependency updates are managed through Dependabot and are expected to follow the same validation path as human-authored changes.
+
+Maintainer expectations:
+
+- review Dependabot pull requests for release-note impact before merging
+- prefer grouped dependency updates unless a security advisory requires an isolated hotfix
+- keep GitHub Actions updates small and verify workflow permissions before merging
+- treat dependency review failures as blocking unless the advisory is not applicable and the exception is documented in the pull request
+- check CodeQL and OpenSSF Scorecard findings before release branches or release tags are created
+
+Release package artifacts include an SPDX JSON SBOM generated from the packed NuGet artifacts. If release packaging changes, confirm the SBOM is still uploaded with the package artifact and attached to tag-based GitHub Releases.
+
 ## Pull Requests
 
 Keep pull requests focused and make public API changes explicit in the description. If your PR changes consumer-facing behavior, call that out directly so reviewers can evaluate compatibility impact separately from implementation details.
