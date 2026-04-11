@@ -123,7 +123,7 @@ If a change affects a public API:
 - update consumer-facing docs when usage changes
 - add migration guidance when replacing an existing API
 
-For broader contributor guidance, see [CONTRIBUTING.md](../CONTRIBUTING.md).
+For broader contributor guidance, see [CONTRIBUTING.md](https://github.com/KenBerg75/Pipelinez/blob/main/CONTRIBUTING.md).
 
 ## Release Communication
 

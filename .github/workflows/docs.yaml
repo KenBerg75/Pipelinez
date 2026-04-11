@@ -1,0 +1,70 @@
+name: Docs
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    paths:
+      - "docs/**"
+      - "docs-site/**"
+      - "src/Pipelinez/**"
+      - "src/Pipelinez.Kafka/**"
+      - "src/Pipelinez.PostgreSql/**"
+      - ".config/dotnet-tools.json"
+      - ".github/workflows/docs.yaml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build-docs:
+    name: Build Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore Tools
+        run: dotnet tool restore
+
+      - name: Build Documentation
+        run: dotnet docfx docs-site/docfx.json
+
+      - name: Upload Documentation Site
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs-site/_site
+
+  deploy-docs:
+    name: Deploy Documentation
+    needs: build-docs
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
+
+    steps:
+      - name: Deploy To GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

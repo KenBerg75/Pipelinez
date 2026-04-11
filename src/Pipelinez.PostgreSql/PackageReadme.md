@@ -14,10 +14,6 @@ Use `Pipelinez.PostgreSql` when a Pipelinez pipeline needs to write successful r
 - custom parameterized SQL execution through `PostgreSqlCommandDefinition`
 - Dapper-backed PostgreSQL writes for normal and dead-letter flows
 
-## When To Use This Package
-
-Use this package when PostgreSQL is a pipeline destination or dead-letter store. The package does not require a Pipelinez-owned schema; your application controls table names, column names, and custom SQL.
-
 ## Install
 
 ```bash
@@ -26,12 +22,11 @@ dotnet add package Pipelinez.PostgreSql
 
 `Pipelinez.PostgreSql` depends on `Pipelinez`, so you do not need to add both explicitly unless you prefer to do so.
 
-Related package:
+## When To Use This Package
 
-- `Pipelinez`
-  core pipeline runtime
+Use this package when PostgreSQL is a pipeline destination or dead-letter store. The package does not require a Pipelinez-owned schema; your application controls table names, column names, and custom SQL.
 
-## Quick Example
+## Minimal Example
 
 ```csharp
 using Pipelinez.Core;
@@ -58,8 +53,25 @@ public sealed class OrderRecord : PipelineRecord
 }
 ```
 
-## More Information
+## Common Recipes
+
+- Write successful pipeline records to a PostgreSQL table.
+- Write dead-letter records to a PostgreSQL dead-letter table.
+- Use `PostgreSqlTableMap<T>` for generated inserts into consumer-owned tables.
+- Use `PostgreSqlCommandDefinition` for custom parameterized SQL.
+- Combine `Pipelinez.Kafka` with `Pipelinez.PostgreSql` to persist processed Kafka records.
+
+## Related Packages
+
+- [`Pipelinez`](https://www.nuget.org/packages/Pipelinez)
+  core pipeline runtime.
+- [`Pipelinez.Kafka`](https://www.nuget.org/packages/Pipelinez.Kafka)
+  Kafka source, destination, dead-lettering, distributed execution, and partition-aware scaling.
+
+## Documentation
 
 - NuGet: https://www.nuget.org/packages/Pipelinez.PostgreSql
 - Repository: https://github.com/KenBerg75/Pipelinez
+- API reference: https://kenberg75.github.io/Pipelinez/api/
+- Getting started: https://github.com/KenBerg75/Pipelinez/blob/main/docs/getting-started/postgresql-destination.md
 - PostgreSQL docs: https://github.com/KenBerg75/Pipelinez/blob/main/docs/transports/postgresql.md

@@ -64,4 +64,4 @@ dotnet run -c Release --project src/benchmarks/Pipelinez.Benchmarks
 
 - [Flow Control](flow-control.md)
 - [Operational Tooling](operational-tooling.md)
-- [Benchmark README](../../src/benchmarks/Pipelinez.Benchmarks/README.md)
+- [Benchmark README](https://github.com/KenBerg75/Pipelinez/blob/main/src/benchmarks/Pipelinez.Benchmarks/README.md)
