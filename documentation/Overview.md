@@ -22,17 +22,21 @@ Each record flows through the runtime inside a `PipelineContainer<T>`, which let
 ## Solution Layout
 
 - `src/Pipelinez.sln`
-  the main solution containing the core library, Kafka extension library, tests, and examples
+  the main solution containing the core library, transport extension libraries, tests, and examples
 - `src/Pipelinez`
   the transport-agnostic pipeline runtime
 - `src/Pipelinez.Kafka`
   the Kafka transport extension assembly
+- `src/Pipelinez.AzureServiceBus`
+  the Azure Service Bus transport extension assembly
 - `src/Pipelinez.PostgreSql`
   the PostgreSQL destination and dead-letter transport extension assembly
 - `src/tests/Pipelinez.Tests`
   unit and runtime tests for core pipeline behavior
 - `src/tests/Pipelinez.Kafka.Tests`
   Docker-backed Kafka integration tests using Testcontainers
+- `src/tests/Pipelinez.AzureServiceBus.Tests`
+  Azure Service Bus transport and approval tests
 - `src/tests/Pipelinez.PostgreSql.Tests`
   Docker-backed PostgreSQL destination and dead-letter integration tests using Testcontainers
 - `src/benchmarks/Pipelinez.Benchmarks`
@@ -41,6 +45,8 @@ Each record flows through the runtime inside a `PipelineContainer<T>`, which let
   sample application that builds a Kafka-backed pipeline
 - `src/examples/Example.Kafka.DataGen`
   simple Kafka publisher used to generate example traffic
+- `src/examples/Example.AzureServiceBus`
+  sample application that builds an Azure Service Bus-backed pipeline
 - `documentation/README.md`
   documentation index linking getting-started, guides, transport docs, operations docs, and architecture docs
 
@@ -50,14 +56,15 @@ The public packages are available on NuGet.org:
 
 - [`Pipelinez`](https://www.nuget.org/packages/Pipelinez)
 - [`Pipelinez.Kafka`](https://www.nuget.org/packages/Pipelinez.Kafka)
+- [`Pipelinez.AzureServiceBus`](https://www.nuget.org/packages/Pipelinez.AzureServiceBus)
+- [`Pipelinez.PostgreSql`](https://www.nuget.org/packages/Pipelinez.PostgreSql)
 
 The repository remains configured for package metadata, XML docs, Source Link, symbol packages, and CI pack validation.
-The repository also contains `Pipelinez.PostgreSql`, which follows the same packaging model and local package validation flow.
 Public release automation is configured through tag-based GitHub Actions and NuGet Trusted Publishing.
 
 Versioning rules:
 
-- `Pipelinez` and `Pipelinez.Kafka` ship with aligned versions
+- `Pipelinez`, `Pipelinez.Kafka`, `Pipelinez.AzureServiceBus`, and `Pipelinez.PostgreSql` ship with aligned versions
 - stable releases use tags such as `v1.2.3`
 - preview releases use tags such as `v1.3.0-preview.1`
 - manual release workflow dispatch is intended for package validation and does not publish to NuGet.org
@@ -873,7 +880,7 @@ The solution now includes two test layers.
 - option validation and generated SQL safety
 - public API approval coverage for the PostgreSQL package
 
-At the time of this overview update, `dotnet test src\\Pipelinez.sln` passes with the core, Kafka, and PostgreSQL test suites green.
+The standard validation path is `dotnet test src\\Pipelinez.sln`. Kafka and PostgreSQL suites require Docker/Testcontainers, while Azure Service Bus live end-to-end coverage is opt-in through `PIPELINEZ_ASB_CONNECTION_STRING`.
 
 ## Current State
 
@@ -903,7 +910,7 @@ The remaining work is mostly future evolution work rather than foundational clea
 
 Pipelinez now also has explicit public API governance in place.
 
-- the repository treats `Pipelinez`, `Pipelinez.Kafka`, and `Pipelinez.PostgreSql` as intentional consumer contracts
+- the repository treats `Pipelinez`, `Pipelinez.Kafka`, `Pipelinez.AzureServiceBus`, and `Pipelinez.PostgreSql` as intentional consumer contracts
 - public API approval tests snapshot the compiled surface of all public package assemblies
 - accidental API changes now fail the normal test suite, which means they are also caught by the existing PR and CI workflows
 - contributor guidance now distinguishes stable, preview, and internal-only surface area

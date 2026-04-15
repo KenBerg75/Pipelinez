@@ -6,6 +6,7 @@
 
 - [ ] `dotnet build src/Pipelinez.sln`
 - [ ] `dotnet test src/Pipelinez.sln --logger "console;verbosity=minimal"`
+- [ ] `./scripts/Validate-Packages.ps1 -PackageDirectory artifacts/packages` when package metadata, public APIs, or release behavior changed
 
 ## Release Impact
 

@@ -4,6 +4,7 @@ Typed, observable record-processing pipelines for .NET.
 
 [![NuGet](https://img.shields.io/nuget/v/Pipelinez.svg)](https://www.nuget.org/packages/Pipelinez)
 [![NuGet Kafka](https://img.shields.io/nuget/v/Pipelinez.Kafka.svg)](https://www.nuget.org/packages/Pipelinez.Kafka)
+[![NuGet Azure Service Bus](https://img.shields.io/nuget/v/Pipelinez.AzureServiceBus.svg)](https://www.nuget.org/packages/Pipelinez.AzureServiceBus)
 [![NuGet PostgreSQL](https://img.shields.io/nuget/v/Pipelinez.PostgreSql.svg)](https://www.nuget.org/packages/Pipelinez.PostgreSql)
 [![CI](https://github.com/KenBerg75/Pipelinez/actions/workflows/CI.yaml/badge.svg)](https://github.com/KenBerg75/Pipelinez/actions/workflows/CI.yaml)
 [![CodeQL](https://github.com/KenBerg75/Pipelinez/actions/workflows/codeql.yaml/badge.svg)](https://github.com/KenBerg75/Pipelinez/actions/workflows/codeql.yaml)
@@ -45,6 +46,7 @@ The public packages are available on NuGet.org:
 | --- | --- | --- |
 | [`Pipelinez`](https://www.nuget.org/packages/Pipelinez) | Core typed pipeline runtime | `dotnet add package Pipelinez` |
 | [`Pipelinez.Kafka`](https://www.nuget.org/packages/Pipelinez.Kafka) | Kafka source, destination, dead-lettering, distributed execution, and partition-aware scaling | `dotnet add package Pipelinez.Kafka` |
+| [`Pipelinez.AzureServiceBus`](https://www.nuget.org/packages/Pipelinez.AzureServiceBus) | Azure Service Bus queue/topic sources, destinations, dead-lettering, and competing-consumer workers | `dotnet add package Pipelinez.AzureServiceBus` |
 | [`Pipelinez.PostgreSql`](https://www.nuget.org/packages/Pipelinez.PostgreSql) | PostgreSQL destination and dead-letter writes with consumer-owned schema mapping | `dotnet add package Pipelinez.PostgreSql` |
 
 Install the core runtime:
@@ -60,6 +62,14 @@ dotnet add package Pipelinez.Kafka
 ```
 
 `Pipelinez.Kafka` depends on `Pipelinez`, so Kafka consumers do not need to add both explicitly unless they want to.
+
+For Azure Service Bus support:
+
+```bash
+dotnet add package Pipelinez.AzureServiceBus
+```
+
+`Pipelinez.AzureServiceBus` depends on `Pipelinez`, so Azure Service Bus consumers do not need to add both explicitly unless they want to.
 
 For PostgreSQL destination or dead-letter support:
 
@@ -138,6 +148,7 @@ That container model is what allows Pipelinez to keep runtime behavior explicit 
 - explicit flow control, saturation visibility, and publish results
 - performance tuning, batching, and runtime performance snapshots
 - distributed execution and partition-aware Kafka scaling
+- Azure Service Bus queue/topic source, destination, and dead-letter transport support
 - PostgreSQL destination and dead-letter transport support
 - health checks, metrics, correlation IDs, and runtime events
 
@@ -192,6 +203,61 @@ For a full walkthrough, see:
 - [`src/examples/Example.Kafka.DataGen`](src/examples/Example.Kafka.DataGen)
 - [`src/tests/Pipelinez.Kafka.Tests`](src/tests/Pipelinez.Kafka.Tests)
 
+## Azure Service Bus Support
+
+Azure Service Bus support lives in the separate `Pipelinez.AzureServiceBus` package and adds:
+
+- queue source support
+- topic subscription source support
+- queue and topic destination support
+- Pipelinez dead-letter destinations
+- competing-consumer distributed worker support
+
+Example shape:
+
+```csharp
+using Azure.Messaging.ServiceBus;
+using Pipelinez.AzureServiceBus;
+using Pipelinez.AzureServiceBus.Configuration;
+using Pipelinez.Core;
+
+var connection = new AzureServiceBusConnectionOptions
+{
+    ConnectionString = "Endpoint=sb://..."
+};
+
+var pipeline = Pipeline<MyRecord>.New("asb-pipeline")
+    .WithAzureServiceBusSource(
+        new AzureServiceBusSourceOptions
+        {
+            Connection = connection,
+            Entity = AzureServiceBusEntityOptions.ForQueue("orders-in")
+        },
+        message => new MyRecord
+        {
+            Id = message.MessageId,
+            Value = message.Body.ToString()
+        })
+    .WithAzureServiceBusDestination(
+        new AzureServiceBusDestinationOptions
+        {
+            Connection = connection,
+            Entity = AzureServiceBusEntityOptions.ForQueue("orders-out")
+        },
+        record => new ServiceBusMessage(BinaryData.FromString(record.Value))
+        {
+            MessageId = record.Id
+        })
+    .Build();
+```
+
+For a full walkthrough, see:
+
+- [`documentation/getting-started/azure-service-bus.md`](documentation/getting-started/azure-service-bus.md)
+- [`documentation/transports/azure-service-bus.md`](documentation/transports/azure-service-bus.md)
+- [`src/examples/Example.AzureServiceBus`](src/examples/Example.AzureServiceBus)
+- [`src/tests/Pipelinez.AzureServiceBus.Tests`](src/tests/Pipelinez.AzureServiceBus.Tests)
+
 ## PostgreSQL Support
 
 PostgreSQL support lives in the separate `Pipelinez.PostgreSql` package in this repository and currently focuses on:
@@ -226,6 +292,7 @@ var pipeline = Pipeline<MyRecord>.New("postgres-pipeline")
 
 - New to Pipelinez: [`documentation/getting-started/in-memory.md`](documentation/getting-started/in-memory.md)
 - Using Kafka: [`documentation/getting-started/kafka.md`](documentation/getting-started/kafka.md)
+- Using Azure Service Bus: [`documentation/getting-started/azure-service-bus.md`](documentation/getting-started/azure-service-bus.md)
 - Using PostgreSQL destinations: [`documentation/getting-started/postgresql-destination.md`](documentation/getting-started/postgresql-destination.md)
 - Architecture overview: [`documentation/Overview.md`](documentation/Overview.md)
 - Runtime and transport internals: [`documentation/README.md`](documentation/README.md)
@@ -249,12 +316,16 @@ Feature-specific guides:
   core runtime
 - [`src/Pipelinez.Kafka`](src/Pipelinez.Kafka)
   Kafka transport extension
+- [`src/Pipelinez.AzureServiceBus`](src/Pipelinez.AzureServiceBus)
+  Azure Service Bus transport extension
 - [`src/Pipelinez.PostgreSql`](src/Pipelinez.PostgreSql)
   PostgreSQL destination and dead-letter transport extension
 - [`src/tests/Pipelinez.Tests`](src/tests/Pipelinez.Tests)
   core tests
 - [`src/tests/Pipelinez.Kafka.Tests`](src/tests/Pipelinez.Kafka.Tests)
   Kafka integration tests
+- [`src/tests/Pipelinez.AzureServiceBus.Tests`](src/tests/Pipelinez.AzureServiceBus.Tests)
+  Azure Service Bus transport and approval tests
 - [`src/tests/Pipelinez.PostgreSql.Tests`](src/tests/Pipelinez.PostgreSql.Tests)
   PostgreSQL integration and approval tests
 - [`src/benchmarks/Pipelinez.Benchmarks`](src/benchmarks/Pipelinez.Benchmarks)
@@ -296,6 +367,12 @@ Run the Kafka data generator:
 dotnet run --project src/examples/Example.Kafka.DataGen
 ```
 
+Run the Azure Service Bus example:
+
+```bash
+dotnet run --project src/examples/Example.AzureServiceBus
+```
+
 The Kafka examples and Kafka integration tests use Docker/Testcontainers for local broker startup unless you provide an existing broker through environment variables.
 
 ## Status
@@ -311,23 +388,24 @@ Current implemented capabilities include:
 - performance tuning, batching, and runtime performance snapshots
 - operational health snapshots, health checks, metrics, and correlation IDs
 - Docker-backed Kafka integration coverage
+- Azure Service Bus transport unit and API approval coverage
 - Docker-backed PostgreSQL destination and dead-letter integration coverage
 - public API approval tests and repository-level API stability guidance
 - Dependabot, Dependency Review, CodeQL, OpenSSF Scorecard, and release SBOM automation
 
 ## API Stability
 
-Pipelinez treats the public API of `Pipelinez` and `Pipelinez.Kafka` as an intentional compatibility contract.
+Pipelinez treats the public API of `Pipelinez`, `Pipelinez.Kafka`, `Pipelinez.AzureServiceBus`, and `Pipelinez.PostgreSql` as an intentional compatibility contract.
 
 - stable APIs are expected to remain source-compatible within the current major version
 - preview APIs should be explicitly marked and documented when introduced
-- public API approval tests protect both assemblies from accidental surface changes in normal PR and CI validation
+- public API approval tests protect package assemblies from accidental surface changes in normal PR and CI validation
 
 See [`documentation/ApiStability.md`](documentation/ApiStability.md) for the full policy and maintainer workflow.
 
 ## Releases
 
-Pipelinez uses SemVer-style versions and publishes `Pipelinez`, `Pipelinez.Kafka`, and `Pipelinez.PostgreSql` with aligned package versions.
+Pipelinez uses SemVer-style versions and publishes `Pipelinez`, `Pipelinez.Kafka`, `Pipelinez.AzureServiceBus`, and `Pipelinez.PostgreSql` with aligned package versions.
 
 - stable releases use tags like `v1.2.3`
 - preview releases use tags like `v1.3.0-preview.1`

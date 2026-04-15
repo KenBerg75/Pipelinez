@@ -2,13 +2,14 @@
 
 All notable changes to Pipelinez will be documented in this file.
 
-Pipelinez uses [Semantic Versioning](https://semver.org/). The `Pipelinez` and `Pipelinez.Kafka` packages ship with aligned versions.
+Pipelinez uses [Semantic Versioning](https://semver.org/). The `Pipelinez`, `Pipelinez.Kafka`, `Pipelinez.AzureServiceBus`, and `Pipelinez.PostgreSql` packages ship with aligned versions.
 
 ## [Unreleased]
 
 ### Added
 
-- Nothing yet.
+- Added the `Pipelinez.AzureServiceBus` transport package with queue and topic subscription sources, queue/topic destinations, dead-letter publishing, competing-consumer worker support, docs, examples, and approval/unit test coverage.
+- Extended CI, PR, release, docs, ownership, and package smoke validation workflows so `Pipelinez.AzureServiceBus` is validated and published with the existing package set.
 
 ## [1.0.0] - 2026-04-07
 

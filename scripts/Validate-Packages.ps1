@@ -117,20 +117,28 @@ $resolvedPackageDirectory = (Resolve-Path -Path $PackageDirectory).Path
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $coreProjectPath = Join-Path (Join-Path $repoRoot 'src') (Join-Path 'Pipelinez' 'Pipelinez.csproj')
 $kafkaProjectPath = Join-Path (Join-Path $repoRoot 'src') (Join-Path 'Pipelinez.Kafka' 'Pipelinez.Kafka.csproj')
+$azureServiceBusProjectPath = Join-Path (Join-Path $repoRoot 'src') (Join-Path 'Pipelinez.AzureServiceBus' 'Pipelinez.AzureServiceBus.csproj')
 $postgresProjectPath = Join-Path (Join-Path $repoRoot 'src') (Join-Path 'Pipelinez.PostgreSql' 'Pipelinez.PostgreSql.csproj')
 
 $coreVersion = Get-PackageVersion -ProjectPath $coreProjectPath -RepositoryRoot $repoRoot
 $kafkaVersion = Get-PackageVersion -ProjectPath $kafkaProjectPath -RepositoryRoot $repoRoot
+$azureServiceBusVersion = Get-PackageVersion -ProjectPath $azureServiceBusProjectPath -RepositoryRoot $repoRoot
 $postgresVersion = Get-PackageVersion -ProjectPath $postgresProjectPath -RepositoryRoot $repoRoot
 
-if ($coreVersion -ne $kafkaVersion)
-{
-    throw "Pipelinez and Pipelinez.Kafka package versions must match. Core: $coreVersion Kafka: $kafkaVersion"
-}
+$packageVersions = @(
+    [pscustomobject]@{ Name = 'Pipelinez'; Version = $coreVersion },
+    [pscustomobject]@{ Name = 'Pipelinez.Kafka'; Version = $kafkaVersion },
+    [pscustomobject]@{ Name = 'Pipelinez.AzureServiceBus'; Version = $azureServiceBusVersion },
+    [pscustomobject]@{ Name = 'Pipelinez.PostgreSql'; Version = $postgresVersion }
+)
 
-if ($coreVersion -ne $postgresVersion)
+$referenceVersion = $packageVersions[0].Version
+$mismatchedPackages = @($packageVersions | Where-Object { $_.Version -ne $referenceVersion })
+
+if ($mismatchedPackages.Count -gt 0)
 {
-    throw "Pipelinez, Pipelinez.Kafka, and Pipelinez.PostgreSql package versions must match. Core: $coreVersion Kafka: $kafkaVersion PostgreSql: $postgresVersion"
+    $versionSummary = ($packageVersions | ForEach-Object { '{0}: {1}' -f $_.Name, $_.Version }) -join ' '
+    throw "Pipelinez package versions must match. $versionSummary"
 }
 
 $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("pipelinez-package-smoke-" + [guid]::NewGuid().ToString('N'))
@@ -219,6 +227,55 @@ public sealed class KafkaSmokeRecord : PipelineRecord
 }
 "@ | Set-Content -Path (Join-Path $kafkaSmokeDirectory 'Program.cs')
     Invoke-DotNet -Arguments @('build', (Join-Path $kafkaSmokeDirectory 'KafkaSmoke.csproj'), '--configfile', $nugetConfigPath, '--configuration', 'Release')
+
+    $azureServiceBusSmokeDirectory = Join-Path $tempRoot 'AzureServiceBusSmoke'
+    Invoke-DotNet -Arguments @('new', 'console', '--framework', 'net8.0', '--output', $azureServiceBusSmokeDirectory)
+    Invoke-DotNet -Arguments @('add', (Join-Path $azureServiceBusSmokeDirectory 'AzureServiceBusSmoke.csproj'), 'package', 'Pipelinez.AzureServiceBus', '--version', $azureServiceBusVersion, '--source', $resolvedPackageDirectory)
+    @"
+using Azure.Messaging.ServiceBus;
+using Pipelinez.AzureServiceBus;
+using Pipelinez.AzureServiceBus.Configuration;
+using Pipelinez.Core;
+using Pipelinez.Core.Record;
+
+var connection = new AzureServiceBusConnectionOptions
+{
+    ConnectionString = "Endpoint=sb://example.servicebus.windows.net/;SharedAccessKeyName=name;SharedAccessKey=key"
+};
+
+var pipeline = Pipeline<AzureServiceBusSmokeRecord>.New("orders")
+    .WithAzureServiceBusSource(
+        new AzureServiceBusSourceOptions
+        {
+            Connection = connection,
+            Entity = AzureServiceBusEntityOptions.ForQueue("orders-in")
+        },
+        message => new AzureServiceBusSmokeRecord
+        {
+            Id = message.MessageId,
+            Value = message.Body.ToString()
+        })
+    .WithAzureServiceBusDestination(
+        new AzureServiceBusDestinationOptions
+        {
+            Connection = connection,
+            Entity = AzureServiceBusEntityOptions.ForQueue("orders-out")
+        },
+        record => new ServiceBusMessage(BinaryData.FromString(record.Value))
+        {
+            MessageId = record.Id
+        })
+    .Build();
+
+Console.WriteLine(pipeline.GetStatus().Status);
+
+public sealed class AzureServiceBusSmokeRecord : PipelineRecord
+{
+    public required string Id { get; init; }
+    public required string Value { get; init; }
+}
+"@ | Set-Content -Path (Join-Path $azureServiceBusSmokeDirectory 'Program.cs')
+    Invoke-DotNet -Arguments @('build', (Join-Path $azureServiceBusSmokeDirectory 'AzureServiceBusSmoke.csproj'), '--configfile', $nugetConfigPath, '--configuration', 'Release')
 
     $postgresSmokeDirectory = Join-Path $tempRoot 'PostgreSqlSmoke'
     Invoke-DotNet -Arguments @('new', 'console', '--framework', 'net8.0', '--output', $postgresSmokeDirectory)

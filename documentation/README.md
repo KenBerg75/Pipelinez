@@ -17,6 +17,8 @@ This folder contains the main documentation set for Pipelinez.
   first end-to-end pipeline without external infrastructure
 - [Kafka Pipeline](getting-started/kafka.md)
   first Kafka-backed pipeline using the example Docker workflow
+- [Azure Service Bus Pipeline](getting-started/azure-service-bus.md)
+  first Azure Service Bus queue-backed pipeline shape
 - [PostgreSQL Destination](getting-started/postgresql-destination.md)
   first PostgreSQL-backed destination and dead-letter pipeline shape
 
@@ -34,6 +36,7 @@ This folder contains the main documentation set for Pipelinez.
 ## Transport Docs
 
 - [Kafka](transports/kafka.md)
+- [Azure Service Bus](transports/azure-service-bus.md)
 - [PostgreSQL](transports/postgresql.md)
 
 ## Operations
@@ -46,6 +49,7 @@ This folder contains the main documentation set for Pipelinez.
 
 - [Runtime](architecture/runtime.md)
 - [Kafka Internals](architecture/kafka.md)
+- [Azure Service Bus Internals](architecture/azure-service-bus.md)
 - [PostgreSQL Internals](architecture/postgresql.md)
 - [Testing](architecture/testing.md)
 
@@ -55,6 +59,7 @@ The public packages are available on NuGet.org:
 
 - [`Pipelinez`](https://www.nuget.org/packages/Pipelinez)
 - [`Pipelinez.Kafka`](https://www.nuget.org/packages/Pipelinez.Kafka)
+- [`Pipelinez.AzureServiceBus`](https://www.nuget.org/packages/Pipelinez.AzureServiceBus)
 - [`Pipelinez.PostgreSql`](https://www.nuget.org/packages/Pipelinez.PostgreSql)
 
 Install with:
@@ -62,6 +67,7 @@ Install with:
 ```bash
 dotnet add package Pipelinez
 dotnet add package Pipelinez.Kafka
+dotnet add package Pipelinez.AzureServiceBus
 dotnet add package Pipelinez.PostgreSql
 ```
 

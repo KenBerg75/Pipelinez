@@ -10,6 +10,8 @@
       href: getting-started/in-memory.md
     - name: Kafka Pipeline
       href: getting-started/kafka.md
+    - name: Azure Service Bus Pipeline
+      href: getting-started/azure-service-bus.md
     - name: PostgreSQL Destination
       href: getting-started/postgresql-destination.md
 - name: Guides
@@ -34,6 +36,8 @@
   items:
     - name: Kafka
       href: transports/kafka.md
+    - name: Azure Service Bus
+      href: transports/azure-service-bus.md
     - name: PostgreSQL
       href: transports/postgresql.md
 - name: Operations
@@ -48,6 +52,8 @@
       href: architecture/runtime.md
     - name: Kafka Internals
       href: architecture/kafka.md
+    - name: Azure Service Bus Internals
+      href: architecture/azure-service-bus.md
     - name: PostgreSQL Internals
       href: architecture/postgresql.md
     - name: Testing

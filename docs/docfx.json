@@ -8,6 +8,7 @@
           "files": [
             "src/Pipelinez/Pipelinez.csproj",
             "src/Pipelinez.Kafka/Pipelinez.Kafka.csproj",
+            "src/Pipelinez.AzureServiceBus/Pipelinez.AzureServiceBus.csproj",
             "src/Pipelinez.PostgreSql/Pipelinez.PostgreSql.csproj"
           ]
         }

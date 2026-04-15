@@ -2,5 +2,8 @@
 .github/ @KenBerg75
 src/Pipelinez/ @KenBerg75
 src/Pipelinez.Kafka/ @KenBerg75
+src/Pipelinez.AzureServiceBus/ @KenBerg75
+src/Pipelinez.PostgreSql/ @KenBerg75
 docs/ @KenBerg75
+documentation/ @KenBerg75
 scripts/ @KenBerg75

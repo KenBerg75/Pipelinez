@@ -8,6 +8,7 @@ Pipelinez is a .NET 8 library for building typed source -> segment -> destinatio
 
 - `Pipelinez`: core runtime for typed records, sources, segments, destinations, retry, dead-lettering, flow control, performance, and operational tooling.
 - `Pipelinez.Kafka`: Kafka source, destination, dead-letter topic, distributed worker, and partition-aware scaling extensions.
+- `Pipelinez.AzureServiceBus`: Azure Service Bus queue and topic subscription sources, queue/topic destinations, dead-letter publishing, and competing-consumer worker support.
 - `Pipelinez.PostgreSql`: PostgreSQL destination and dead-letter write extensions with consumer-owned schema mapping and custom SQL support.
 
 ## Install
@@ -15,6 +16,7 @@ Pipelinez is a .NET 8 library for building typed source -> segment -> destinatio
 ```bash
 dotnet add package Pipelinez
 dotnet add package Pipelinez.Kafka
+dotnet add package Pipelinez.AzureServiceBus
 dotnet add package Pipelinez.PostgreSql
 ```
 
@@ -24,6 +26,7 @@ dotnet add package Pipelinez.PostgreSql
 - You want a source -> segment -> destination pipeline model instead of hand-wiring TPL Dataflow and runtime plumbing.
 - You need retry, dead-lettering, error policies, backpressure, health, metrics, and correlation around record processing.
 - You need Kafka-backed ingestion, Kafka publishing, Kafka dead-lettering, or partition-aware Kafka workers.
+- You need Azure Service Bus queue or topic subscription ingestion, queue/topic publishing, or Service Bus-backed dead-letter publishing.
 - You need to write successful records or dead-letter records to PostgreSQL tables owned by your application.
 
 ## Do Not Use Pipelinez When
@@ -36,6 +39,7 @@ dotnet add package Pipelinez.PostgreSql
 
 - In-memory or custom transport pipeline: install `Pipelinez`.
 - Kafka source or destination: install `Pipelinez.Kafka`.
+- Azure Service Bus source or destination: install `Pipelinez.AzureServiceBus`.
 - PostgreSQL destination or dead-letter table: install `Pipelinez.PostgreSql`.
 - Kafka input with PostgreSQL output: install `Pipelinez.Kafka` and `Pipelinez.PostgreSql`.
 
@@ -54,8 +58,10 @@ dotnet add package Pipelinez.PostgreSql
 - Architecture overview: `documentation/Overview.md`
 - In-memory quickstart: `documentation/getting-started/in-memory.md`
 - Kafka quickstart: `documentation/getting-started/kafka.md`
+- Azure Service Bus quickstart: `documentation/getting-started/azure-service-bus.md`
 - PostgreSQL destination quickstart: `documentation/getting-started/postgresql-destination.md`
 - Kafka transport docs: `documentation/transports/kafka.md`
+- Azure Service Bus transport docs: `documentation/transports/azure-service-bus.md`
 - PostgreSQL transport docs: `documentation/transports/postgresql.md`
 - Lifecycle guide: `documentation/guides/lifecycle.md`
 - Retry guide: `documentation/guides/retry.md`

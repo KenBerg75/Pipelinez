@@ -48,12 +48,25 @@ This suite validates:
 - dead-letter custom SQL writes
 - connection-configuration validation and API approval coverage
 
+### Azure Service Bus Tests
+
+`src/tests/Pipelinez.AzureServiceBus.Tests` covers Azure Service Bus transport behavior with focused unit tests and public API approval coverage.
+
+This suite validates:
+
+- connection and entity configuration
+- source logical distributed lease reporting
+- destination sends through the transport sender abstraction
+- dead-letter message publishing metadata
+- public API approval coverage
+
 ## API Approval Tests
 
 The repository now also includes public API approval tests for:
 
 - `Pipelinez`
 - `Pipelinez.Kafka`
+- `Pipelinez.AzureServiceBus`
 - `Pipelinez.PostgreSql`
 
 Those tests compare the compiled public surface to checked-in approved baselines.
@@ -64,6 +77,7 @@ Baseline refresh workflow:
 $env:PIPELINEZ_UPDATE_API_BASELINES='1'
 dotnet test src/tests/Pipelinez.Tests/Pipelinez.Tests.csproj --filter ApiApprovalTests
 dotnet test src/tests/Pipelinez.Kafka.Tests/Pipelinez.Kafka.Tests.csproj --filter ApiApprovalTests
+dotnet test src/tests/Pipelinez.AzureServiceBus.Tests/Pipelinez.AzureServiceBus.Tests.csproj --filter ApiApprovalTests
 dotnet test src/tests/Pipelinez.PostgreSql.Tests/Pipelinez.PostgreSql.Tests.csproj --filter ApiApprovalTests
 ```
 
@@ -84,6 +98,11 @@ Use Kafka integration tests when:
 
 - the behavior depends on a real broker
 - the scenario depends on Kafka offsets, partitions, rebalance, or headers
+
+Use Azure Service Bus tests when:
+
+- the behavior depends on Service Bus connection, entity, header, or settlement semantics
+- the scenario validates queue/topic destination behavior or competing-consumer metadata
 
 Use PostgreSQL integration tests when:
 

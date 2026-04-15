@@ -8,7 +8,7 @@ Audience: application developers running multiple workers against a distributed-
 - `PipelineHostOptions`
 - `GetRuntimeContext()`
 - worker and partition events
-- Kafka as the current distributed transport
+- Kafka and Azure Service Bus distributed transport behavior
 
 ## Enable Distributed Mode
 
@@ -55,12 +55,15 @@ pipeline.OnPartitionDraining += (_, args) =>
 ## Important Behaviors
 
 - distributed mode requires a source that supports distributed ownership
-- Kafka is the currently implemented distributed transport
+- Kafka reports explicit partition ownership and partition execution state
+- Azure Service Bus reports a logical queue or subscription lease while Service Bus handles competing-consumer message distribution
 - `GetStatus()` and `GetRuntimeContext()` both expose ownership and execution information
 - partition drain and execution-state events are intended for observability, not direct transport control
 
 ## Related Docs
 
 - [Kafka Transport](../transports/kafka.md)
+- [Azure Service Bus Transport](../transports/azure-service-bus.md)
 - [Operational Tooling](operational-tooling.md)
 - [Architecture: Kafka Internals](../architecture/kafka.md)
+- [Architecture: Azure Service Bus Internals](../architecture/azure-service-bus.md)
