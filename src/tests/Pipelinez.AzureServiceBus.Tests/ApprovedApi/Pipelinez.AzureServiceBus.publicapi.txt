@@ -1,0 +1,96 @@
+Assembly: Pipelinez.AzureServiceBus
+
+public static class Pipelinez.AzureServiceBus.AzureServiceBusPipelineBuilderExtensions
+  METHOD public static Pipelinez.Core.PipelineBuilder<T> WithAzureServiceBusDeadLetterDestination<T>(Pipelinez.Core.PipelineBuilder<T> builder, Pipelinez.AzureServiceBus.Configuration.AzureServiceBusDeadLetterOptions options, System.Func<Pipelinez.Core.DeadLettering.PipelineDeadLetterRecord<T>, Azure.Messaging.ServiceBus.ServiceBusMessage> messageMapper) where T : Pipelinez.Core.Record.PipelineRecord
+  METHOD public static Pipelinez.Core.PipelineBuilder<T> WithAzureServiceBusDestination<T>(Pipelinez.Core.PipelineBuilder<T> builder, Pipelinez.AzureServiceBus.Configuration.AzureServiceBusDestinationOptions options, System.Func<T, Azure.Messaging.ServiceBus.ServiceBusMessage> messageMapper) where T : Pipelinez.Core.Record.PipelineRecord
+  METHOD public static Pipelinez.Core.PipelineBuilder<T> WithAzureServiceBusSource<T>(Pipelinez.Core.PipelineBuilder<T> builder, Pipelinez.AzureServiceBus.Configuration.AzureServiceBusSourceOptions options, System.Func<Azure.Messaging.ServiceBus.ServiceBusReceivedMessage, T> recordMapper) where T : Pipelinez.Core.Record.PipelineRecord
+
+public class Pipelinez.AzureServiceBus.Configuration.AzureServiceBusConnectionOptions
+  CTOR public Pipelinez.AzureServiceBus.Configuration.AzureServiceBusConnectionOptions()
+  PROPERTY public Azure.Messaging.ServiceBus.ServiceBusClientOptions ClientOptions { get; set; }
+  PROPERTY public string ConnectionString { get; set; }
+  PROPERTY public Azure.Core.TokenCredential Credential { get; set; }
+  PROPERTY public string FullyQualifiedNamespace { get; set; }
+  METHOD public Pipelinez.AzureServiceBus.Configuration.AzureServiceBusConnectionOptions Validate()
+
+public class Pipelinez.AzureServiceBus.Configuration.AzureServiceBusDeadLetterOptions
+  CTOR public Pipelinez.AzureServiceBus.Configuration.AzureServiceBusDeadLetterOptions()
+  PROPERTY public Pipelinez.AzureServiceBus.Configuration.AzureServiceBusConnectionOptions Connection { get; set; }
+  PROPERTY public Pipelinez.AzureServiceBus.Configuration.AzureServiceBusEntityOptions Entity { get; set; }
+  METHOD public Pipelinez.AzureServiceBus.Configuration.AzureServiceBusDeadLetterOptions Validate()
+
+public class Pipelinez.AzureServiceBus.Configuration.AzureServiceBusDestinationOptions
+  CTOR public Pipelinez.AzureServiceBus.Configuration.AzureServiceBusDestinationOptions()
+  PROPERTY public Pipelinez.AzureServiceBus.Configuration.AzureServiceBusConnectionOptions Connection { get; set; }
+  PROPERTY public Pipelinez.AzureServiceBus.Configuration.AzureServiceBusEntityOptions Entity { get; set; }
+  METHOD public Pipelinez.AzureServiceBus.Configuration.AzureServiceBusDestinationOptions Validate()
+
+public enum Pipelinez.AzureServiceBus.Configuration.AzureServiceBusEntityKind
+  FIELD public static const Pipelinez.AzureServiceBus.Configuration.AzureServiceBusEntityKind Queue = Pipelinez.AzureServiceBus.Configuration.AzureServiceBusEntityKind.0
+  FIELD public static const Pipelinez.AzureServiceBus.Configuration.AzureServiceBusEntityKind Topic = Pipelinez.AzureServiceBus.Configuration.AzureServiceBusEntityKind.1
+  FIELD public static const Pipelinez.AzureServiceBus.Configuration.AzureServiceBusEntityKind TopicSubscription = Pipelinez.AzureServiceBus.Configuration.AzureServiceBusEntityKind.2
+
+public class Pipelinez.AzureServiceBus.Configuration.AzureServiceBusEntityOptions
+  CTOR public Pipelinez.AzureServiceBus.Configuration.AzureServiceBusEntityOptions()
+  PROPERTY public Pipelinez.AzureServiceBus.Configuration.AzureServiceBusEntityKind EntityKind { get; set; }
+  PROPERTY public string QueueName { get; set; }
+  PROPERTY public string SubscriptionName { get; set; }
+  PROPERTY public string TopicName { get; set; }
+  METHOD public static Pipelinez.AzureServiceBus.Configuration.AzureServiceBusEntityOptions ForQueue(string queueName)
+  METHOD public static Pipelinez.AzureServiceBus.Configuration.AzureServiceBusEntityOptions ForTopic(string topicName)
+  METHOD public static Pipelinez.AzureServiceBus.Configuration.AzureServiceBusEntityOptions ForTopicSubscription(string topicName, string subscriptionName)
+  METHOD public Pipelinez.AzureServiceBus.Configuration.AzureServiceBusEntityOptions ValidateForDestination()
+  METHOD public Pipelinez.AzureServiceBus.Configuration.AzureServiceBusEntityOptions ValidateForSource()
+
+public enum Pipelinez.AzureServiceBus.Configuration.AzureServiceBusPipelineDeadLetterSettlement
+  FIELD public static const Pipelinez.AzureServiceBus.Configuration.AzureServiceBusPipelineDeadLetterSettlement CompleteSourceMessage = Pipelinez.AzureServiceBus.Configuration.AzureServiceBusPipelineDeadLetterSettlement.0
+  FIELD public static const Pipelinez.AzureServiceBus.Configuration.AzureServiceBusPipelineDeadLetterSettlement DeadLetterSourceMessage = Pipelinez.AzureServiceBus.Configuration.AzureServiceBusPipelineDeadLetterSettlement.1
+
+public class Pipelinez.AzureServiceBus.Configuration.AzureServiceBusSourceOptions
+  CTOR public Pipelinez.AzureServiceBus.Configuration.AzureServiceBusSourceOptions()
+  PROPERTY public System.Action<Azure.Messaging.ServiceBus.ServiceBusProcessorOptions> ConfigureProcessor { get; set; }
+  PROPERTY public Pipelinez.AzureServiceBus.Configuration.AzureServiceBusConnectionOptions Connection { get; set; }
+  PROPERTY public Pipelinez.AzureServiceBus.Configuration.AzureServiceBusEntityOptions Entity { get; set; }
+  PROPERTY public System.TimeSpan MaxAutoLockRenewalDuration { get; set; }
+  PROPERTY public int MaxConcurrentCalls { get; set; }
+  PROPERTY public int PrefetchCount { get; set; }
+  PROPERTY public Pipelinez.AzureServiceBus.Configuration.AzureServiceBusSourceSettlementOptions Settlement { get; set; }
+  METHOD public Pipelinez.AzureServiceBus.Configuration.AzureServiceBusSourceOptions Validate()
+
+public class Pipelinez.AzureServiceBus.Configuration.AzureServiceBusSourceSettlementOptions
+  CTOR public Pipelinez.AzureServiceBus.Configuration.AzureServiceBusSourceSettlementOptions()
+  PROPERTY public bool AbandonOnStopOrRethrow { get; set; }
+  PROPERTY public Pipelinez.AzureServiceBus.Configuration.AzureServiceBusPipelineDeadLetterSettlement PipelineDeadLetterSettlement { get; set; }
+  METHOD public Pipelinez.AzureServiceBus.Configuration.AzureServiceBusSourceSettlementOptions Validate()
+
+public class Pipelinez.AzureServiceBus.DeadLettering.AzureServiceBusDeadLetterDestination<T> : Pipelinez.Core.DeadLettering.IPipelineDeadLetterDestination<T> where T : Pipelinez.Core.Record.PipelineRecord
+  CTOR public Pipelinez.AzureServiceBus.DeadLettering.AzureServiceBusDeadLetterDestination<T>(Pipelinez.AzureServiceBus.Configuration.AzureServiceBusDeadLetterOptions options, System.Func<Pipelinez.Core.DeadLettering.PipelineDeadLetterRecord<T>, Azure.Messaging.ServiceBus.ServiceBusMessage> messageMapper)
+  METHOD public virtual System.Threading.Tasks.Task WriteAsync(Pipelinez.Core.DeadLettering.PipelineDeadLetterRecord<T> deadLetterRecord, System.Threading.CancellationToken cancellationToken)
+
+public class Pipelinez.AzureServiceBus.Destination.AzureServiceBusPipelineDestination<T> : Pipelinez.Core.Destination.PipelineDestination<T> where T : Pipelinez.Core.Record.PipelineRecord
+  CTOR public Pipelinez.AzureServiceBus.Destination.AzureServiceBusPipelineDestination<T>(Pipelinez.AzureServiceBus.Configuration.AzureServiceBusDestinationOptions options, System.Func<T, Azure.Messaging.ServiceBus.ServiceBusMessage> messageMapper)
+
+public static class Pipelinez.AzureServiceBus.Record.AzureServiceBusMetadataKeys
+  FIELD public static const string ContentType = "pipelinez.asb.content_type"
+  FIELD public static const string CorrelationId = "pipelinez.asb.correlation_id"
+  FIELD public static const string DeliveryCount = "pipelinez.asb.delivery_count"
+  FIELD public static const string EnqueuedTimeUtc = "pipelinez.asb.enqueued_time_utc"
+  FIELD public static const string EntityKind = "pipelinez.asb.entity_kind"
+  FIELD public static const string LockToken = "pipelinez.asb.lock_token"
+  FIELD public static const string LockedUntilUtc = "pipelinez.asb.locked_until_utc"
+  FIELD public static const string MessageId = "pipelinez.asb.message_id"
+  FIELD public static const string QueueName = "pipelinez.asb.queue_name"
+  FIELD public static const string ReplyTo = "pipelinez.asb.reply_to"
+  FIELD public static const string SequenceNumber = "pipelinez.asb.sequence_number"
+  FIELD public static const string SessionId = "pipelinez.asb.session_id"
+  FIELD public static const string Subject = "pipelinez.asb.subject"
+  FIELD public static const string SubscriptionName = "pipelinez.asb.subscription_name"
+  FIELD public static const string TopicName = "pipelinez.asb.topic_name"
+
+public class Pipelinez.AzureServiceBus.Source.AzureServiceBusPipelineSource<T> : Pipelinez.Core.Source.PipelineSourceBase<T>, Pipelinez.Core.Source.IDistributedPipelineSource<T> where T : Pipelinez.Core.Record.PipelineRecord
+  CTOR public Pipelinez.AzureServiceBus.Source.AzureServiceBusPipelineSource<T>(Pipelinez.AzureServiceBus.Configuration.AzureServiceBusSourceOptions options, System.Func<Azure.Messaging.ServiceBus.ServiceBusReceivedMessage, T> recordMapper)
+  PROPERTY public bool SupportsDistributedExecution { get; }
+  PROPERTY public string TransportName { get; }
+  METHOD public virtual System.Collections.Generic.IReadOnlyList<Pipelinez.Core.Distributed.PipelinePartitionLease> GetOwnedPartitions()
+  METHOD public virtual System.Collections.Generic.IReadOnlyList<Pipelinez.Core.Distributed.PipelinePartitionExecutionState> GetPartitionExecutionStates()
+  METHOD public void OnPipelineContainerComplete(object sender, Pipelinez.Core.Eventing.PipelineContainerCompletedEventHandlerArgs<Pipelinez.Core.Record.PipelineContainer<T>> e)

@@ -17,6 +17,7 @@ Examples of stable surface area include:
 - source, segment, and destination abstractions
 - user-facing options, status, event, performance, flow-control, retry, dead-letter, distributed, and operational models
 - Kafka builder extensions and Kafka configuration models
+- Azure Service Bus builder extensions and configuration models
 
 Stable APIs should only change in additive, source-compatible ways until the next major release.
 
@@ -44,7 +45,7 @@ Types that are not intended as consumer extension points should remain internal.
 
 ## Compatibility Rules
 
-Pipelinez uses SemVer-style versioning for public releases. `Pipelinez` and `Pipelinez.Kafka` should be published with the same version number in each release.
+Pipelinez uses SemVer-style versioning for public releases. `Pipelinez`, `Pipelinez.Kafka`, `Pipelinez.AzureServiceBus`, and `Pipelinez.PostgreSql` should be published with the same version number in each release.
 
 ### Patch Releases
 
@@ -93,6 +94,8 @@ The repository now includes public API approval tests for:
 
 - `Pipelinez`
 - `Pipelinez.Kafka`
+- `Pipelinez.AzureServiceBus`
+- `Pipelinez.PostgreSql`
 
 These tests compare the compiled public surface against checked-in approved baselines. Any unintended public API change causes the test suite to fail, which means the existing PR and CI workflows also catch it automatically.
 
@@ -102,6 +105,8 @@ Approved baselines live in:
 
 - `src/tests/Pipelinez.Tests/ApprovedApi/Pipelinez.publicapi.txt`
 - `src/tests/Pipelinez.Kafka.Tests/ApprovedApi/Pipelinez.Kafka.publicapi.txt`
+- `src/tests/Pipelinez.AzureServiceBus.Tests/ApprovedApi/Pipelinez.AzureServiceBus.publicapi.txt`
+- `src/tests/Pipelinez.PostgreSql.Tests/ApprovedApi/Pipelinez.PostgreSql.publicapi.txt`
 
 To intentionally refresh the baselines after an approved public API change:
 
@@ -109,6 +114,8 @@ To intentionally refresh the baselines after an approved public API change:
 $env:PIPELINEZ_UPDATE_API_BASELINES='1'
 dotnet test src/tests/Pipelinez.Tests/Pipelinez.Tests.csproj --filter ApiApprovalTests
 dotnet test src/tests/Pipelinez.Kafka.Tests/Pipelinez.Kafka.Tests.csproj --filter ApiApprovalTests
+dotnet test src/tests/Pipelinez.AzureServiceBus.Tests/Pipelinez.AzureServiceBus.Tests.csproj --filter ApiApprovalTests
+dotnet test src/tests/Pipelinez.PostgreSql.Tests/Pipelinez.PostgreSql.Tests.csproj --filter ApiApprovalTests
 ```
 
 Then run the full test suite normally before merging.

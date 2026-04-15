@@ -7,7 +7,7 @@ Pipelinez is a reusable library, so contributions should optimize not only for c
 ## Development Basics
 
 - install the .NET 8 SDK
-- keep Docker running when you want to run Kafka integration tests locally
+- keep Docker running when you want to run Kafka, PostgreSQL, or emulator-backed transport integration tests locally
 - build the solution with `dotnet build src/Pipelinez.sln`
 - run the full test suite with `dotnet test src/Pipelinez.sln`
 - if you change performance-sensitive behavior, consider running the benchmark project too
@@ -18,7 +18,7 @@ Pipelinez is a reusable library, so contributions should optimize not only for c
 
 Public API changes need a slightly higher bar than internal refactors.
 
-When a pull request changes the public surface of `Pipelinez` or `Pipelinez.Kafka`:
+When a pull request changes the public surface of `Pipelinez`, `Pipelinez.Kafka`, `Pipelinez.AzureServiceBus`, or `Pipelinez.PostgreSql`:
 
 - decide whether the API is intended to be stable or preview
 - avoid exposing low-level implementation details unless they are deliberate extension points
@@ -50,6 +50,8 @@ The repository uses approval tests to guard the public surface of:
 
 - `Pipelinez`
 - `Pipelinez.Kafka`
+- `Pipelinez.AzureServiceBus`
+- `Pipelinez.PostgreSql`
 
 If you intentionally changed the public API, refresh the baselines with:
 
@@ -57,6 +59,8 @@ If you intentionally changed the public API, refresh the baselines with:
 $env:PIPELINEZ_UPDATE_API_BASELINES='1'
 dotnet test src/tests/Pipelinez.Tests/Pipelinez.Tests.csproj --filter ApiApprovalTests
 dotnet test src/tests/Pipelinez.Kafka.Tests/Pipelinez.Kafka.Tests.csproj --filter ApiApprovalTests
+dotnet test src/tests/Pipelinez.AzureServiceBus.Tests/Pipelinez.AzureServiceBus.Tests.csproj --filter ApiApprovalTests
+dotnet test src/tests/Pipelinez.PostgreSql.Tests/Pipelinez.PostgreSql.Tests.csproj --filter ApiApprovalTests
 ```
 
 Then run the full suite:
@@ -76,7 +80,7 @@ That means:
 - option/configuration properties should document important defaults and behavior interactions
 - event docs should call out important ordering or lifecycle guarantees when they matter
 
-The compiler enforces this with `CS1591` as an error for `Pipelinez`, `Pipelinez.Kafka`, and `Pipelinez.PostgreSql`.
+The compiler enforces this with `CS1591` as an error for `Pipelinez`, `Pipelinez.Kafka`, `Pipelinez.AzureServiceBus`, and `Pipelinez.PostgreSql`.
 
 If you add or change a public API, make the XML documentation update in the same pull request.
 
@@ -131,7 +135,7 @@ Use this vocabulary in PR descriptions when it applies:
 - `major`
   breaking changes to stable APIs or runtime behavior that requires migration
 
-The `Pipelinez` and `Pipelinez.Kafka` packages are versioned together. A release should never intentionally publish different versions for the two packages.
+The `Pipelinez`, `Pipelinez.Kafka`, `Pipelinez.AzureServiceBus`, and `Pipelinez.PostgreSql` packages are versioned together. A release should never intentionally publish different versions for these packages.
 
 ## Release Workflow
 
