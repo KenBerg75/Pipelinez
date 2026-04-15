@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics.Metrics;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Pipelinez.Core;
@@ -161,7 +162,7 @@ public sealed class PipelineOperationalToolingTests
     public async Task Pipeline_Metrics_Are_Emitted_Through_Runtime_Meter()
     {
         var pipelineName = nameof(Pipeline_Metrics_Are_Emitted_Through_Runtime_Meter);
-        var measurements = new Dictionary<string, long>(StringComparer.Ordinal);
+        var measurements = new ConcurrentDictionary<string, long>(StringComparer.Ordinal);
 
         using var listener = new MeterListener();
         listener.InstrumentPublished = (instrument, currentListener) =>
@@ -179,7 +180,10 @@ public sealed class PipelineOperationalToolingTests
                 return;
             }
 
-            measurements[instrument.Name] = measurements.GetValueOrDefault(instrument.Name) + measurement;
+            measurements.AddOrUpdate(
+                instrument.Name,
+                measurement,
+                (_, current) => current + measurement);
         });
         listener.Start();
 
@@ -200,10 +204,11 @@ public sealed class PipelineOperationalToolingTests
         await pipeline.CompleteAsync();
         await pipeline.Completion;
 
-        Assert.True(measurements["pipelinez.records.published"] >= 1);
-        Assert.True(measurements["pipelinez.records.completed"] >= 1);
-        Assert.True(measurements["pipelinez.retry.attempts"] >= 1);
-        Assert.True(measurements["pipelinez.retry.recoveries"] >= 1);
+        await WaitForConditionAsync(() =>
+            measurements.GetValueOrDefault("pipelinez.records.published") >= 1 &&
+            measurements.GetValueOrDefault("pipelinez.records.completed") >= 1 &&
+            measurements.GetValueOrDefault("pipelinez.retry.attempts") >= 1 &&
+            measurements.GetValueOrDefault("pipelinez.retry.recoveries") >= 1);
     }
 
     private static async Task WaitForConditionAsync(Func<bool> predicate)
