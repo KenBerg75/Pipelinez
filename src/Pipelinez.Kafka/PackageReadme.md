@@ -80,6 +80,8 @@ public sealed class MyRecord : PipelineRecord
   core pipeline runtime.
 - [`Pipelinez.PostgreSql`](https://www.nuget.org/packages/Pipelinez.PostgreSql)
   PostgreSQL destination and dead-letter writes.
+- [`Pipelinez.RabbitMQ`](https://www.nuget.org/packages/Pipelinez.RabbitMQ)
+  RabbitMQ source, destination, dead-lettering, and competing-consumer workers.
 
 ## Documentation
 

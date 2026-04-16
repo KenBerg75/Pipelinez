@@ -76,3 +76,4 @@ public sealed class OrderRecord : PipelineRecord
 - NuGet: https://www.nuget.org/packages/Pipelinez.AzureServiceBus
 - Repository: https://github.com/KenBerg75/Pipelinez
 - API reference: https://kenberg75.github.io/Pipelinez/api/Pipelinez.Core.html
+- RabbitMQ package: https://www.nuget.org/packages/Pipelinez.RabbitMQ

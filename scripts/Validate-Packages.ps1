@@ -118,17 +118,20 @@ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $coreProjectPath = Join-Path (Join-Path $repoRoot 'src') (Join-Path 'Pipelinez' 'Pipelinez.csproj')
 $kafkaProjectPath = Join-Path (Join-Path $repoRoot 'src') (Join-Path 'Pipelinez.Kafka' 'Pipelinez.Kafka.csproj')
 $azureServiceBusProjectPath = Join-Path (Join-Path $repoRoot 'src') (Join-Path 'Pipelinez.AzureServiceBus' 'Pipelinez.AzureServiceBus.csproj')
+$rabbitMqProjectPath = Join-Path (Join-Path $repoRoot 'src') (Join-Path 'Pipelinez.RabbitMQ' 'Pipelinez.RabbitMQ.csproj')
 $postgresProjectPath = Join-Path (Join-Path $repoRoot 'src') (Join-Path 'Pipelinez.PostgreSql' 'Pipelinez.PostgreSql.csproj')
 
 $coreVersion = Get-PackageVersion -ProjectPath $coreProjectPath -RepositoryRoot $repoRoot
 $kafkaVersion = Get-PackageVersion -ProjectPath $kafkaProjectPath -RepositoryRoot $repoRoot
 $azureServiceBusVersion = Get-PackageVersion -ProjectPath $azureServiceBusProjectPath -RepositoryRoot $repoRoot
+$rabbitMqVersion = Get-PackageVersion -ProjectPath $rabbitMqProjectPath -RepositoryRoot $repoRoot
 $postgresVersion = Get-PackageVersion -ProjectPath $postgresProjectPath -RepositoryRoot $repoRoot
 
 $packageVersions = @(
     [pscustomobject]@{ Name = 'Pipelinez'; Version = $coreVersion },
     [pscustomobject]@{ Name = 'Pipelinez.Kafka'; Version = $kafkaVersion },
     [pscustomobject]@{ Name = 'Pipelinez.AzureServiceBus'; Version = $azureServiceBusVersion },
+    [pscustomobject]@{ Name = 'Pipelinez.RabbitMQ'; Version = $rabbitMqVersion },
     [pscustomobject]@{ Name = 'Pipelinez.PostgreSql'; Version = $postgresVersion }
 )
 
@@ -276,6 +279,54 @@ public sealed class AzureServiceBusSmokeRecord : PipelineRecord
 }
 "@ | Set-Content -Path (Join-Path $azureServiceBusSmokeDirectory 'Program.cs')
     Invoke-DotNet -Arguments @('build', (Join-Path $azureServiceBusSmokeDirectory 'AzureServiceBusSmoke.csproj'), '--configfile', $nugetConfigPath, '--configuration', 'Release')
+
+    $rabbitMqSmokeDirectory = Join-Path $tempRoot 'RabbitMqSmoke'
+    Invoke-DotNet -Arguments @('new', 'console', '--framework', 'net8.0', '--output', $rabbitMqSmokeDirectory)
+    Invoke-DotNet -Arguments @('add', (Join-Path $rabbitMqSmokeDirectory 'RabbitMqSmoke.csproj'), 'package', 'Pipelinez.RabbitMQ', '--version', $rabbitMqVersion, '--source', $resolvedPackageDirectory)
+    @"
+using System.Text;
+using Pipelinez.Core;
+using Pipelinez.Core.Record;
+using Pipelinez.RabbitMQ;
+using Pipelinez.RabbitMQ.Configuration;
+using Pipelinez.RabbitMQ.Destination;
+
+var connection = new RabbitMqConnectionOptions
+{
+    Uri = new Uri("amqp://guest:guest@localhost:5672/")
+};
+
+var pipeline = Pipeline<RabbitMqSmokeRecord>.New("orders")
+    .WithRabbitMqSource(
+        new RabbitMqSourceOptions
+        {
+            Connection = connection,
+            Queue = RabbitMqQueueOptions.Named("orders-in")
+        },
+        delivery => new RabbitMqSmokeRecord
+        {
+            Id = delivery.Properties?.MessageId ?? delivery.DeliveryTag.ToString(),
+            Value = Encoding.UTF8.GetString(delivery.Body.Span)
+        })
+    .WithRabbitMqDestination(
+        new RabbitMqDestinationOptions
+        {
+            Connection = connection,
+            Exchange = "orders",
+            RoutingKey = "processed"
+        },
+        record => RabbitMqPublishMessage.Create(Encoding.UTF8.GetBytes(record.Value)))
+    .Build();
+
+Console.WriteLine(pipeline.GetStatus().Status);
+
+public sealed class RabbitMqSmokeRecord : PipelineRecord
+{
+    public required string Id { get; init; }
+    public required string Value { get; init; }
+}
+"@ | Set-Content -Path (Join-Path $rabbitMqSmokeDirectory 'Program.cs')
+    Invoke-DotNet -Arguments @('build', (Join-Path $rabbitMqSmokeDirectory 'RabbitMqSmoke.csproj'), '--configfile', $nugetConfigPath, '--configuration', 'Release')
 
     $postgresSmokeDirectory = Join-Path $tempRoot 'PostgreSqlSmoke'
     Invoke-DotNet -Arguments @('new', 'console', '--framework', 'net8.0', '--output', $postgresSmokeDirectory)

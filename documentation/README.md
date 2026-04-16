@@ -19,6 +19,8 @@ This folder contains the main documentation set for Pipelinez.
   first Kafka-backed pipeline using the example Docker workflow
 - [Azure Service Bus Pipeline](getting-started/azure-service-bus.md)
   first Azure Service Bus queue-backed pipeline shape
+- [RabbitMQ Pipeline](getting-started/rabbitmq.md)
+  first RabbitMQ queue-backed pipeline shape
 - [PostgreSQL Destination](getting-started/postgresql-destination.md)
   first PostgreSQL-backed destination and dead-letter pipeline shape
 
@@ -37,11 +39,13 @@ This folder contains the main documentation set for Pipelinez.
 
 - [Kafka](transports/kafka.md)
 - [Azure Service Bus](transports/azure-service-bus.md)
+- [RabbitMQ](transports/rabbitmq.md)
 - [PostgreSQL](transports/postgresql.md)
 
 ## Operations
 
 - [Troubleshooting](operations/troubleshooting.md)
+- [Release Checklist](operations/release-checklist.md)
 - [Repository Topics](operations/repository-topics.md)
 - [Security Automation](operations/security-automation.md)
 
@@ -50,6 +54,7 @@ This folder contains the main documentation set for Pipelinez.
 - [Runtime](architecture/runtime.md)
 - [Kafka Internals](architecture/kafka.md)
 - [Azure Service Bus Internals](architecture/azure-service-bus.md)
+- [RabbitMQ Internals](architecture/rabbitmq.md)
 - [PostgreSQL Internals](architecture/postgresql.md)
 - [Testing](architecture/testing.md)
 
@@ -60,6 +65,7 @@ The public packages are available on NuGet.org:
 - [`Pipelinez`](https://www.nuget.org/packages/Pipelinez)
 - [`Pipelinez.Kafka`](https://www.nuget.org/packages/Pipelinez.Kafka)
 - [`Pipelinez.AzureServiceBus`](https://www.nuget.org/packages/Pipelinez.AzureServiceBus)
+- [`Pipelinez.RabbitMQ`](https://www.nuget.org/packages/Pipelinez.RabbitMQ)
 - [`Pipelinez.PostgreSql`](https://www.nuget.org/packages/Pipelinez.PostgreSql)
 
 Install with:
@@ -68,6 +74,7 @@ Install with:
 dotnet add package Pipelinez
 dotnet add package Pipelinez.Kafka
 dotnet add package Pipelinez.AzureServiceBus
+dotnet add package Pipelinez.RabbitMQ
 dotnet add package Pipelinez.PostgreSql
 ```
 

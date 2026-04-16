@@ -48,6 +48,9 @@ jobs:
       - name: Pack Pipelinez.AzureServiceBus
         run: dotnet pack src/Pipelinez.AzureServiceBus/Pipelinez.AzureServiceBus.csproj --configuration Release --no-build -o artifacts/packages -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
 
+      - name: Pack Pipelinez.RabbitMQ
+        run: dotnet pack src/Pipelinez.RabbitMQ/Pipelinez.RabbitMQ.csproj --configuration Release --no-build -o artifacts/packages -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
+
       - name: Pack Pipelinez.PostgreSql
         run: dotnet pack src/Pipelinez.PostgreSql/Pipelinez.PostgreSql.csproj --configuration Release --no-build -o artifacts/packages -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
 
