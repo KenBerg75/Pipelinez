@@ -67,6 +67,8 @@ public sealed class OrderRecord : PipelineRecord
   core pipeline runtime.
 - [`Pipelinez.Kafka`](https://www.nuget.org/packages/Pipelinez.Kafka)
   Kafka source, destination, dead-lettering, distributed execution, and partition-aware scaling.
+- [`Pipelinez.RabbitMQ`](https://www.nuget.org/packages/Pipelinez.RabbitMQ)
+  RabbitMQ source, destination, dead-lettering, and competing-consumer workers.
 
 ## Documentation
 

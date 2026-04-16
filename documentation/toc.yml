@@ -12,6 +12,8 @@
       href: getting-started/kafka.md
     - name: Azure Service Bus Pipeline
       href: getting-started/azure-service-bus.md
+    - name: RabbitMQ Pipeline
+      href: getting-started/rabbitmq.md
     - name: PostgreSQL Destination
       href: getting-started/postgresql-destination.md
 - name: Guides
@@ -38,12 +40,16 @@
       href: transports/kafka.md
     - name: Azure Service Bus
       href: transports/azure-service-bus.md
+    - name: RabbitMQ
+      href: transports/rabbitmq.md
     - name: PostgreSQL
       href: transports/postgresql.md
 - name: Operations
   items:
     - name: Troubleshooting
       href: operations/troubleshooting.md
+    - name: Release Checklist
+      href: operations/release-checklist.md
     - name: Security Automation
       href: operations/security-automation.md
 - name: Architecture
@@ -54,6 +60,8 @@
       href: architecture/kafka.md
     - name: Azure Service Bus Internals
       href: architecture/azure-service-bus.md
+    - name: RabbitMQ Internals
+      href: architecture/rabbitmq.md
     - name: PostgreSQL Internals
       href: architecture/postgresql.md
     - name: Testing

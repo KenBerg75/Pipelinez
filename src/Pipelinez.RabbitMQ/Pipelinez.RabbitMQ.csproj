@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <IsPackable>true</IsPackable>
+        <PackageId>Pipelinez.RabbitMQ</PackageId>
+        <Title>Pipelinez.RabbitMQ</Title>
+        <Description>RabbitMQ transport extensions for Pipelinez with queue sources, exchange destinations, dead-letter publishing, and competing-consumer workers.</Description>
+        <PackageTags>pipeline;rabbitmq;amqp;messaging;queue;exchange;routing-key;dead-letter;distributed;dotnet;csharp</PackageTags>
+        <PackageReadmeFile>PackageReadme.md</PackageReadmeFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="RabbitMQ.Client" Version="7.2.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Pipelinez\Pipelinez.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="PackageReadme.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+</Project>

@@ -11,6 +11,7 @@ on:
       - "src/Pipelinez/**"
       - "src/Pipelinez.Kafka/**"
       - "src/Pipelinez.AzureServiceBus/**"
+      - "src/Pipelinez.RabbitMQ/**"
       - "src/Pipelinez.PostgreSql/**"
       - ".config/dotnet-tools.json"
       - ".github/workflows/docs.yaml"

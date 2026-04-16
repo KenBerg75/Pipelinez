@@ -1,0 +1,155 @@
+Assembly: Pipelinez.RabbitMQ
+
+public class Pipelinez.RabbitMQ.Configuration.RabbitMqConnectionOptions
+  CTOR public Pipelinez.RabbitMQ.Configuration.RabbitMqConnectionOptions()
+  PROPERTY public bool AutomaticRecoveryEnabled { get; set; }
+  PROPERTY public string ClientProvidedName { get; set; }
+  PROPERTY public System.Action<RabbitMQ.Client.ConnectionFactory> ConfigureConnectionFactory { get; set; }
+  PROPERTY public string HostName { get; set; }
+  PROPERTY public System.Nullable<System.TimeSpan> NetworkRecoveryInterval { get; set; }
+  PROPERTY public string Password { get; set; }
+  PROPERTY public System.Nullable<int> Port { get; set; }
+  PROPERTY public System.Nullable<System.TimeSpan> RequestedHeartbeat { get; set; }
+  PROPERTY public bool TopologyRecoveryEnabled { get; set; }
+  PROPERTY public System.Uri Uri { get; set; }
+  PROPERTY public string UserName { get; set; }
+  PROPERTY public string VirtualHost { get; set; }
+  METHOD public Pipelinez.RabbitMQ.Configuration.RabbitMqConnectionOptions Validate()
+
+public class Pipelinez.RabbitMQ.Configuration.RabbitMqDeadLetterOptions : Pipelinez.RabbitMQ.Configuration.RabbitMqDestinationOptions
+  CTOR public Pipelinez.RabbitMQ.Configuration.RabbitMqDeadLetterOptions()
+
+public class Pipelinez.RabbitMQ.Configuration.RabbitMqDestinationOptions
+  CTOR public Pipelinez.RabbitMQ.Configuration.RabbitMqDestinationOptions()
+  PROPERTY public Pipelinez.RabbitMQ.Configuration.RabbitMqConnectionOptions Connection { get; set; }
+  PROPERTY public string Exchange { get; set; }
+  PROPERTY public bool Mandatory { get; set; }
+  PROPERTY public bool PersistentMessagesByDefault { get; set; }
+  PROPERTY public System.TimeSpan PublisherConfirmTimeout { get; set; }
+  PROPERTY public string RoutingKey { get; set; }
+  PROPERTY public Pipelinez.RabbitMQ.Configuration.RabbitMqTopologyOptions Topology { get; set; }
+  PROPERTY public bool UsePublisherConfirms { get; set; }
+  METHOD public Pipelinez.RabbitMQ.Configuration.RabbitMqDestinationOptions Validate()
+
+public class Pipelinez.RabbitMQ.Configuration.RabbitMqExchangeOptions
+  CTOR public Pipelinez.RabbitMQ.Configuration.RabbitMqExchangeOptions()
+  PROPERTY public System.Collections.Generic.IDictionary<string, object> Arguments { get; set; }
+  PROPERTY public bool AutoDelete { get; set; }
+  PROPERTY public bool Durable { get; set; }
+  PROPERTY public string Name { get; set; }
+  PROPERTY public Pipelinez.RabbitMQ.Configuration.RabbitMqExchangeType Type { get; set; }
+  METHOD public static Pipelinez.RabbitMQ.Configuration.RabbitMqExchangeOptions Named(string name, Pipelinez.RabbitMQ.Configuration.RabbitMqExchangeType type = Pipelinez.RabbitMQ.Configuration.RabbitMqExchangeType.Direct)
+  METHOD public Pipelinez.RabbitMQ.Configuration.RabbitMqExchangeOptions Validate()
+
+public enum Pipelinez.RabbitMQ.Configuration.RabbitMqExchangeType
+  FIELD public static const Pipelinez.RabbitMQ.Configuration.RabbitMqExchangeType Direct = Pipelinez.RabbitMQ.Configuration.RabbitMqExchangeType.0
+  FIELD public static const Pipelinez.RabbitMQ.Configuration.RabbitMqExchangeType Fanout = Pipelinez.RabbitMQ.Configuration.RabbitMqExchangeType.1
+  FIELD public static const Pipelinez.RabbitMQ.Configuration.RabbitMqExchangeType Headers = Pipelinez.RabbitMQ.Configuration.RabbitMqExchangeType.3
+  FIELD public static const Pipelinez.RabbitMQ.Configuration.RabbitMqExchangeType Topic = Pipelinez.RabbitMQ.Configuration.RabbitMqExchangeType.2
+
+public enum Pipelinez.RabbitMQ.Configuration.RabbitMqPipelineDeadLetterSettlement
+  FIELD public static const Pipelinez.RabbitMQ.Configuration.RabbitMqPipelineDeadLetterSettlement AckSourceMessage = Pipelinez.RabbitMQ.Configuration.RabbitMqPipelineDeadLetterSettlement.0
+  FIELD public static const Pipelinez.RabbitMQ.Configuration.RabbitMqPipelineDeadLetterSettlement DeadLetterOrDiscardSourceMessage = Pipelinez.RabbitMQ.Configuration.RabbitMqPipelineDeadLetterSettlement.1
+
+public class Pipelinez.RabbitMQ.Configuration.RabbitMqQueueOptions
+  CTOR public Pipelinez.RabbitMQ.Configuration.RabbitMqQueueOptions()
+  PROPERTY public System.Collections.Generic.IDictionary<string, object> Arguments { get; set; }
+  PROPERTY public bool AutoDelete { get; set; }
+  PROPERTY public bool Durable { get; set; }
+  PROPERTY public bool Exclusive { get; set; }
+  PROPERTY public string Name { get; set; }
+  METHOD public static Pipelinez.RabbitMQ.Configuration.RabbitMqQueueOptions Named(string name)
+  METHOD public Pipelinez.RabbitMQ.Configuration.RabbitMqQueueOptions Validate()
+
+public class Pipelinez.RabbitMQ.Configuration.RabbitMqSourceOptions
+  CTOR public Pipelinez.RabbitMQ.Configuration.RabbitMqSourceOptions()
+  PROPERTY public Pipelinez.RabbitMQ.Configuration.RabbitMqConnectionOptions Connection { get; set; }
+  PROPERTY public System.Collections.Generic.IDictionary<string, object> ConsumerArguments { get; set; }
+  PROPERTY public ushort ConsumerDispatchConcurrency { get; set; }
+  PROPERTY public string ConsumerTag { get; set; }
+  PROPERTY public bool ExclusiveConsumer { get; set; }
+  PROPERTY public bool GlobalQos { get; set; }
+  PROPERTY public bool NoLocal { get; set; }
+  PROPERTY public ushort PrefetchCount { get; set; }
+  PROPERTY public Pipelinez.RabbitMQ.Configuration.RabbitMqQueueOptions Queue { get; set; }
+  PROPERTY public Pipelinez.RabbitMQ.Configuration.RabbitMqSourceSettlementOptions Settlement { get; set; }
+  PROPERTY public Pipelinez.RabbitMQ.Configuration.RabbitMqTopologyOptions Topology { get; set; }
+  METHOD public Pipelinez.RabbitMQ.Configuration.RabbitMqSourceOptions Validate()
+
+public class Pipelinez.RabbitMQ.Configuration.RabbitMqSourceSettlementOptions
+  CTOR public Pipelinez.RabbitMQ.Configuration.RabbitMqSourceSettlementOptions()
+  PROPERTY public Pipelinez.RabbitMQ.Configuration.RabbitMqPipelineDeadLetterSettlement PipelineDeadLetterSettlement { get; set; }
+  PROPERTY public bool RequeueOnPublishAdmissionFailure { get; set; }
+  PROPERTY public bool RequeueOnStopOrRethrow { get; set; }
+  METHOD public Pipelinez.RabbitMQ.Configuration.RabbitMqSourceSettlementOptions Validate()
+
+public class Pipelinez.RabbitMQ.Configuration.RabbitMqTopologyOptions
+  CTOR public Pipelinez.RabbitMQ.Configuration.RabbitMqTopologyOptions()
+  PROPERTY public bool BindQueue { get; set; }
+  PROPERTY public System.Collections.Generic.IDictionary<string, object> BindingArguments { get; set; }
+  PROPERTY public string BindingRoutingKey { get; set; }
+  PROPERTY public bool DeclareExchange { get; set; }
+  PROPERTY public bool DeclareQueue { get; set; }
+  PROPERTY public Pipelinez.RabbitMQ.Configuration.RabbitMqExchangeOptions Exchange { get; set; }
+  PROPERTY public bool PassiveDeclareOnly { get; set; }
+  PROPERTY public Pipelinez.RabbitMQ.Configuration.RabbitMqQueueOptions Queue { get; set; }
+  METHOD public Pipelinez.RabbitMQ.Configuration.RabbitMqTopologyOptions Validate()
+
+public class Pipelinez.RabbitMQ.DeadLettering.RabbitMqDeadLetterDestination<T> : Pipelinez.Core.DeadLettering.IPipelineDeadLetterDestination<T> where T : Pipelinez.Core.Record.PipelineRecord
+  CTOR public Pipelinez.RabbitMQ.DeadLettering.RabbitMqDeadLetterDestination<T>(Pipelinez.RabbitMQ.Configuration.RabbitMqDeadLetterOptions options, System.Func<Pipelinez.Core.DeadLettering.PipelineDeadLetterRecord<T>, Pipelinez.RabbitMQ.Destination.RabbitMqPublishMessage> messageMapper)
+  METHOD public virtual System.Threading.Tasks.Task WriteAsync(Pipelinez.Core.DeadLettering.PipelineDeadLetterRecord<T> deadLetterRecord, System.Threading.CancellationToken cancellationToken)
+
+public class Pipelinez.RabbitMQ.Destination.RabbitMqPipelineDestination<T> : Pipelinez.Core.Destination.PipelineDestination<T> where T : Pipelinez.Core.Record.PipelineRecord
+  CTOR public Pipelinez.RabbitMQ.Destination.RabbitMqPipelineDestination<T>(Pipelinez.RabbitMQ.Configuration.RabbitMqDestinationOptions options, System.Func<T, Pipelinez.RabbitMQ.Destination.RabbitMqPublishMessage> messageMapper)
+
+public class Pipelinez.RabbitMQ.Destination.RabbitMqPublishMessage
+  CTOR public Pipelinez.RabbitMQ.Destination.RabbitMqPublishMessage()
+  PROPERTY public System.ReadOnlyMemory<byte> Body { get; init; }
+  PROPERTY public string Exchange { get; init; }
+  PROPERTY public System.Nullable<bool> Mandatory { get; init; }
+  PROPERTY public RabbitMQ.Client.BasicProperties Properties { get; init; }
+  PROPERTY public string RoutingKey { get; init; }
+  METHOD public static Pipelinez.RabbitMQ.Destination.RabbitMqPublishMessage Create(System.ReadOnlyMemory<byte> body, string exchange = null, string routingKey = null, RabbitMQ.Client.BasicProperties properties = null, System.Nullable<bool> mandatory = null)
+
+public static class Pipelinez.RabbitMQ.RabbitMqPipelineBuilderExtensions
+  METHOD public static Pipelinez.Core.PipelineBuilder<T> WithRabbitMqDeadLetterDestination<T>(Pipelinez.Core.PipelineBuilder<T> builder, Pipelinez.RabbitMQ.Configuration.RabbitMqDeadLetterOptions options, System.Func<Pipelinez.Core.DeadLettering.PipelineDeadLetterRecord<T>, Pipelinez.RabbitMQ.Destination.RabbitMqPublishMessage> messageMapper) where T : Pipelinez.Core.Record.PipelineRecord
+  METHOD public static Pipelinez.Core.PipelineBuilder<T> WithRabbitMqDestination<T>(Pipelinez.Core.PipelineBuilder<T> builder, Pipelinez.RabbitMQ.Configuration.RabbitMqDestinationOptions options, System.Func<T, Pipelinez.RabbitMQ.Destination.RabbitMqPublishMessage> messageMapper) where T : Pipelinez.Core.Record.PipelineRecord
+  METHOD public static Pipelinez.Core.PipelineBuilder<T> WithRabbitMqSource<T>(Pipelinez.Core.PipelineBuilder<T> builder, Pipelinez.RabbitMQ.Configuration.RabbitMqSourceOptions options, System.Func<Pipelinez.RabbitMQ.Source.RabbitMqDeliveryContext, T> recordMapper) where T : Pipelinez.Core.Record.PipelineRecord
+
+public static class Pipelinez.RabbitMQ.Record.RabbitMqMetadataKeys
+  FIELD public static const string AppId = "pipelinez.rabbitmq.app_id"
+  FIELD public static const string ClusterId = "pipelinez.rabbitmq.cluster_id"
+  FIELD public static const string ConsumerTag = "pipelinez.rabbitmq.consumer_tag"
+  FIELD public static const string ContentEncoding = "pipelinez.rabbitmq.content_encoding"
+  FIELD public static const string ContentType = "pipelinez.rabbitmq.content_type"
+  FIELD public static const string CorrelationId = "pipelinez.rabbitmq.correlation_id"
+  FIELD public static const string DeliveryMode = "pipelinez.rabbitmq.delivery_mode"
+  FIELD public static const string DeliveryTag = "pipelinez.rabbitmq.delivery_tag"
+  FIELD public static const string Exchange = "pipelinez.rabbitmq.exchange"
+  FIELD public static const string Expiration = "pipelinez.rabbitmq.expiration"
+  FIELD public static const string MessageId = "pipelinez.rabbitmq.message_id"
+  FIELD public static const string Priority = "pipelinez.rabbitmq.priority"
+  FIELD public static const string QueueName = "pipelinez.rabbitmq.queue_name"
+  FIELD public static const string Redelivered = "pipelinez.rabbitmq.redelivered"
+  FIELD public static const string RoutingKey = "pipelinez.rabbitmq.routing_key"
+  FIELD public static const string Timestamp = "pipelinez.rabbitmq.timestamp"
+  FIELD public static const string Type = "pipelinez.rabbitmq.type"
+  FIELD public static const string UserId = "pipelinez.rabbitmq.user_id"
+
+public class Pipelinez.RabbitMQ.Source.RabbitMqDeliveryContext
+  [Obsolete("Constructors of types with required members are not supported in this version of your compiler.")] CTOR public Pipelinez.RabbitMQ.Source.RabbitMqDeliveryContext()
+  PROPERTY public required System.ReadOnlyMemory<byte> Body { get; init; }
+  PROPERTY public required string ConsumerTag { get; init; }
+  PROPERTY public required ulong DeliveryTag { get; init; }
+  PROPERTY public required string Exchange { get; init; }
+  PROPERTY public RabbitMQ.Client.IReadOnlyBasicProperties Properties { get; init; }
+  PROPERTY public required bool Redelivered { get; init; }
+  PROPERTY public required string RoutingKey { get; init; }
+
+public class Pipelinez.RabbitMQ.Source.RabbitMqPipelineSource<T> : Pipelinez.Core.Source.PipelineSourceBase<T>, Pipelinez.Core.Source.IDistributedPipelineSource<T> where T : Pipelinez.Core.Record.PipelineRecord
+  CTOR public Pipelinez.RabbitMQ.Source.RabbitMqPipelineSource<T>(Pipelinez.RabbitMQ.Configuration.RabbitMqSourceOptions options, System.Func<Pipelinez.RabbitMQ.Source.RabbitMqDeliveryContext, T> recordMapper)
+  PROPERTY public bool SupportsDistributedExecution { get; }
+  PROPERTY public string TransportName { get; }
+  METHOD public virtual System.Collections.Generic.IReadOnlyList<Pipelinez.Core.Distributed.PipelinePartitionLease> GetOwnedPartitions()
+  METHOD public virtual System.Collections.Generic.IReadOnlyList<Pipelinez.Core.Distributed.PipelinePartitionExecutionState> GetPartitionExecutionStates()
+  METHOD public void OnPipelineContainerComplete(object sender, Pipelinez.Core.Eventing.PipelineContainerCompletedEventHandlerArgs<Pipelinez.Core.Record.PipelineContainer<T>> e)

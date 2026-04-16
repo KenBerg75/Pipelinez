@@ -5,6 +5,7 @@ Typed, observable record-processing pipelines for .NET.
 [![NuGet](https://img.shields.io/nuget/v/Pipelinez.svg)](https://www.nuget.org/packages/Pipelinez)
 [![NuGet Kafka](https://img.shields.io/nuget/v/Pipelinez.Kafka.svg)](https://www.nuget.org/packages/Pipelinez.Kafka)
 [![NuGet Azure Service Bus](https://img.shields.io/nuget/v/Pipelinez.AzureServiceBus.svg)](https://www.nuget.org/packages/Pipelinez.AzureServiceBus)
+[![NuGet RabbitMQ](https://img.shields.io/nuget/v/Pipelinez.RabbitMQ.svg)](https://www.nuget.org/packages/Pipelinez.RabbitMQ)
 [![NuGet PostgreSQL](https://img.shields.io/nuget/v/Pipelinez.PostgreSql.svg)](https://www.nuget.org/packages/Pipelinez.PostgreSql)
 [![CI](https://github.com/KenBerg75/Pipelinez/actions/workflows/CI.yaml/badge.svg)](https://github.com/KenBerg75/Pipelinez/actions/workflows/CI.yaml)
 [![CodeQL](https://github.com/KenBerg75/Pipelinez/actions/workflows/codeql.yaml/badge.svg)](https://github.com/KenBerg75/Pipelinez/actions/workflows/codeql.yaml)
@@ -47,6 +48,7 @@ The public packages are available on NuGet.org:
 | [`Pipelinez`](https://www.nuget.org/packages/Pipelinez) | Core typed pipeline runtime | `dotnet add package Pipelinez` |
 | [`Pipelinez.Kafka`](https://www.nuget.org/packages/Pipelinez.Kafka) | Kafka source, destination, dead-lettering, distributed execution, and partition-aware scaling | `dotnet add package Pipelinez.Kafka` |
 | [`Pipelinez.AzureServiceBus`](https://www.nuget.org/packages/Pipelinez.AzureServiceBus) | Azure Service Bus queue/topic sources, destinations, dead-lettering, and competing-consumer workers | `dotnet add package Pipelinez.AzureServiceBus` |
+| [`Pipelinez.RabbitMQ`](https://www.nuget.org/packages/Pipelinez.RabbitMQ) | RabbitMQ queue sources, exchange/queue destinations, dead-lettering, and competing-consumer workers | `dotnet add package Pipelinez.RabbitMQ` |
 | [`Pipelinez.PostgreSql`](https://www.nuget.org/packages/Pipelinez.PostgreSql) | PostgreSQL destination and dead-letter writes with consumer-owned schema mapping | `dotnet add package Pipelinez.PostgreSql` |
 
 Install the core runtime:
@@ -70,6 +72,14 @@ dotnet add package Pipelinez.AzureServiceBus
 ```
 
 `Pipelinez.AzureServiceBus` depends on `Pipelinez`, so Azure Service Bus consumers do not need to add both explicitly unless they want to.
+
+For RabbitMQ support:
+
+```bash
+dotnet add package Pipelinez.RabbitMQ
+```
+
+`Pipelinez.RabbitMQ` depends on `Pipelinez`, so RabbitMQ consumers do not need to add both explicitly unless they want to.
 
 For PostgreSQL destination or dead-letter support:
 
@@ -149,6 +159,7 @@ That container model is what allows Pipelinez to keep runtime behavior explicit 
 - performance tuning, batching, and runtime performance snapshots
 - distributed execution and partition-aware Kafka scaling
 - Azure Service Bus queue/topic source, destination, and dead-letter transport support
+- RabbitMQ queue source, exchange/queue destination, and dead-letter transport support
 - PostgreSQL destination and dead-letter transport support
 - health checks, metrics, correlation IDs, and runtime events
 
@@ -258,6 +269,60 @@ For a full walkthrough, see:
 - [`src/examples/Example.AzureServiceBus`](src/examples/Example.AzureServiceBus)
 - [`src/tests/Pipelinez.AzureServiceBus.Tests`](src/tests/Pipelinez.AzureServiceBus.Tests)
 
+## RabbitMQ Support
+
+RabbitMQ support lives in the separate `Pipelinez.RabbitMQ` package and adds:
+
+- queue source support
+- exchange and routing-key destination support
+- default-exchange queue publishing
+- Pipelinez dead-letter destinations
+- competing-consumer distributed worker support
+- manual ack/nack source settlement after terminal Pipelinez handling
+
+Example shape:
+
+```csharp
+using System.Text;
+using Pipelinez.Core;
+using Pipelinez.RabbitMQ;
+using Pipelinez.RabbitMQ.Configuration;
+using Pipelinez.RabbitMQ.Destination;
+
+var connection = new RabbitMqConnectionOptions
+{
+    Uri = new Uri("amqp://guest:guest@localhost:5672/")
+};
+
+var pipeline = Pipeline<MyRecord>.New("rabbitmq-pipeline")
+    .WithRabbitMqSource(
+        new RabbitMqSourceOptions
+        {
+            Connection = connection,
+            Queue = RabbitMqQueueOptions.Named("orders-in")
+        },
+        delivery => new MyRecord
+        {
+            Id = delivery.Properties?.MessageId ?? delivery.DeliveryTag.ToString(),
+            Value = Encoding.UTF8.GetString(delivery.Body.Span)
+        })
+    .WithRabbitMqDestination(
+        new RabbitMqDestinationOptions
+        {
+            Connection = connection,
+            RoutingKey = "orders-out"
+        },
+        record => RabbitMqPublishMessage.Create(Encoding.UTF8.GetBytes(record.Value)))
+    .Build();
+```
+
+For a full walkthrough, see:
+
+- [`documentation/getting-started/rabbitmq.md`](documentation/getting-started/rabbitmq.md)
+- [`documentation/transports/rabbitmq.md`](documentation/transports/rabbitmq.md)
+- [`src/examples/Example.RabbitMQ`](src/examples/Example.RabbitMQ)
+- [`src/tests/Pipelinez.RabbitMQ.Tests`](src/tests/Pipelinez.RabbitMQ.Tests)
+
 ## PostgreSQL Support
 
 PostgreSQL support lives in the separate `Pipelinez.PostgreSql` package in this repository and currently focuses on:
@@ -293,6 +358,7 @@ var pipeline = Pipeline<MyRecord>.New("postgres-pipeline")
 - New to Pipelinez: [`documentation/getting-started/in-memory.md`](documentation/getting-started/in-memory.md)
 - Using Kafka: [`documentation/getting-started/kafka.md`](documentation/getting-started/kafka.md)
 - Using Azure Service Bus: [`documentation/getting-started/azure-service-bus.md`](documentation/getting-started/azure-service-bus.md)
+- Using RabbitMQ: [`documentation/getting-started/rabbitmq.md`](documentation/getting-started/rabbitmq.md)
 - Using PostgreSQL destinations: [`documentation/getting-started/postgresql-destination.md`](documentation/getting-started/postgresql-destination.md)
 - Architecture overview: [`documentation/Overview.md`](documentation/Overview.md)
 - Runtime and transport internals: [`documentation/README.md`](documentation/README.md)
@@ -318,6 +384,8 @@ Feature-specific guides:
   Kafka transport extension
 - [`src/Pipelinez.AzureServiceBus`](src/Pipelinez.AzureServiceBus)
   Azure Service Bus transport extension
+- [`src/Pipelinez.RabbitMQ`](src/Pipelinez.RabbitMQ)
+  RabbitMQ transport extension
 - [`src/Pipelinez.PostgreSql`](src/Pipelinez.PostgreSql)
   PostgreSQL destination and dead-letter transport extension
 - [`src/tests/Pipelinez.Tests`](src/tests/Pipelinez.Tests)
@@ -326,6 +394,8 @@ Feature-specific guides:
   Kafka integration tests
 - [`src/tests/Pipelinez.AzureServiceBus.Tests`](src/tests/Pipelinez.AzureServiceBus.Tests)
   Azure Service Bus transport and approval tests
+- [`src/tests/Pipelinez.RabbitMQ.Tests`](src/tests/Pipelinez.RabbitMQ.Tests)
+  RabbitMQ transport, integration, and approval tests
 - [`src/tests/Pipelinez.PostgreSql.Tests`](src/tests/Pipelinez.PostgreSql.Tests)
   PostgreSQL integration and approval tests
 - [`src/benchmarks/Pipelinez.Benchmarks`](src/benchmarks/Pipelinez.Benchmarks)
@@ -373,6 +443,12 @@ Run the Azure Service Bus example:
 dotnet run --project src/examples/Example.AzureServiceBus
 ```
 
+Run the RabbitMQ example:
+
+```bash
+dotnet run --project src/examples/Example.RabbitMQ
+```
+
 The Kafka examples and Kafka integration tests use Docker/Testcontainers for local broker startup unless you provide an existing broker through environment variables.
 
 ## Status
@@ -389,13 +465,14 @@ Current implemented capabilities include:
 - operational health snapshots, health checks, metrics, and correlation IDs
 - Docker-backed Kafka integration coverage
 - Azure Service Bus transport unit and API approval coverage
+- RabbitMQ transport unit, API approval, and Docker-backed integration coverage when Docker is available
 - Docker-backed PostgreSQL destination and dead-letter integration coverage
 - public API approval tests and repository-level API stability guidance
 - Dependabot, Dependency Review, CodeQL, OpenSSF Scorecard, and release SBOM automation
 
 ## API Stability
 
-Pipelinez treats the public API of `Pipelinez`, `Pipelinez.Kafka`, `Pipelinez.AzureServiceBus`, and `Pipelinez.PostgreSql` as an intentional compatibility contract.
+Pipelinez treats the public API of `Pipelinez`, `Pipelinez.Kafka`, `Pipelinez.AzureServiceBus`, `Pipelinez.RabbitMQ`, and `Pipelinez.PostgreSql` as an intentional compatibility contract.
 
 - stable APIs are expected to remain source-compatible within the current major version
 - preview APIs should be explicitly marked and documented when introduced
@@ -405,7 +482,7 @@ See [`documentation/ApiStability.md`](documentation/ApiStability.md) for the ful
 
 ## Releases
 
-Pipelinez uses SemVer-style versions and publishes `Pipelinez`, `Pipelinez.Kafka`, `Pipelinez.AzureServiceBus`, and `Pipelinez.PostgreSql` with aligned package versions.
+Pipelinez uses SemVer-style versions and publishes `Pipelinez`, `Pipelinez.Kafka`, `Pipelinez.AzureServiceBus`, `Pipelinez.RabbitMQ`, and `Pipelinez.PostgreSql` with aligned package versions.
 
 - stable releases use tags like `v1.2.3`
 - preview releases use tags like `v1.3.0-preview.1`
