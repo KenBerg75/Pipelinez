@@ -51,6 +51,9 @@ jobs:
       - name: Pack Pipelinez.RabbitMQ
         run: dotnet pack src/Pipelinez.RabbitMQ/Pipelinez.RabbitMQ.csproj --configuration Release --no-build -o artifacts/packages -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
 
+      - name: Pack Pipelinez.AmazonS3
+        run: dotnet pack src/Pipelinez.AmazonS3/Pipelinez.AmazonS3.csproj --configuration Release --no-build -o artifacts/packages -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
+
       - name: Pack Pipelinez.PostgreSql
         run: dotnet pack src/Pipelinez.PostgreSql/Pipelinez.PostgreSql.csproj --configuration Release --no-build -o artifacts/packages -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
 

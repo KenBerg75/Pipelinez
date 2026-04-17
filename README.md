@@ -6,6 +6,7 @@ Typed, observable record-processing pipelines for .NET.
 [![NuGet Kafka](https://img.shields.io/nuget/v/Pipelinez.Kafka.svg)](https://www.nuget.org/packages/Pipelinez.Kafka)
 [![NuGet Azure Service Bus](https://img.shields.io/nuget/v/Pipelinez.AzureServiceBus.svg)](https://www.nuget.org/packages/Pipelinez.AzureServiceBus)
 [![NuGet RabbitMQ](https://img.shields.io/nuget/v/Pipelinez.RabbitMQ.svg)](https://www.nuget.org/packages/Pipelinez.RabbitMQ)
+[![NuGet Amazon S3](https://img.shields.io/nuget/v/Pipelinez.AmazonS3.svg)](https://www.nuget.org/packages/Pipelinez.AmazonS3)
 [![NuGet PostgreSQL](https://img.shields.io/nuget/v/Pipelinez.PostgreSql.svg)](https://www.nuget.org/packages/Pipelinez.PostgreSql)
 [![NuGet SQL Server](https://img.shields.io/nuget/v/Pipelinez.SqlServer.svg)](https://www.nuget.org/packages/Pipelinez.SqlServer)
 [![CI](https://github.com/KenBerg75/Pipelinez/actions/workflows/CI.yaml/badge.svg)](https://github.com/KenBerg75/Pipelinez/actions/workflows/CI.yaml)
@@ -50,6 +51,7 @@ The public packages are available on NuGet.org:
 | [`Pipelinez.Kafka`](https://www.nuget.org/packages/Pipelinez.Kafka) | Kafka source, destination, dead-lettering, distributed execution, and partition-aware scaling | `dotnet add package Pipelinez.Kafka` |
 | [`Pipelinez.AzureServiceBus`](https://www.nuget.org/packages/Pipelinez.AzureServiceBus) | Azure Service Bus queue/topic sources, destinations, dead-lettering, and competing-consumer workers | `dotnet add package Pipelinez.AzureServiceBus` |
 | [`Pipelinez.RabbitMQ`](https://www.nuget.org/packages/Pipelinez.RabbitMQ) | RabbitMQ queue sources, exchange/queue destinations, dead-lettering, and competing-consumer workers | `dotnet add package Pipelinez.RabbitMQ` |
+| [`Pipelinez.AmazonS3`](https://www.nuget.org/packages/Pipelinez.AmazonS3) | Amazon S3 object sources, object destinations, and dead-letter artifact writes | `dotnet add package Pipelinez.AmazonS3` |
 | [`Pipelinez.PostgreSql`](https://www.nuget.org/packages/Pipelinez.PostgreSql) | PostgreSQL destination and dead-letter writes with consumer-owned schema mapping | `dotnet add package Pipelinez.PostgreSql` |
 | [`Pipelinez.SqlServer`](https://www.nuget.org/packages/Pipelinez.SqlServer) | SQL Server destination and dead-letter writes with consumer-owned schema mapping | `dotnet add package Pipelinez.SqlServer` |
 
@@ -82,6 +84,14 @@ dotnet add package Pipelinez.RabbitMQ
 ```
 
 `Pipelinez.RabbitMQ` depends on `Pipelinez`, so RabbitMQ consumers do not need to add both explicitly unless they want to.
+
+For Amazon S3 object source, destination, or dead-letter support:
+
+```bash
+dotnet add package Pipelinez.AmazonS3
+```
+
+`Pipelinez.AmazonS3` depends on `Pipelinez`, so Amazon S3 consumers do not need to add both explicitly unless they want to.
 
 For PostgreSQL destination or dead-letter support:
 
@@ -170,6 +180,7 @@ That container model is what allows Pipelinez to keep runtime behavior explicit 
 - distributed execution and partition-aware Kafka scaling
 - Azure Service Bus queue/topic source, destination, and dead-letter transport support
 - RabbitMQ queue source, exchange/queue destination, and dead-letter transport support
+- Amazon S3 object source, object destination, and dead-letter artifact support
 - PostgreSQL destination and dead-letter transport support
 - SQL Server destination and dead-letter transport support
 - health checks, metrics, correlation IDs, and runtime events
@@ -334,6 +345,47 @@ For a full walkthrough, see:
 - [`src/examples/Example.RabbitMQ`](src/examples/Example.RabbitMQ)
 - [`src/tests/Pipelinez.RabbitMQ.Tests`](src/tests/Pipelinez.RabbitMQ.Tests)
 
+## Amazon S3 Support
+
+Amazon S3 support lives in the separate `Pipelinez.AmazonS3` package in this repository and currently focuses on:
+
+- S3 object enumeration source support
+- S3 object destination writes
+- S3 dead-letter artifact writes
+- source object settlement through leave, delete, tag, copy, or move actions
+- S3-compatible endpoint configuration for LocalStack-style development
+
+Example shape:
+
+```csharp
+using System.Text.Json;
+using Pipelinez.AmazonS3;
+using Pipelinez.AmazonS3.Configuration;
+using Pipelinez.AmazonS3.Destination;
+using Pipelinez.Core;
+
+var pipeline = Pipeline<MyRecord>.New("s3-pipeline")
+    .WithInMemorySource(new object())
+    .WithAmazonS3Destination(
+        new AmazonS3DestinationOptions
+        {
+            Connection = new AmazonS3ConnectionOptions { Region = "us-east-1" },
+            BucketName = "processed-orders",
+            Write = new AmazonS3ObjectWriteOptions { KeyPrefix = "orders/" }
+        },
+        record => AmazonS3PutObject.FromText(
+            $"{record.Id}.json",
+            JsonSerializer.Serialize(record),
+            "application/json"))
+    .Build();
+```
+
+For more detail, see:
+
+- [`documentation/transports/amazon-s3.md`](documentation/transports/amazon-s3.md)
+- [`src/examples/Example.AmazonS3`](src/examples/Example.AmazonS3)
+- [`src/tests/Pipelinez.AmazonS3.Tests`](src/tests/Pipelinez.AmazonS3.Tests)
+
 ## PostgreSQL Support
 
 PostgreSQL support lives in the separate `Pipelinez.PostgreSql` package in this repository and currently focuses on:
@@ -400,6 +452,7 @@ var pipeline = Pipeline<MyRecord>.New("sql-server-pipeline")
 - Using Kafka: [`documentation/getting-started/kafka.md`](documentation/getting-started/kafka.md)
 - Using Azure Service Bus: [`documentation/getting-started/azure-service-bus.md`](documentation/getting-started/azure-service-bus.md)
 - Using RabbitMQ: [`documentation/getting-started/rabbitmq.md`](documentation/getting-started/rabbitmq.md)
+- Using Amazon S3: [`documentation/transports/amazon-s3.md`](documentation/transports/amazon-s3.md)
 - Using PostgreSQL destinations: [`documentation/getting-started/postgresql-destination.md`](documentation/getting-started/postgresql-destination.md)
 - Using SQL Server destinations: [`documentation/getting-started/sql-server-destination.md`](documentation/getting-started/sql-server-destination.md)
 - Architecture overview: [`documentation/Overview.md`](documentation/Overview.md)
@@ -428,6 +481,8 @@ Feature-specific guides:
   Azure Service Bus transport extension
 - [`src/Pipelinez.RabbitMQ`](src/Pipelinez.RabbitMQ)
   RabbitMQ transport extension
+- [`src/Pipelinez.AmazonS3`](src/Pipelinez.AmazonS3)
+  Amazon S3 object transport extension
 - [`src/Pipelinez.PostgreSql`](src/Pipelinez.PostgreSql)
   PostgreSQL destination and dead-letter transport extension
 - [`src/Pipelinez.SqlServer`](src/Pipelinez.SqlServer)
@@ -440,6 +495,8 @@ Feature-specific guides:
   Azure Service Bus transport and approval tests
 - [`src/tests/Pipelinez.RabbitMQ.Tests`](src/tests/Pipelinez.RabbitMQ.Tests)
   RabbitMQ transport, integration, and approval tests
+- [`src/tests/Pipelinez.AmazonS3.Tests`](src/tests/Pipelinez.AmazonS3.Tests)
+  Amazon S3 transport, integration, and approval tests
 - [`src/tests/Pipelinez.PostgreSql.Tests`](src/tests/Pipelinez.PostgreSql.Tests)
   PostgreSQL integration and approval tests
 - [`src/tests/Pipelinez.SqlServer.Tests`](src/tests/Pipelinez.SqlServer.Tests)
@@ -495,13 +552,19 @@ Run the RabbitMQ example:
 dotnet run --project src/examples/Example.RabbitMQ
 ```
 
+Run the Amazon S3 example:
+
+```bash
+dotnet run --project src/examples/Example.AmazonS3
+```
+
 Run the SQL Server example:
 
 ```bash
 dotnet run --project src/examples/Example.SqlServer
 ```
 
-The Kafka, RabbitMQ, SQL Server examples and Docker-backed integration tests use Docker/Testcontainers for local infrastructure unless you provide existing services through environment variables.
+The Kafka, RabbitMQ, Amazon S3, SQL Server examples and Docker-backed integration tests use Docker/Testcontainers for local infrastructure unless you provide existing services through environment variables.
 
 ## Status
 
@@ -518,6 +581,7 @@ Current implemented capabilities include:
 - Docker-backed Kafka integration coverage
 - Azure Service Bus transport unit and API approval coverage
 - RabbitMQ transport unit, API approval, and Docker-backed integration coverage when Docker is available
+- Amazon S3 transport unit, API approval, and Docker-backed LocalStack integration coverage when Docker is available
 - Docker-backed PostgreSQL destination and dead-letter integration coverage
 - Docker-backed SQL Server destination and dead-letter integration coverage
 - public API approval tests and repository-level API stability guidance
@@ -525,7 +589,7 @@ Current implemented capabilities include:
 
 ## API Stability
 
-Pipelinez treats the public API of `Pipelinez`, `Pipelinez.Kafka`, `Pipelinez.AzureServiceBus`, `Pipelinez.RabbitMQ`, `Pipelinez.PostgreSql`, and `Pipelinez.SqlServer` as an intentional compatibility contract.
+Pipelinez treats the public API of `Pipelinez`, `Pipelinez.Kafka`, `Pipelinez.AzureServiceBus`, `Pipelinez.RabbitMQ`, `Pipelinez.AmazonS3`, `Pipelinez.PostgreSql`, and `Pipelinez.SqlServer` as an intentional compatibility contract.
 
 - stable APIs are expected to remain source-compatible within the current major version
 - preview APIs should be explicitly marked and documented when introduced
@@ -535,7 +599,7 @@ See [`documentation/ApiStability.md`](documentation/ApiStability.md) for the ful
 
 ## Releases
 
-Pipelinez uses SemVer-style versions and publishes `Pipelinez`, `Pipelinez.Kafka`, `Pipelinez.AzureServiceBus`, `Pipelinez.RabbitMQ`, `Pipelinez.PostgreSql`, and `Pipelinez.SqlServer` with aligned package versions.
+Pipelinez uses SemVer-style versions and publishes `Pipelinez`, `Pipelinez.Kafka`, `Pipelinez.AzureServiceBus`, `Pipelinez.RabbitMQ`, `Pipelinez.AmazonS3`, `Pipelinez.PostgreSql`, and `Pipelinez.SqlServer` with aligned package versions.
 
 - stable releases use tags like `v1.2.3`
 - preview releases use tags like `v1.3.0-preview.1`

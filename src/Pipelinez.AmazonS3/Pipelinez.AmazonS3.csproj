@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <IsPackable>true</IsPackable>
+        <PackageId>Pipelinez.AmazonS3</PackageId>
+        <Title>Pipelinez.AmazonS3</Title>
+        <Description>Amazon S3 transport extensions for Pipelinez with object enumeration sources, object destinations, and dead-letter artifact publishing.</Description>
+        <PackageTags>pipeline;aws;amazon;s3;object-storage;storage;source;destination;dead-letter;batch;etl;dotnet;csharp</PackageTags>
+        <PackageReadmeFile>PackageReadme.md</PackageReadmeFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="AWSSDK.S3" Version="4.0.21.2" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Pipelinez\Pipelinez.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="PackageReadme.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+</Project>

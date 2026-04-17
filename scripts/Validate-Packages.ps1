@@ -119,6 +119,7 @@ $coreProjectPath = Join-Path (Join-Path $repoRoot 'src') (Join-Path 'Pipelinez' 
 $kafkaProjectPath = Join-Path (Join-Path $repoRoot 'src') (Join-Path 'Pipelinez.Kafka' 'Pipelinez.Kafka.csproj')
 $azureServiceBusProjectPath = Join-Path (Join-Path $repoRoot 'src') (Join-Path 'Pipelinez.AzureServiceBus' 'Pipelinez.AzureServiceBus.csproj')
 $rabbitMqProjectPath = Join-Path (Join-Path $repoRoot 'src') (Join-Path 'Pipelinez.RabbitMQ' 'Pipelinez.RabbitMQ.csproj')
+$amazonS3ProjectPath = Join-Path (Join-Path $repoRoot 'src') (Join-Path 'Pipelinez.AmazonS3' 'Pipelinez.AmazonS3.csproj')
 $postgresProjectPath = Join-Path (Join-Path $repoRoot 'src') (Join-Path 'Pipelinez.PostgreSql' 'Pipelinez.PostgreSql.csproj')
 $sqlServerProjectPath = Join-Path (Join-Path $repoRoot 'src') (Join-Path 'Pipelinez.SqlServer' 'Pipelinez.SqlServer.csproj')
 
@@ -126,6 +127,7 @@ $coreVersion = Get-PackageVersion -ProjectPath $coreProjectPath -RepositoryRoot 
 $kafkaVersion = Get-PackageVersion -ProjectPath $kafkaProjectPath -RepositoryRoot $repoRoot
 $azureServiceBusVersion = Get-PackageVersion -ProjectPath $azureServiceBusProjectPath -RepositoryRoot $repoRoot
 $rabbitMqVersion = Get-PackageVersion -ProjectPath $rabbitMqProjectPath -RepositoryRoot $repoRoot
+$amazonS3Version = Get-PackageVersion -ProjectPath $amazonS3ProjectPath -RepositoryRoot $repoRoot
 $postgresVersion = Get-PackageVersion -ProjectPath $postgresProjectPath -RepositoryRoot $repoRoot
 $sqlServerVersion = Get-PackageVersion -ProjectPath $sqlServerProjectPath -RepositoryRoot $repoRoot
 
@@ -134,6 +136,7 @@ $packageVersions = @(
     [pscustomobject]@{ Name = 'Pipelinez.Kafka'; Version = $kafkaVersion },
     [pscustomobject]@{ Name = 'Pipelinez.AzureServiceBus'; Version = $azureServiceBusVersion },
     [pscustomobject]@{ Name = 'Pipelinez.RabbitMQ'; Version = $rabbitMqVersion },
+    [pscustomobject]@{ Name = 'Pipelinez.AmazonS3'; Version = $amazonS3Version },
     [pscustomobject]@{ Name = 'Pipelinez.PostgreSql'; Version = $postgresVersion },
     [pscustomobject]@{ Name = 'Pipelinez.SqlServer'; Version = $sqlServerVersion }
 )
@@ -330,6 +333,47 @@ public sealed class RabbitMqSmokeRecord : PipelineRecord
 }
 "@ | Set-Content -Path (Join-Path $rabbitMqSmokeDirectory 'Program.cs')
     Invoke-DotNet -Arguments @('build', (Join-Path $rabbitMqSmokeDirectory 'RabbitMqSmoke.csproj'), '--configfile', $nugetConfigPath, '--configuration', 'Release')
+
+    $amazonS3SmokeDirectory = Join-Path $tempRoot 'AmazonS3Smoke'
+    Invoke-DotNet -Arguments @('new', 'console', '--framework', 'net8.0', '--output', $amazonS3SmokeDirectory)
+    Invoke-DotNet -Arguments @('add', (Join-Path $amazonS3SmokeDirectory 'AmazonS3Smoke.csproj'), 'package', 'Pipelinez.AmazonS3', '--version', $amazonS3Version, '--source', $resolvedPackageDirectory)
+    @"
+using System.Text.Json;
+using Amazon.Runtime;
+using Pipelinez.AmazonS3;
+using Pipelinez.AmazonS3.Configuration;
+using Pipelinez.AmazonS3.Destination;
+using Pipelinez.Core;
+using Pipelinez.Core.Record;
+
+var connection = new AmazonS3ConnectionOptions
+{
+    Region = "us-east-1",
+    Credentials = new AnonymousAWSCredentials()
+};
+
+var pipeline = Pipeline<AmazonS3SmokeRecord>.New("orders")
+    .WithInMemorySource(new object())
+    .WithAmazonS3Destination(
+        new AmazonS3DestinationOptions
+        {
+            Connection = connection,
+            BucketName = "processed-orders"
+        },
+        record => AmazonS3PutObject.FromText(
+            $"orders/{record.Id}.json",
+            JsonSerializer.Serialize(record),
+            "application/json"))
+    .Build();
+
+Console.WriteLine(pipeline.GetStatus().Status);
+
+public sealed class AmazonS3SmokeRecord : PipelineRecord
+{
+    public required string Id { get; init; }
+}
+"@ | Set-Content -Path (Join-Path $amazonS3SmokeDirectory 'Program.cs')
+    Invoke-DotNet -Arguments @('build', (Join-Path $amazonS3SmokeDirectory 'AmazonS3Smoke.csproj'), '--configfile', $nugetConfigPath, '--configuration', 'Release')
 
     $postgresSmokeDirectory = Join-Path $tempRoot 'PostgreSqlSmoke'
     Invoke-DotNet -Arguments @('new', 'console', '--framework', 'net8.0', '--output', $postgresSmokeDirectory)
