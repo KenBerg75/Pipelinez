@@ -63,6 +63,8 @@ await pipeline.Completion;
   Kafka source, destination, dead-lettering, distributed execution, and partition-aware scaling.
 - [`Pipelinez.PostgreSql`](https://www.nuget.org/packages/Pipelinez.PostgreSql)
   PostgreSQL destination and dead-letter writes.
+- [`Pipelinez.SqlServer`](https://www.nuget.org/packages/Pipelinez.SqlServer)
+  SQL Server destination and dead-letter writes.
 
 ## Documentation
 

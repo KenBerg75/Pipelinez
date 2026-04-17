@@ -11,6 +11,7 @@ Pipelinez is a .NET 8 library for building typed source -> segment -> destinatio
 - `Pipelinez.AzureServiceBus`: Azure Service Bus queue and topic subscription sources, queue/topic destinations, dead-letter publishing, and competing-consumer worker support.
 - `Pipelinez.RabbitMQ`: RabbitMQ queue sources, exchange/queue destinations, dead-letter publishing, manual ack/nack settlement, and competing-consumer worker support.
 - `Pipelinez.PostgreSql`: PostgreSQL destination and dead-letter write extensions with consumer-owned schema mapping and custom SQL support.
+- `Pipelinez.SqlServer`: SQL Server destination and dead-letter write extensions with consumer-owned schema mapping and custom SQL support.
 
 ## Install
 
@@ -20,6 +21,7 @@ dotnet add package Pipelinez.Kafka
 dotnet add package Pipelinez.AzureServiceBus
 dotnet add package Pipelinez.RabbitMQ
 dotnet add package Pipelinez.PostgreSql
+dotnet add package Pipelinez.SqlServer
 ```
 
 ## Use Pipelinez When
@@ -31,6 +33,7 @@ dotnet add package Pipelinez.PostgreSql
 - You need Azure Service Bus queue or topic subscription ingestion, queue/topic publishing, or Service Bus-backed dead-letter publishing.
 - You need RabbitMQ queue ingestion, exchange/queue publishing, RabbitMQ-backed dead-letter publishing, or competing-consumer workers.
 - You need to write successful records or dead-letter records to PostgreSQL tables owned by your application.
+- You need to write successful records or dead-letter records to SQL Server tables owned by your application.
 
 ## Do Not Use Pipelinez When
 
@@ -45,6 +48,7 @@ dotnet add package Pipelinez.PostgreSql
 - Azure Service Bus source or destination: install `Pipelinez.AzureServiceBus`.
 - RabbitMQ source or destination: install `Pipelinez.RabbitMQ`.
 - PostgreSQL destination or dead-letter table: install `Pipelinez.PostgreSql`.
+- SQL Server destination or dead-letter table: install `Pipelinez.SqlServer`.
 - Kafka input with PostgreSQL output: install `Pipelinez.Kafka` and `Pipelinez.PostgreSql`.
 
 ## Key Concepts
@@ -65,10 +69,12 @@ dotnet add package Pipelinez.PostgreSql
 - Azure Service Bus quickstart: `documentation/getting-started/azure-service-bus.md`
 - RabbitMQ quickstart: `documentation/getting-started/rabbitmq.md`
 - PostgreSQL destination quickstart: `documentation/getting-started/postgresql-destination.md`
+- SQL Server destination quickstart: `documentation/getting-started/sql-server-destination.md`
 - Kafka transport docs: `documentation/transports/kafka.md`
 - Azure Service Bus transport docs: `documentation/transports/azure-service-bus.md`
 - RabbitMQ transport docs: `documentation/transports/rabbitmq.md`
 - PostgreSQL transport docs: `documentation/transports/postgresql.md`
+- SQL Server transport docs: `documentation/transports/sql-server.md`
 - Lifecycle guide: `documentation/guides/lifecycle.md`
 - Retry guide: `documentation/guides/retry.md`
 - Dead-lettering guide: `documentation/guides/dead-lettering.md`

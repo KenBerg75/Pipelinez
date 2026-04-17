@@ -1,0 +1,36 @@
+Assembly: Pipelinez.SqlServer
+
+public class Pipelinez.SqlServer.Configuration.SqlServerDeadLetterOptions : Pipelinez.SqlServer.Configuration.SqlServerOptions
+  CTOR public Pipelinez.SqlServer.Configuration.SqlServerDeadLetterOptions()
+  METHOD public Pipelinez.SqlServer.Configuration.SqlServerDeadLetterOptions Validate()
+
+public class Pipelinez.SqlServer.Configuration.SqlServerDestinationOptions : Pipelinez.SqlServer.Configuration.SqlServerOptions
+  CTOR public Pipelinez.SqlServer.Configuration.SqlServerDestinationOptions()
+  METHOD public Pipelinez.SqlServer.Configuration.SqlServerDestinationOptions Validate()
+
+public abstract class Pipelinez.SqlServer.Configuration.SqlServerOptions
+  PROPERTY public System.Nullable<int> CommandTimeoutSeconds { get; init; }
+  PROPERTY public System.Action<Microsoft.Data.SqlClient.SqlConnectionStringBuilder> ConfigureConnectionString { get; init; }
+  PROPERTY public string ConnectionString { get; init; }
+  PROPERTY public System.Text.Json.JsonSerializerOptions SerializerOptions { get; init; }
+
+public class Pipelinez.SqlServer.Mapping.SqlServerCommandDefinition
+  CTOR public Pipelinez.SqlServer.Mapping.SqlServerCommandDefinition(string commandText, object parameters, System.Nullable<int> commandTimeoutSeconds = null)
+  PROPERTY public string CommandText { get; }
+  PROPERTY public System.Nullable<int> CommandTimeoutSeconds { get; }
+  PROPERTY public object Parameters { get; }
+  METHOD public Pipelinez.SqlServer.Mapping.SqlServerCommandDefinition Validate()
+
+public class Pipelinez.SqlServer.Mapping.SqlServerTableMap<TModel>
+  PROPERTY public string SchemaName { get; }
+  PROPERTY public string TableName { get; }
+  METHOD public static Pipelinez.SqlServer.Mapping.SqlServerTableMap<TModel> ForTable(string schemaName, string tableName)
+  METHOD public Pipelinez.SqlServer.Mapping.SqlServerTableMap<TModel> Map<TValue>(string columnName, System.Func<TModel, TValue> valueFactory)
+  METHOD public Pipelinez.SqlServer.Mapping.SqlServerTableMap<TModel> MapJson<TValue>(string columnName, System.Func<TModel, TValue> valueFactory)
+  METHOD public Pipelinez.SqlServer.Mapping.SqlServerTableMap<TModel> Validate()
+
+public static class Pipelinez.SqlServer.SqlServerPipelineBuilderExtensions
+  METHOD public static Pipelinez.Core.PipelineBuilder<TRecord> WithSqlServerDeadLetterDestination<TRecord>(Pipelinez.Core.PipelineBuilder<TRecord> builder, Pipelinez.SqlServer.Configuration.SqlServerDeadLetterOptions options, Pipelinez.SqlServer.Mapping.SqlServerTableMap<Pipelinez.Core.DeadLettering.PipelineDeadLetterRecord<TRecord>> tableMap) where TRecord : Pipelinez.Core.Record.PipelineRecord
+  METHOD public static Pipelinez.Core.PipelineBuilder<TRecord> WithSqlServerDeadLetterDestination<TRecord>(Pipelinez.Core.PipelineBuilder<TRecord> builder, Pipelinez.SqlServer.Configuration.SqlServerDeadLetterOptions options, System.Func<Pipelinez.Core.DeadLettering.PipelineDeadLetterRecord<TRecord>, Pipelinez.SqlServer.Mapping.SqlServerCommandDefinition> commandFactory) where TRecord : Pipelinez.Core.Record.PipelineRecord
+  METHOD public static Pipelinez.Core.PipelineBuilder<TRecord> WithSqlServerDestination<TRecord>(Pipelinez.Core.PipelineBuilder<TRecord> builder, Pipelinez.SqlServer.Configuration.SqlServerDestinationOptions options, Pipelinez.SqlServer.Mapping.SqlServerTableMap<TRecord> tableMap) where TRecord : Pipelinez.Core.Record.PipelineRecord
+  METHOD public static Pipelinez.Core.PipelineBuilder<TRecord> WithSqlServerDestination<TRecord>(Pipelinez.Core.PipelineBuilder<TRecord> builder, Pipelinez.SqlServer.Configuration.SqlServerDestinationOptions options, System.Func<TRecord, Pipelinez.SqlServer.Mapping.SqlServerCommandDefinition> commandFactory) where TRecord : Pipelinez.Core.Record.PipelineRecord

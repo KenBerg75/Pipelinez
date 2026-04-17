@@ -16,6 +16,8 @@
       href: getting-started/rabbitmq.md
     - name: PostgreSQL Destination
       href: getting-started/postgresql-destination.md
+    - name: SQL Server Destination
+      href: getting-started/sql-server-destination.md
 - name: Guides
   items:
     - name: Lifecycle
@@ -44,6 +46,8 @@
       href: transports/rabbitmq.md
     - name: PostgreSQL
       href: transports/postgresql.md
+    - name: SQL Server
+      href: transports/sql-server.md
 - name: Operations
   items:
     - name: Troubleshooting
@@ -64,5 +68,7 @@
       href: architecture/rabbitmq.md
     - name: PostgreSQL Internals
       href: architecture/postgresql.md
+    - name: SQL Server Internals
+      href: architecture/sql-server.md
     - name: Testing
       href: architecture/testing.md

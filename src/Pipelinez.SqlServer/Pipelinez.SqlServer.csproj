@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <IsPackable>true</IsPackable>
+        <PackageId>Pipelinez.SqlServer</PackageId>
+        <Title>Pipelinez.SqlServer</Title>
+        <Description>SQL Server destination and dead-letter extensions for Pipelinez with consumer-owned schema mapping, custom SQL, and Dapper-backed database writes.</Description>
+        <PackageTags>pipeline;sqlserver;mssql;database;destination;dapper;dead-letter;audit;outbox;etl;dotnet;csharp</PackageTags>
+        <PackageReadmeFile>PackageReadme.md</PackageReadmeFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Dapper" Version="2.1.72" />
+        <PackageReference Include="Microsoft.Data.SqlClient" Version="7.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Pipelinez\Pipelinez.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="PackageReadme.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+</Project>

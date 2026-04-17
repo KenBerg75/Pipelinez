@@ -45,7 +45,7 @@ Types that are not intended as consumer extension points should remain internal.
 
 ## Compatibility Rules
 
-Pipelinez uses SemVer-style versioning for public releases. `Pipelinez`, `Pipelinez.Kafka`, `Pipelinez.AzureServiceBus`, and `Pipelinez.PostgreSql` should be published with the same version number in each release.
+Pipelinez uses SemVer-style versioning for public releases. `Pipelinez`, `Pipelinez.Kafka`, `Pipelinez.AzureServiceBus`, `Pipelinez.RabbitMQ`, `Pipelinez.PostgreSql`, and `Pipelinez.SqlServer` should be published with the same version number in each release.
 
 ### Patch Releases
 
@@ -95,7 +95,9 @@ The repository now includes public API approval tests for:
 - `Pipelinez`
 - `Pipelinez.Kafka`
 - `Pipelinez.AzureServiceBus`
+- `Pipelinez.RabbitMQ`
 - `Pipelinez.PostgreSql`
+- `Pipelinez.SqlServer`
 
 These tests compare the compiled public surface against checked-in approved baselines. Any unintended public API change causes the test suite to fail, which means the existing PR and CI workflows also catch it automatically.
 
@@ -106,7 +108,9 @@ Approved baselines live in:
 - `src/tests/Pipelinez.Tests/ApprovedApi/Pipelinez.publicapi.txt`
 - `src/tests/Pipelinez.Kafka.Tests/ApprovedApi/Pipelinez.Kafka.publicapi.txt`
 - `src/tests/Pipelinez.AzureServiceBus.Tests/ApprovedApi/Pipelinez.AzureServiceBus.publicapi.txt`
+- `src/tests/Pipelinez.RabbitMQ.Tests/ApprovedApi/Pipelinez.RabbitMQ.publicapi.txt`
 - `src/tests/Pipelinez.PostgreSql.Tests/ApprovedApi/Pipelinez.PostgreSql.publicapi.txt`
+- `src/tests/Pipelinez.SqlServer.Tests/ApprovedApi/Pipelinez.SqlServer.publicapi.txt`
 
 To intentionally refresh the baselines after an approved public API change:
 
@@ -115,7 +119,9 @@ $env:PIPELINEZ_UPDATE_API_BASELINES='1'
 dotnet test src/tests/Pipelinez.Tests/Pipelinez.Tests.csproj --filter ApiApprovalTests
 dotnet test src/tests/Pipelinez.Kafka.Tests/Pipelinez.Kafka.Tests.csproj --filter ApiApprovalTests
 dotnet test src/tests/Pipelinez.AzureServiceBus.Tests/Pipelinez.AzureServiceBus.Tests.csproj --filter ApiApprovalTests
+dotnet test src/tests/Pipelinez.RabbitMQ.Tests/Pipelinez.RabbitMQ.Tests.csproj --filter ApiApprovalTests
 dotnet test src/tests/Pipelinez.PostgreSql.Tests/Pipelinez.PostgreSql.Tests.csproj --filter ApiApprovalTests
+dotnet test src/tests/Pipelinez.SqlServer.Tests/Pipelinez.SqlServer.Tests.csproj --filter ApiApprovalTests
 ```
 
 Then run the full test suite normally before merging.

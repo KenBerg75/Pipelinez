@@ -86,6 +86,9 @@ jobs:
       - name: Pack Pipelinez.PostgreSql
         run: dotnet pack src/Pipelinez.PostgreSql/Pipelinez.PostgreSql.csproj --configuration Release --no-build -o artifacts/packages -p:Version=${{ steps.version.outputs.package_version }} -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
 
+      - name: Pack Pipelinez.SqlServer
+        run: dotnet pack src/Pipelinez.SqlServer/Pipelinez.SqlServer.csproj --configuration Release --no-build -o artifacts/packages -p:Version=${{ steps.version.outputs.package_version }} -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
+
       - name: Validate Packages
         shell: pwsh
         run: ./scripts/Validate-Packages.ps1 -PackageDirectory artifacts/packages -PackageVersion ${{ steps.version.outputs.package_version }}
