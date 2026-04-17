@@ -2,7 +2,7 @@
 
 All notable changes to Pipelinez will be documented in this file.
 
-Pipelinez uses [Semantic Versioning](https://semver.org/). The `Pipelinez`, `Pipelinez.Kafka`, `Pipelinez.AzureServiceBus`, `Pipelinez.RabbitMQ`, and `Pipelinez.PostgreSql` packages ship with aligned versions.
+Pipelinez uses [Semantic Versioning](https://semver.org/). The `Pipelinez`, `Pipelinez.Kafka`, `Pipelinez.AzureServiceBus`, `Pipelinez.RabbitMQ`, `Pipelinez.PostgreSql`, and `Pipelinez.SqlServer` packages ship with aligned versions.
 
 ## [Unreleased]
 
@@ -12,6 +12,8 @@ Pipelinez uses [Semantic Versioning](https://semver.org/). The `Pipelinez`, `Pip
 - Extended CI, PR, release, docs, ownership, and package smoke validation workflows so `Pipelinez.AzureServiceBus` is validated and published with the existing package set.
 - Added the `Pipelinez.RabbitMQ` transport package with queue sources, exchange/default-exchange destinations, RabbitMQ dead-letter publishing, manual ack/nack source settlement, competing-consumer worker support, docs, examples, approval/unit tests, and Testcontainers integration coverage.
 - Extended CI, PR, release, docs, and package smoke validation workflows so `Pipelinez.RabbitMQ` is validated and published with the existing package set.
+- Added the `Pipelinez.SqlServer` transport package with SQL Server destination writes, dead-letter writes, consumer-owned schema mapping, custom SQL support, docs, examples, approval/unit tests, and Testcontainers integration coverage.
+- Extended CI, PR, release, docs, and package smoke validation workflows so `Pipelinez.SqlServer` is validated and published with the existing package set.
 
 ## [1.0.0] - 2026-04-07
 

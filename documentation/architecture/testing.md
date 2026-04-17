@@ -48,6 +48,18 @@ This suite validates:
 - dead-letter custom SQL writes
 - connection-configuration validation and API approval coverage
 
+### SQL Server Integration Tests
+
+`src/tests/Pipelinez.SqlServer.Tests` covers real SQL Server behavior using Docker/Testcontainers.
+
+This suite validates:
+
+- direct destination writes through generated table maps
+- custom SQL destination writes
+- dead-letter table mapping
+- dead-letter custom SQL writes
+- connection-string customization, identifier quoting, JSON text mapping, and API approval coverage
+
 ### Azure Service Bus Tests
 
 `src/tests/Pipelinez.AzureServiceBus.Tests` covers Azure Service Bus transport behavior with focused unit tests and public API approval coverage.
@@ -67,7 +79,9 @@ The repository now also includes public API approval tests for:
 - `Pipelinez`
 - `Pipelinez.Kafka`
 - `Pipelinez.AzureServiceBus`
+- `Pipelinez.RabbitMQ`
 - `Pipelinez.PostgreSql`
+- `Pipelinez.SqlServer`
 
 Those tests compare the compiled public surface to checked-in approved baselines.
 
@@ -78,7 +92,9 @@ $env:PIPELINEZ_UPDATE_API_BASELINES='1'
 dotnet test src/tests/Pipelinez.Tests/Pipelinez.Tests.csproj --filter ApiApprovalTests
 dotnet test src/tests/Pipelinez.Kafka.Tests/Pipelinez.Kafka.Tests.csproj --filter ApiApprovalTests
 dotnet test src/tests/Pipelinez.AzureServiceBus.Tests/Pipelinez.AzureServiceBus.Tests.csproj --filter ApiApprovalTests
+dotnet test src/tests/Pipelinez.RabbitMQ.Tests/Pipelinez.RabbitMQ.Tests.csproj --filter ApiApprovalTests
 dotnet test src/tests/Pipelinez.PostgreSql.Tests/Pipelinez.PostgreSql.Tests.csproj --filter ApiApprovalTests
+dotnet test src/tests/Pipelinez.SqlServer.Tests/Pipelinez.SqlServer.Tests.csproj --filter ApiApprovalTests
 ```
 
 Then run:
@@ -108,6 +124,11 @@ Use PostgreSQL integration tests when:
 
 - the behavior depends on real PostgreSQL execution
 - the scenario validates generated SQL, custom SQL, or dead-letter table writes
+
+Use SQL Server integration tests when:
+
+- the behavior depends on real SQL Server execution
+- the scenario validates generated SQL, custom SQL, dead-letter table writes, JSON text mapping, or bracket-quoted identifiers
 
 ## Related Docs
 

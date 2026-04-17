@@ -120,19 +120,22 @@ $kafkaProjectPath = Join-Path (Join-Path $repoRoot 'src') (Join-Path 'Pipelinez.
 $azureServiceBusProjectPath = Join-Path (Join-Path $repoRoot 'src') (Join-Path 'Pipelinez.AzureServiceBus' 'Pipelinez.AzureServiceBus.csproj')
 $rabbitMqProjectPath = Join-Path (Join-Path $repoRoot 'src') (Join-Path 'Pipelinez.RabbitMQ' 'Pipelinez.RabbitMQ.csproj')
 $postgresProjectPath = Join-Path (Join-Path $repoRoot 'src') (Join-Path 'Pipelinez.PostgreSql' 'Pipelinez.PostgreSql.csproj')
+$sqlServerProjectPath = Join-Path (Join-Path $repoRoot 'src') (Join-Path 'Pipelinez.SqlServer' 'Pipelinez.SqlServer.csproj')
 
 $coreVersion = Get-PackageVersion -ProjectPath $coreProjectPath -RepositoryRoot $repoRoot
 $kafkaVersion = Get-PackageVersion -ProjectPath $kafkaProjectPath -RepositoryRoot $repoRoot
 $azureServiceBusVersion = Get-PackageVersion -ProjectPath $azureServiceBusProjectPath -RepositoryRoot $repoRoot
 $rabbitMqVersion = Get-PackageVersion -ProjectPath $rabbitMqProjectPath -RepositoryRoot $repoRoot
 $postgresVersion = Get-PackageVersion -ProjectPath $postgresProjectPath -RepositoryRoot $repoRoot
+$sqlServerVersion = Get-PackageVersion -ProjectPath $sqlServerProjectPath -RepositoryRoot $repoRoot
 
 $packageVersions = @(
     [pscustomobject]@{ Name = 'Pipelinez'; Version = $coreVersion },
     [pscustomobject]@{ Name = 'Pipelinez.Kafka'; Version = $kafkaVersion },
     [pscustomobject]@{ Name = 'Pipelinez.AzureServiceBus'; Version = $azureServiceBusVersion },
     [pscustomobject]@{ Name = 'Pipelinez.RabbitMQ'; Version = $rabbitMqVersion },
-    [pscustomobject]@{ Name = 'Pipelinez.PostgreSql'; Version = $postgresVersion }
+    [pscustomobject]@{ Name = 'Pipelinez.PostgreSql'; Version = $postgresVersion },
+    [pscustomobject]@{ Name = 'Pipelinez.SqlServer'; Version = $sqlServerVersion }
 )
 
 $referenceVersion = $packageVersions[0].Version
@@ -360,6 +363,39 @@ public sealed class PostgreSqlSmokeRecord : PipelineRecord
 }
 "@ | Set-Content -Path (Join-Path $postgresSmokeDirectory 'Program.cs')
     Invoke-DotNet -Arguments @('build', (Join-Path $postgresSmokeDirectory 'PostgreSqlSmoke.csproj'), '--configfile', $nugetConfigPath, '--configuration', 'Release')
+
+    $sqlServerSmokeDirectory = Join-Path $tempRoot 'SqlServerSmoke'
+    Invoke-DotNet -Arguments @('new', 'console', '--framework', 'net8.0', '--output', $sqlServerSmokeDirectory)
+    Invoke-DotNet -Arguments @('add', (Join-Path $sqlServerSmokeDirectory 'SqlServerSmoke.csproj'), 'package', 'Pipelinez.SqlServer', '--version', $sqlServerVersion, '--source', $resolvedPackageDirectory)
+    @"
+using Pipelinez.Core;
+using Pipelinez.Core.Record;
+using Pipelinez.SqlServer;
+using Pipelinez.SqlServer.Configuration;
+using Pipelinez.SqlServer.Mapping;
+
+var options = new SqlServerDestinationOptions
+{
+    ConnectionString = "Server=localhost;Database=pipelinez;User Id=sa;Password=P@ssw0rd!2026;TrustServerCertificate=True"
+};
+
+var pipeline = Pipeline<SqlServerSmokeRecord>.New("orders")
+    .WithInMemorySource(new object())
+    .WithSqlServerDestination(
+        options,
+        SqlServerTableMap<SqlServerSmokeRecord>.ForTable("app", "orders")
+            .Map("order_id", record => record.Id)
+            .MapJson("payload", record => record))
+    .Build();
+
+Console.WriteLine(pipeline.GetStatus().Status);
+
+public sealed class SqlServerSmokeRecord : PipelineRecord
+{
+    public required string Id { get; init; }
+}
+"@ | Set-Content -Path (Join-Path $sqlServerSmokeDirectory 'Program.cs')
+    Invoke-DotNet -Arguments @('build', (Join-Path $sqlServerSmokeDirectory 'SqlServerSmoke.csproj'), '--configfile', $nugetConfigPath, '--configuration', 'Release')
 
     Write-Host "Package smoke validation succeeded."
 }

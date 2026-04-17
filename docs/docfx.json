@@ -10,7 +10,8 @@
             "src/Pipelinez.Kafka/Pipelinez.Kafka.csproj",
             "src/Pipelinez.AzureServiceBus/Pipelinez.AzureServiceBus.csproj",
             "src/Pipelinez.RabbitMQ/Pipelinez.RabbitMQ.csproj",
-            "src/Pipelinez.PostgreSql/Pipelinez.PostgreSql.csproj"
+            "src/Pipelinez.PostgreSql/Pipelinez.PostgreSql.csproj",
+            "src/Pipelinez.SqlServer/Pipelinez.SqlServer.csproj"
           ]
         }
       ],

@@ -9,7 +9,9 @@ Pipelinez is a .NET 8 library for building typed, observable source -> segment -
 - <a href="https://kenberg75.github.io/Pipelinez/articles/getting-started/in-memory.html">In-memory quickstart</a>
 - <a href="https://kenberg75.github.io/Pipelinez/articles/getting-started/kafka.html">Kafka quickstart</a>
 - <a href="https://kenberg75.github.io/Pipelinez/articles/getting-started/azure-service-bus.html">Azure Service Bus quickstart</a>
+- <a href="https://kenberg75.github.io/Pipelinez/articles/getting-started/rabbitmq.html">RabbitMQ quickstart</a>
 - <a href="https://kenberg75.github.io/Pipelinez/articles/getting-started/postgresql-destination.html">PostgreSQL destination quickstart</a>
+- <a href="https://kenberg75.github.io/Pipelinez/articles/getting-started/sql-server-destination.html">SQL Server destination quickstart</a>
 
 ## Packages
 
@@ -18,7 +20,9 @@ Pipelinez is a .NET 8 library for building typed, observable source -> segment -
 | `Pipelinez` | Core typed pipeline runtime |
 | `Pipelinez.Kafka` | Kafka source, destination, dead-lettering, distributed execution, and partition-aware scaling |
 | `Pipelinez.AzureServiceBus` | Azure Service Bus queue/topic sources, destinations, dead-lettering, and competing-consumer workers |
+| `Pipelinez.RabbitMQ` | RabbitMQ queue sources, exchange/queue destinations, dead-lettering, and competing-consumer workers |
 | `Pipelinez.PostgreSql` | PostgreSQL destination and dead-letter writes with consumer-owned schema mapping |
+| `Pipelinez.SqlServer` | SQL Server destination and dead-letter writes with consumer-owned schema mapping |
 
 ## API Reference
 

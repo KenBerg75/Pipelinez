@@ -5,3 +5,4 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("Pipelinez.PostgreSql")]
 [assembly: InternalsVisibleTo("Pipelinez.AzureServiceBus")]
 [assembly: InternalsVisibleTo("Pipelinez.RabbitMQ")]
+[assembly: InternalsVisibleTo("Pipelinez.SqlServer")]

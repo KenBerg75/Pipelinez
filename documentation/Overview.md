@@ -29,16 +29,24 @@ Each record flows through the runtime inside a `PipelineContainer<T>`, which let
   the Kafka transport extension assembly
 - `src/Pipelinez.AzureServiceBus`
   the Azure Service Bus transport extension assembly
+- `src/Pipelinez.RabbitMQ`
+  the RabbitMQ transport extension assembly
 - `src/Pipelinez.PostgreSql`
   the PostgreSQL destination and dead-letter transport extension assembly
+- `src/Pipelinez.SqlServer`
+  the SQL Server destination and dead-letter transport extension assembly
 - `src/tests/Pipelinez.Tests`
   unit and runtime tests for core pipeline behavior
 - `src/tests/Pipelinez.Kafka.Tests`
   Docker-backed Kafka integration tests using Testcontainers
 - `src/tests/Pipelinez.AzureServiceBus.Tests`
   Azure Service Bus transport and approval tests
+- `src/tests/Pipelinez.RabbitMQ.Tests`
+  Docker-backed RabbitMQ transport and approval tests using Testcontainers
 - `src/tests/Pipelinez.PostgreSql.Tests`
   Docker-backed PostgreSQL destination and dead-letter integration tests using Testcontainers
+- `src/tests/Pipelinez.SqlServer.Tests`
+  Docker-backed SQL Server destination and dead-letter integration tests using Testcontainers
 - `src/benchmarks/Pipelinez.Benchmarks`
   BenchmarkDotNet project for repeatable in-memory performance measurements
 - `src/examples/Example.Kafka`
@@ -57,14 +65,16 @@ The public packages are available on NuGet.org:
 - [`Pipelinez`](https://www.nuget.org/packages/Pipelinez)
 - [`Pipelinez.Kafka`](https://www.nuget.org/packages/Pipelinez.Kafka)
 - [`Pipelinez.AzureServiceBus`](https://www.nuget.org/packages/Pipelinez.AzureServiceBus)
+- [`Pipelinez.RabbitMQ`](https://www.nuget.org/packages/Pipelinez.RabbitMQ)
 - [`Pipelinez.PostgreSql`](https://www.nuget.org/packages/Pipelinez.PostgreSql)
+- [`Pipelinez.SqlServer`](https://www.nuget.org/packages/Pipelinez.SqlServer)
 
 The repository remains configured for package metadata, XML docs, Source Link, symbol packages, and CI pack validation.
 Public release automation is configured through tag-based GitHub Actions and NuGet Trusted Publishing.
 
 Versioning rules:
 
-- `Pipelinez`, `Pipelinez.Kafka`, `Pipelinez.AzureServiceBus`, and `Pipelinez.PostgreSql` ship with aligned versions
+- `Pipelinez`, `Pipelinez.Kafka`, `Pipelinez.AzureServiceBus`, `Pipelinez.RabbitMQ`, `Pipelinez.PostgreSql`, and `Pipelinez.SqlServer` ship with aligned versions
 - stable releases use tags such as `v1.2.3`
 - preview releases use tags such as `v1.3.0-preview.1`
 - manual release workflow dispatch is intended for package validation and does not publish to NuGet.org
@@ -102,6 +112,11 @@ PostgreSQL also integrates through extension methods in `Pipelinez.PostgreSql`. 
 
 - `WithPostgreSqlDestination(...)`
 - `WithPostgreSqlDeadLetterDestination(...)`
+
+SQL Server also integrates through extension methods in `Pipelinez.SqlServer`. The SQL Server assembly adds:
+
+- `WithSqlServerDestination(...)`
+- `WithSqlServerDeadLetterDestination(...)`
 
 `Build()` validates that a source and destination exist, creates a `Pipeline<T>`, links all blocks, and initializes the source and destination.
 If distributed execution is requested, `Build()` also validates that the configured source implements the distributed source contract.
@@ -811,6 +826,47 @@ PostgreSQL configuration supports:
 
 This gives consumers full control over pooling and driver configuration while keeping Pipelinez responsible only for command execution.
 
+## SQL Server Integration
+
+SQL Server support lives in the separate `Pipelinez.SqlServer` assembly under `src/Pipelinez.SqlServer`.
+
+The SQL Server transport is destination-focused. It writes successful records and dead-letter records to consumer-owned tables, and it does not provide SQL Server source, table queue polling, CDC, or change tracking support.
+
+### Builder Surface
+
+SQL Server extends the builder through `SqlServerPipelineBuilderExtensions`:
+
+- `WithSqlServerDestination(...)`
+- `WithSqlServerDeadLetterDestination(...)`
+
+### SQL Server Destination
+
+The SQL Server destination:
+
+- maps a pipeline record either through `SqlServerTableMap<T>` or a custom `SqlServerCommandDefinition`
+- generates parameterized `INSERT` statements for table-map-backed writes
+- bracket-quotes mapped identifiers and escapes closing brackets
+- executes commands through Dapper on top of `Microsoft.Data.SqlClient`
+- only completes the record after SQL Server acknowledges the write
+
+`MapJson(...)` serializes values as JSON text. Consumers can enforce JSON validity with `ISJSON(...)` constraints on `nvarchar(max)` columns.
+
+### SQL Server Dead-Letter Destination
+
+The SQL Server dead-letter destination supports two shapes:
+
+- `SqlServerTableMap<PipelineDeadLetterRecord<T>>`
+- `Func<PipelineDeadLetterRecord<T>, SqlServerCommandDefinition>`
+
+### Configuration
+
+SQL Server configuration supports:
+
+- `ConnectionString`
+- `ConfigureConnectionString`
+- `CommandTimeoutSeconds`
+- `SerializerOptions`
+
 ## Examples
 
 ### `Example.Kafka`
@@ -880,7 +936,18 @@ The solution now includes two test layers.
 - option validation and generated SQL safety
 - public API approval coverage for the PostgreSQL package
 
-The standard validation path is `dotnet test src\\Pipelinez.sln`. Kafka and PostgreSQL suites require Docker/Testcontainers, while Azure Service Bus live end-to-end coverage is opt-in through `PIPELINEZ_ASB_CONNECTION_STRING`.
+### SQL Server Integration Tests
+
+`src/tests/Pipelinez.SqlServer.Tests` uses Docker and `Testcontainers.MsSql` to validate:
+
+- direct record-to-table mapping into consumer-owned schemas and tables
+- custom parameterized SQL execution
+- dead-letter table mapping
+- dead-letter custom SQL execution
+- connection-string customization, bracket quoting, JSON text mapping, and generated SQL safety
+- public API approval coverage for the SQL Server package
+
+The standard validation path is `dotnet test src\\Pipelinez.sln`. Kafka, RabbitMQ, PostgreSQL, and SQL Server suites require Docker/Testcontainers, while Azure Service Bus live end-to-end coverage is opt-in through `PIPELINEZ_ASB_CONNECTION_STRING`.
 
 ## Current State
 
@@ -900,6 +967,7 @@ The major architectural work called out in the earlier planning docs has been im
 - explicit retry policies with retry history, retry events, and retry-aware performance counters
 - explicit dead-letter flows with in-memory and Kafka dead-letter destinations
 - explicit PostgreSQL destination and dead-letter transport support
+- explicit SQL Server destination and dead-letter transport support
 - explicit flow-control policies with publish results, saturation status, and pressure metrics
 - explicit operational tooling with health snapshots, health checks, meter metrics, and correlation-aware diagnostics
 - explicit dependency and security automation with Dependabot, Dependency Review, CodeQL, OpenSSF Scorecard, and release SBOM generation
@@ -910,7 +978,7 @@ The remaining work is mostly future evolution work rather than foundational clea
 
 Pipelinez now also has explicit public API governance in place.
 
-- the repository treats `Pipelinez`, `Pipelinez.Kafka`, `Pipelinez.AzureServiceBus`, and `Pipelinez.PostgreSql` as intentional consumer contracts
+- the repository treats `Pipelinez`, `Pipelinez.Kafka`, `Pipelinez.AzureServiceBus`, `Pipelinez.RabbitMQ`, `Pipelinez.PostgreSql`, and `Pipelinez.SqlServer` as intentional consumer contracts
 - public API approval tests snapshot the compiled surface of all public package assemblies
 - accidental API changes now fail the normal test suite, which means they are also caught by the existing PR and CI workflows
 - contributor guidance now distinguishes stable, preview, and internal-only surface area
