@@ -6,3 +6,4 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("Pipelinez.AzureServiceBus")]
 [assembly: InternalsVisibleTo("Pipelinez.RabbitMQ")]
 [assembly: InternalsVisibleTo("Pipelinez.SqlServer")]
+[assembly: InternalsVisibleTo("Pipelinez.AmazonS3")]

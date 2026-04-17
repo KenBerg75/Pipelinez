@@ -1,0 +1,153 @@
+Assembly: Pipelinez.AmazonS3
+
+public static class Pipelinez.AmazonS3.AmazonS3PipelineBuilderExtensions
+  METHOD public static Pipelinez.Core.PipelineBuilder<T> WithAmazonS3DeadLetterDestination<T>(Pipelinez.Core.PipelineBuilder<T> builder, Pipelinez.AmazonS3.Configuration.AmazonS3DeadLetterOptions options) where T : Pipelinez.Core.Record.PipelineRecord
+  METHOD public static Pipelinez.Core.PipelineBuilder<T> WithAmazonS3DeadLetterDestination<T>(Pipelinez.Core.PipelineBuilder<T> builder, Pipelinez.AmazonS3.Configuration.AmazonS3DeadLetterOptions options, System.Func<Pipelinez.Core.DeadLettering.PipelineDeadLetterRecord<T>, Pipelinez.AmazonS3.Destination.AmazonS3PutObject> objectMapper) where T : Pipelinez.Core.Record.PipelineRecord
+  METHOD public static Pipelinez.Core.PipelineBuilder<T> WithAmazonS3Destination<T>(Pipelinez.Core.PipelineBuilder<T> builder, Pipelinez.AmazonS3.Configuration.AmazonS3DestinationOptions options, System.Func<T, Pipelinez.AmazonS3.Destination.AmazonS3PutObject> objectMapper) where T : Pipelinez.Core.Record.PipelineRecord
+  METHOD public static Pipelinez.Core.PipelineBuilder<T> WithAmazonS3Source<T>(Pipelinez.Core.PipelineBuilder<T> builder, Pipelinez.AmazonS3.Configuration.AmazonS3SourceOptions options, System.Func<Pipelinez.AmazonS3.Source.AmazonS3ObjectContext, T> recordMapper) where T : Pipelinez.Core.Record.PipelineRecord
+  METHOD public static Pipelinez.Core.PipelineBuilder<T> WithAmazonS3Source<T>(Pipelinez.Core.PipelineBuilder<T> builder, Pipelinez.AmazonS3.Configuration.AmazonS3SourceOptions options, System.Func<Pipelinez.AmazonS3.Source.AmazonS3ObjectContext, System.Threading.CancellationToken, System.Threading.Tasks.Task<T>> recordMapper) where T : Pipelinez.Core.Record.PipelineRecord
+
+public class Pipelinez.AmazonS3.Configuration.AmazonS3BucketOptions
+  [Obsolete("Constructors of types with required members are not supported in this version of your compiler.")] CTOR public Pipelinez.AmazonS3.Configuration.AmazonS3BucketOptions()
+  PROPERTY public required string BucketName { get; init; }
+  PROPERTY public string Prefix { get; init; }
+  METHOD public Pipelinez.AmazonS3.Configuration.AmazonS3BucketOptions Validate()
+
+public class Pipelinez.AmazonS3.Configuration.AmazonS3ConnectionOptions
+  CTOR public Pipelinez.AmazonS3.Configuration.AmazonS3ConnectionOptions()
+  PROPERTY public System.Action<Amazon.S3.AmazonS3Config> ConfigureClient { get; init; }
+  PROPERTY public Amazon.Runtime.AWSCredentials Credentials { get; init; }
+  PROPERTY public bool ForcePathStyle { get; init; }
+  PROPERTY public string ProfileName { get; init; }
+  PROPERTY public string Region { get; init; }
+  PROPERTY public System.Nullable<Amazon.Runtime.RequestChecksumCalculation> RequestChecksumCalculation { get; init; }
+  PROPERTY public string ServiceUrl { get; init; }
+  METHOD public Pipelinez.AmazonS3.Configuration.AmazonS3ConnectionOptions Validate()
+
+public class Pipelinez.AmazonS3.Configuration.AmazonS3DeadLetterOptions
+  [Obsolete("Constructors of types with required members are not supported in this version of your compiler.")] CTOR public Pipelinez.AmazonS3.Configuration.AmazonS3DeadLetterOptions()
+  PROPERTY public required string BucketName { get; init; }
+  PROPERTY public Pipelinez.AmazonS3.Configuration.AmazonS3ConnectionOptions Connection { get; init; }
+  PROPERTY public string KeyPrefix { get; init; }
+  PROPERTY public System.Text.Json.JsonSerializerOptions SerializerOptions { get; init; }
+  PROPERTY public Pipelinez.AmazonS3.Configuration.AmazonS3ObjectWriteOptions Write { get; init; }
+  METHOD public Pipelinez.AmazonS3.Configuration.AmazonS3DeadLetterOptions Validate()
+
+public class Pipelinez.AmazonS3.Configuration.AmazonS3DestinationOptions
+  [Obsolete("Constructors of types with required members are not supported in this version of your compiler.")] CTOR public Pipelinez.AmazonS3.Configuration.AmazonS3DestinationOptions()
+  PROPERTY public required string BucketName { get; init; }
+  PROPERTY public Pipelinez.AmazonS3.Configuration.AmazonS3ConnectionOptions Connection { get; init; }
+  PROPERTY public Pipelinez.AmazonS3.Configuration.AmazonS3ObjectWriteOptions Write { get; init; }
+  METHOD public Pipelinez.AmazonS3.Configuration.AmazonS3DestinationOptions Validate()
+
+public class Pipelinez.AmazonS3.Configuration.AmazonS3ObjectFilterOptions
+  CTOR public Pipelinez.AmazonS3.Configuration.AmazonS3ObjectFilterOptions()
+  PROPERTY public System.Nullable<System.DateTimeOffset> LastModifiedAfter { get; init; }
+  PROPERTY public System.Nullable<long> MaxSizeBytes { get; init; }
+  PROPERTY public System.Nullable<long> MinSizeBytes { get; init; }
+  PROPERTY public System.Func<Amazon.S3.Model.S3Object, bool> Predicate { get; init; }
+  PROPERTY public string Suffix { get; init; }
+  METHOD public Pipelinez.AmazonS3.Configuration.AmazonS3ObjectFilterOptions Validate()
+
+public enum Pipelinez.AmazonS3.Configuration.AmazonS3ObjectSettlementAction
+  FIELD public static const Pipelinez.AmazonS3.Configuration.AmazonS3ObjectSettlementAction Copy = Pipelinez.AmazonS3.Configuration.AmazonS3ObjectSettlementAction.3
+  FIELD public static const Pipelinez.AmazonS3.Configuration.AmazonS3ObjectSettlementAction Delete = Pipelinez.AmazonS3.Configuration.AmazonS3ObjectSettlementAction.1
+  FIELD public static const Pipelinez.AmazonS3.Configuration.AmazonS3ObjectSettlementAction Leave = Pipelinez.AmazonS3.Configuration.AmazonS3ObjectSettlementAction.0
+  FIELD public static const Pipelinez.AmazonS3.Configuration.AmazonS3ObjectSettlementAction Move = Pipelinez.AmazonS3.Configuration.AmazonS3ObjectSettlementAction.4
+  FIELD public static const Pipelinez.AmazonS3.Configuration.AmazonS3ObjectSettlementAction Tag = Pipelinez.AmazonS3.Configuration.AmazonS3ObjectSettlementAction.2
+
+public class Pipelinez.AmazonS3.Configuration.AmazonS3ObjectSettlementOptions
+  CTOR public Pipelinez.AmazonS3.Configuration.AmazonS3ObjectSettlementOptions()
+  PROPERTY public string DeadLetterPrefix { get; init; }
+  PROPERTY public System.Collections.Generic.IReadOnlyDictionary<string, string> DeadLetterTags { get; init; }
+  PROPERTY public Pipelinez.AmazonS3.Configuration.AmazonS3ObjectSettlementAction OnDeadLetter { get; init; }
+  PROPERTY public Pipelinez.AmazonS3.Configuration.AmazonS3ObjectSettlementAction OnSkipped { get; init; }
+  PROPERTY public Pipelinez.AmazonS3.Configuration.AmazonS3ObjectSettlementAction OnSuccess { get; init; }
+  PROPERTY public string SkippedPrefix { get; init; }
+  PROPERTY public System.Collections.Generic.IReadOnlyDictionary<string, string> SkippedTags { get; init; }
+  PROPERTY public string SuccessPrefix { get; init; }
+  PROPERTY public System.Collections.Generic.IReadOnlyDictionary<string, string> SuccessTags { get; init; }
+  METHOD public Pipelinez.AmazonS3.Configuration.AmazonS3ObjectSettlementOptions Validate()
+
+public class Pipelinez.AmazonS3.Configuration.AmazonS3ObjectWriteOptions
+  CTOR public Pipelinez.AmazonS3.Configuration.AmazonS3ObjectWriteOptions()
+  PROPERTY public string ContentType { get; init; }
+  PROPERTY public string KeyPrefix { get; init; }
+  PROPERTY public System.Collections.Generic.IReadOnlyDictionary<string, string> Metadata { get; init; }
+  PROPERTY public System.Collections.Generic.IReadOnlyDictionary<string, string> Tags { get; init; }
+  METHOD public Pipelinez.AmazonS3.Configuration.AmazonS3ObjectWriteOptions Validate()
+
+public class Pipelinez.AmazonS3.Configuration.AmazonS3PollingOptions
+  CTOR public Pipelinez.AmazonS3.Configuration.AmazonS3PollingOptions()
+  PROPERTY public bool Enabled { get; init; }
+  PROPERTY public System.TimeSpan Interval { get; init; }
+  PROPERTY public int MaxKeysPerRequest { get; init; }
+  PROPERTY public bool StopWhenCurrentListingIsComplete { get; init; }
+  METHOD public Pipelinez.AmazonS3.Configuration.AmazonS3PollingOptions Validate()
+
+public class Pipelinez.AmazonS3.Configuration.AmazonS3SourceOptions
+  [Obsolete("Constructors of types with required members are not supported in this version of your compiler.")] CTOR public Pipelinez.AmazonS3.Configuration.AmazonS3SourceOptions()
+  PROPERTY public required Pipelinez.AmazonS3.Configuration.AmazonS3BucketOptions Bucket { get; init; }
+  PROPERTY public Pipelinez.AmazonS3.Configuration.AmazonS3ConnectionOptions Connection { get; init; }
+  PROPERTY public Pipelinez.AmazonS3.Configuration.AmazonS3ObjectFilterOptions Filter { get; init; }
+  PROPERTY public bool LoadObjectTags { get; init; }
+  PROPERTY public Pipelinez.AmazonS3.Configuration.AmazonS3PollingOptions Polling { get; init; }
+  PROPERTY public Pipelinez.AmazonS3.Configuration.AmazonS3ObjectSettlementOptions Settlement { get; init; }
+  METHOD public Pipelinez.AmazonS3.Configuration.AmazonS3SourceOptions Validate()
+
+public class Pipelinez.AmazonS3.DeadLettering.AmazonS3DeadLetterDestination<T> : Pipelinez.Core.DeadLettering.IPipelineDeadLetterDestination<T> where T : Pipelinez.Core.Record.PipelineRecord
+  CTOR public Pipelinez.AmazonS3.DeadLettering.AmazonS3DeadLetterDestination<T>(Pipelinez.AmazonS3.Configuration.AmazonS3DeadLetterOptions options)
+  CTOR public Pipelinez.AmazonS3.DeadLettering.AmazonS3DeadLetterDestination<T>(Pipelinez.AmazonS3.Configuration.AmazonS3DeadLetterOptions options, System.Func<Pipelinez.Core.DeadLettering.PipelineDeadLetterRecord<T>, Pipelinez.AmazonS3.Destination.AmazonS3PutObject> objectMapper)
+  METHOD public virtual System.Threading.Tasks.Task WriteAsync(Pipelinez.Core.DeadLettering.PipelineDeadLetterRecord<T> deadLetterRecord, System.Threading.CancellationToken cancellationToken)
+
+public class Pipelinez.AmazonS3.Destination.AmazonS3PipelineDestination<T> : Pipelinez.Core.Destination.PipelineDestination<T> where T : Pipelinez.Core.Record.PipelineRecord
+  CTOR public Pipelinez.AmazonS3.Destination.AmazonS3PipelineDestination<T>(Pipelinez.AmazonS3.Configuration.AmazonS3DestinationOptions options, System.Func<T, Pipelinez.AmazonS3.Destination.AmazonS3PutObject> objectMapper)
+
+public class Pipelinez.AmazonS3.Destination.AmazonS3PutObject
+  [Obsolete("Constructors of types with required members are not supported in this version of your compiler.")] CTOR public Pipelinez.AmazonS3.Destination.AmazonS3PutObject()
+  PROPERTY public byte[] BinaryContent { get; init; }
+  PROPERTY public System.IO.Stream Content { get; init; }
+  PROPERTY public string ContentType { get; init; }
+  PROPERTY public required string Key { get; init; }
+  PROPERTY public System.Collections.Generic.IReadOnlyDictionary<string, string> Metadata { get; init; }
+  PROPERTY public System.Collections.Generic.IReadOnlyDictionary<string, string> Tags { get; init; }
+  PROPERTY public string TextContent { get; init; }
+  METHOD public static Pipelinez.AmazonS3.Destination.AmazonS3PutObject FromBytes(string key, byte[] content, string contentType = null)
+  METHOD public static Pipelinez.AmazonS3.Destination.AmazonS3PutObject FromStream(string key, System.IO.Stream content, string contentType = null)
+  METHOD public static Pipelinez.AmazonS3.Destination.AmazonS3PutObject FromText(string key, string content, string contentType = null)
+  METHOD public Pipelinez.AmazonS3.Destination.AmazonS3PutObject Validate()
+
+public static class Pipelinez.AmazonS3.Record.AmazonS3MetadataExtensions
+  METHOD public static string GetAmazonS3BucketName(Pipelinez.Core.Record.Metadata.MetadataCollection metadata)
+  METHOD public static string GetAmazonS3ETag(Pipelinez.Core.Record.Metadata.MetadataCollection metadata)
+  METHOD public static string GetAmazonS3ObjectKey(Pipelinez.Core.Record.Metadata.MetadataCollection metadata)
+  METHOD public static string GetAmazonS3VersionId(Pipelinez.Core.Record.Metadata.MetadataCollection metadata)
+
+public static class Pipelinez.AmazonS3.Record.AmazonS3MetadataKeys
+  FIELD public static const string BucketName = "pipelinez.amazon_s3.bucket_name"
+  FIELD public static const string ContentType = "pipelinez.amazon_s3.content_type"
+  FIELD public static const string ETag = "pipelinez.amazon_s3.etag"
+  FIELD public static const string LastModified = "pipelinez.amazon_s3.last_modified"
+  FIELD public static const string ObjectKey = "pipelinez.amazon_s3.object_key"
+  FIELD public static const string SettlementKey = "pipelinez.amazon_s3.settlement_key"
+  FIELD public static const string SizeBytes = "pipelinez.amazon_s3.size_bytes"
+  FIELD public static const string SourcePrefix = "pipelinez.amazon_s3.source_prefix"
+  FIELD public static const string StorageClass = "pipelinez.amazon_s3.storage_class"
+  FIELD public static const string VersionId = "pipelinez.amazon_s3.version_id"
+
+public class Pipelinez.AmazonS3.Source.AmazonS3ObjectContext
+  [Obsolete("Constructors of types with required members are not supported in this version of your compiler.")] CTOR public Pipelinez.AmazonS3.Source.AmazonS3ObjectContext()
+  PROPERTY public required string BucketName { get; init; }
+  PROPERTY public required System.IO.Stream Content { get; init; }
+  PROPERTY public string ContentType { get; init; }
+  PROPERTY public string ETag { get; init; }
+  PROPERTY public required string Key { get; init; }
+  PROPERTY public System.DateTime LastModifiedUtc { get; init; }
+  PROPERTY public System.Collections.Generic.IReadOnlyDictionary<string, string> Metadata { get; init; }
+  PROPERTY public long SizeBytes { get; init; }
+  PROPERTY public System.Collections.Generic.IReadOnlyDictionary<string, string> Tags { get; init; }
+  PROPERTY public string VersionId { get; init; }
+
+public class Pipelinez.AmazonS3.Source.AmazonS3PipelineSource<T> : Pipelinez.Core.Source.PipelineSourceBase<T> where T : Pipelinez.Core.Record.PipelineRecord
+  CTOR public Pipelinez.AmazonS3.Source.AmazonS3PipelineSource<T>(Pipelinez.AmazonS3.Configuration.AmazonS3SourceOptions options, System.Func<Pipelinez.AmazonS3.Source.AmazonS3ObjectContext, System.Threading.CancellationToken, System.Threading.Tasks.Task<T>> recordMapper)
+  METHOD public void OnPipelineContainerComplete(object sender, Pipelinez.Core.Eventing.PipelineContainerCompletedEventHandlerArgs<Pipelinez.Core.Record.PipelineContainer<T>> e)

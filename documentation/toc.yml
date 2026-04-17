@@ -44,6 +44,8 @@
       href: transports/azure-service-bus.md
     - name: RabbitMQ
       href: transports/rabbitmq.md
+    - name: Amazon S3
+      href: transports/amazon-s3.md
     - name: PostgreSQL
       href: transports/postgresql.md
     - name: SQL Server
