@@ -83,6 +83,8 @@ That workflow:
 - generates `documentation/guides/benchmark-results.md` from those artifacts
 - opens a pull request so benchmark result publication is reviewed before it reaches the docs site
 
+If the repository does not allow pull requests to be created with the default `GITHUB_TOKEN`, configure `PIPELINEZ_BENCHMARK_PR_TOKEN` as a repository secret for the workflow. Without that secret, the workflow still generates the results page and artifacts, then reports that pull request creation was skipped.
+
 ## Reporting Guidance
 
 For open source publication, treat benchmark numbers as comparative evidence rather than hard SLAs.
