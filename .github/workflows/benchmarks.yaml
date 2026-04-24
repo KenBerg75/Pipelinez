@@ -5,9 +5,6 @@ on:
     - cron: "0 6 1 * *"
   workflow_dispatch:
 
-permissions:
-  contents: read
-
 concurrency:
   group: benchmarks-${{ github.ref }}
   cancel-in-progress: true
@@ -207,3 +204,57 @@ jobs:
           name: benchmarks-azure-service-bus
           path: ${{ env.BENCHMARK_ARTIFACT_ROOT }}/azure-service-bus
           if-no-files-found: error
+
+  publish-results-pr:
+    name: Publish Benchmark Results PR
+    needs:
+      - in-memory
+      - docker-backed
+      - azure-service-bus
+    if: >-
+      ${{
+        needs.in-memory.result == 'success' &&
+        needs.docker-backed.result == 'success' &&
+        (needs.azure-service-bus.result == 'success' || needs.azure-service-bus.result == 'skipped')
+      }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download Benchmark Artifacts
+        uses: actions/download-artifact@v5
+        with:
+          pattern: benchmarks-*
+          path: artifacts/benchmark-results-input
+          merge-multiple: false
+
+      - name: Generate Benchmark Results Page
+        shell: pwsh
+        run: >
+          ./scripts/Update-BenchmarkResultsPage.ps1
+          -ArtifactsRoot artifacts/benchmark-results-input
+          -OutputPath documentation/guides/benchmark-results.md
+          -RepoFullName "${{ github.repository }}"
+          -RunId "${{ github.run_id }}"
+          -RunAttempt "${{ github.run_attempt }}"
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: docs: update benchmark results
+          branch: automation/benchmark-results-${{ github.run_id }}
+          delete-branch: true
+          title: "docs: update benchmark results"
+          body: |
+            This PR updates `documentation/guides/benchmark-results.md` from benchmark workflow artifacts.
+
+            Source workflow:
+            - `${{ github.workflow }}`
+            - Run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            The page is generated automatically and is intended for maintainer review before merge.

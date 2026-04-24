@@ -36,6 +36,7 @@ This folder contains the main documentation set for Pipelinez.
 - [Distributed Execution](guides/distributed-execution.md)
 - [Performance](guides/performance.md)
 - [Benchmarking](guides/benchmarking.md)
+- [Benchmark Results](guides/benchmark-results.md)
 - [Operational Tooling](guides/operational-tooling.md)
 
 ## Transport Docs

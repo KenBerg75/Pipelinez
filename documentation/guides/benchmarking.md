@@ -80,6 +80,8 @@ That workflow:
 - runs Docker-backed transport suites with `PIPELINEZ_BENCH_ENABLE_DOCKER=true`
 - runs Azure Service Bus suites only when `PIPELINEZ_ASB_CONNECTION_STRING` is configured as a secret
 - uploads raw BenchmarkDotNet artifacts for each executed suite
+- generates `documentation/guides/benchmark-results.md` from those artifacts
+- opens a pull request so benchmark result publication is reviewed before it reaches the docs site
 
 ## Reporting Guidance
 
