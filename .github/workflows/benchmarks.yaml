@@ -246,7 +246,7 @@ jobs:
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
         with:
-          commit-message: docs: update benchmark results
+          commit-message: "docs: update benchmark results"
           branch: automation/benchmark-results-${{ github.run_id }}
           delete-branch: true
           title: "docs: update benchmark results"
