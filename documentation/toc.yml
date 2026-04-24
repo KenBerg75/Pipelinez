@@ -34,6 +34,10 @@
       href: guides/distributed-execution.md
     - name: Performance
       href: guides/performance.md
+    - name: Benchmarking
+      href: guides/benchmarking.md
+    - name: Benchmark Results
+      href: guides/benchmark-results.md
     - name: Operational Tooling
       href: guides/operational-tooling.md
 - name: Transports

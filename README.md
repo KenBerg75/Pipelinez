@@ -528,6 +528,18 @@ Run the benchmark project:
 dotnet run -c Release --project src/benchmarks/Pipelinez.Benchmarks
 ```
 
+Run Docker-backed transport benchmarks:
+
+```bash
+PIPELINEZ_BENCH_ENABLE_DOCKER=true dotnet run -c Release --project src/benchmarks/Pipelinez.Benchmarks -- --filter "*Kafka*"
+```
+
+Run Azure Service Bus live benchmarks:
+
+```bash
+PIPELINEZ_ASB_CONNECTION_STRING="<connection string>" dotnet run -c Release --project src/benchmarks/Pipelinez.Benchmarks -- --filter "*AzureServiceBus*"
+```
+
 Run the Kafka example:
 
 ```bash

@@ -10,10 +10,28 @@
 
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+    <PackageReference Include="AWSSDK.S3" Version="4.0.21.2" />
+    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.20.1" />
+    <PackageReference Include="Dapper" Version="2.1.72" />
+    <PackageReference Include="Confluent.Kafka" Version="2.14.0" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="7.0.0" />
+    <PackageReference Include="Npgsql" Version="10.0.2" />
+    <PackageReference Include="RabbitMQ.Client" Version="7.2.1" />
+    <PackageReference Include="Testcontainers.Kafka" Version="4.11.0" />
+    <PackageReference Include="Testcontainers.LocalStack" Version="4.11.0" />
+    <PackageReference Include="Testcontainers.MsSql" Version="4.11.0" />
+    <PackageReference Include="Testcontainers.PostgreSql" Version="4.11.0" />
+    <PackageReference Include="Testcontainers.RabbitMq" Version="4.11.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\Pipelinez\Pipelinez.csproj" />
+    <ProjectReference Include="..\..\Pipelinez.AmazonS3\Pipelinez.AmazonS3.csproj" />
+    <ProjectReference Include="..\..\Pipelinez.AzureServiceBus\Pipelinez.AzureServiceBus.csproj" />
+    <ProjectReference Include="..\..\Pipelinez.Kafka\Pipelinez.Kafka.csproj" />
+    <ProjectReference Include="..\..\Pipelinez.PostgreSql\Pipelinez.PostgreSql.csproj" />
+    <ProjectReference Include="..\..\Pipelinez.RabbitMQ\Pipelinez.RabbitMQ.csproj" />
+    <ProjectReference Include="..\..\Pipelinez.SqlServer\Pipelinez.SqlServer.csproj" />
   </ItemGroup>
 
 </Project>
