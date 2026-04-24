@@ -60,8 +60,11 @@ The repo includes a benchmark project:
 dotnet run -c Release --project src/benchmarks/Pipelinez.Benchmarks
 ```
 
+See [Benchmarking](benchmarking.md) for transport filters, environment gates, and artifact publication guidance.
+
 ## Related Docs
 
 - [Flow Control](flow-control.md)
 - [Operational Tooling](operational-tooling.md)
+- [Benchmarking](benchmarking.md)
 - [Benchmark README](https://github.com/KenBerg75/Pipelinez/blob/main/src/benchmarks/Pipelinez.Benchmarks/README.md)

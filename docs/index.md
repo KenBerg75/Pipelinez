@@ -13,6 +13,7 @@ Pipelinez is a .NET 8 library for building typed, observable source -> segment -
 - <a href="https://kenberg75.github.io/Pipelinez/articles/transports/amazon-s3.html">Amazon S3 transport</a>
 - <a href="https://kenberg75.github.io/Pipelinez/articles/getting-started/postgresql-destination.html">PostgreSQL destination quickstart</a>
 - <a href="https://kenberg75.github.io/Pipelinez/articles/getting-started/sql-server-destination.html">SQL Server destination quickstart</a>
+- <a href="https://kenberg75.github.io/Pipelinez/articles/guides/benchmarking.html">Benchmarking guide</a>
 
 ## Packages
 

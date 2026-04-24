@@ -1,3 +1,4 @@
+using Pipelinez.Benchmarks;
 using BenchmarkDotNet.Running;
 
-BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
+BenchmarkSwitcher.FromTypes(BenchmarkEnvironment.GetRegisteredBenchmarkTypes()).Run(args);

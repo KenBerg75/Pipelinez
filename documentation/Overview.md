@@ -48,7 +48,7 @@ Each record flows through the runtime inside a `PipelineContainer<T>`, which let
 - `src/tests/Pipelinez.SqlServer.Tests`
   Docker-backed SQL Server destination and dead-letter integration tests using Testcontainers
 - `src/benchmarks/Pipelinez.Benchmarks`
-  BenchmarkDotNet project for repeatable in-memory performance measurements
+  BenchmarkDotNet project for repeatable in-memory and transport performance measurements
 - `src/examples/Example.Kafka`
   sample application that builds a Kafka-backed pipeline
 - `src/examples/Example.Kafka.DataGen`

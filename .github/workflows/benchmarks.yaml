@@ -1,0 +1,209 @@
+name: Benchmarks
+
+on:
+  schedule:
+    - cron: "0 6 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: benchmarks-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  BENCHMARK_PROJECT: src/benchmarks/Pipelinez.Benchmarks
+  BENCHMARK_ARTIFACT_ROOT: artifacts/benchmarks
+
+jobs:
+  in-memory:
+    name: In-Memory Benchmarks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore Benchmark Project
+        run: dotnet restore $BENCHMARK_PROJECT/Pipelinez.Benchmarks.csproj
+
+      - name: Build Benchmark Project
+        run: dotnet build $BENCHMARK_PROJECT/Pipelinez.Benchmarks.csproj --configuration Release --no-restore
+
+      - name: Run In-Memory Benchmarks
+        shell: bash
+        run: |
+          set -euo pipefail
+          suite="in-memory"
+          output_dir="${BENCHMARK_ARTIFACT_ROOT}/${suite}"
+          rm -rf "${BENCHMARK_PROJECT}/BenchmarkDotNet.Artifacts" "${output_dir}"
+          mkdir -p "${output_dir}"
+
+          dotnet run -c Release --project "${BENCHMARK_PROJECT}" -- --filter "*InMemory*" | tee "${output_dir}/run.log"
+
+          if [ -d "${BENCHMARK_PROJECT}/BenchmarkDotNet.Artifacts" ]; then
+            mkdir -p "${output_dir}/BenchmarkDotNet.Artifacts"
+            cp -R "${BENCHMARK_PROJECT}/BenchmarkDotNet.Artifacts/." "${output_dir}/BenchmarkDotNet.Artifacts/"
+          fi
+
+          cat > "${output_dir}/metadata.json" <<EOF
+          {
+            "suite": "${suite}",
+            "workflow": "${GITHUB_WORKFLOW}",
+            "run_id": "${GITHUB_RUN_ID}",
+            "run_attempt": "${GITHUB_RUN_ATTEMPT}",
+            "event": "${GITHUB_EVENT_NAME}",
+            "commit": "${GITHUB_SHA}",
+            "ref": "${GITHUB_REF}",
+            "runner_os": "${RUNNER_OS}",
+            "executed_at_utc": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          }
+          EOF
+
+      - name: Upload In-Memory Benchmark Artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: benchmarks-in-memory
+          path: ${{ env.BENCHMARK_ARTIFACT_ROOT }}/in-memory
+          if-no-files-found: error
+
+  docker-backed:
+    name: Docker Benchmarks (${{ matrix.suite }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - suite: kafka
+            filter: "*Kafka*"
+          - suite: rabbitmq
+            filter: "*RabbitMq*"
+          - suite: amazon-s3
+            filter: "*AmazonS3*"
+          - suite: postgresql
+            filter: "*PostgreSql*"
+          - suite: sqlserver
+            filter: "*SqlServer*"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore Benchmark Project
+        run: dotnet restore $BENCHMARK_PROJECT/Pipelinez.Benchmarks.csproj
+
+      - name: Build Benchmark Project
+        run: dotnet build $BENCHMARK_PROJECT/Pipelinez.Benchmarks.csproj --configuration Release --no-restore
+
+      - name: Run Docker-Backed Benchmarks
+        shell: bash
+        env:
+          PIPELINEZ_BENCH_ENABLE_DOCKER: true
+        run: |
+          set -euo pipefail
+          suite="${{ matrix.suite }}"
+          filter="${{ matrix.filter }}"
+          output_dir="${BENCHMARK_ARTIFACT_ROOT}/${suite}"
+          rm -rf "${BENCHMARK_PROJECT}/BenchmarkDotNet.Artifacts" "${output_dir}"
+          mkdir -p "${output_dir}"
+
+          dotnet run -c Release --project "${BENCHMARK_PROJECT}" -- --filter "${filter}" | tee "${output_dir}/run.log"
+
+          if [ -d "${BENCHMARK_PROJECT}/BenchmarkDotNet.Artifacts" ]; then
+            mkdir -p "${output_dir}/BenchmarkDotNet.Artifacts"
+            cp -R "${BENCHMARK_PROJECT}/BenchmarkDotNet.Artifacts/." "${output_dir}/BenchmarkDotNet.Artifacts/"
+          fi
+
+          cat > "${output_dir}/metadata.json" <<EOF
+          {
+            "suite": "${suite}",
+            "filter": "${filter}",
+            "workflow": "${GITHUB_WORKFLOW}",
+            "run_id": "${GITHUB_RUN_ID}",
+            "run_attempt": "${GITHUB_RUN_ATTEMPT}",
+            "event": "${GITHUB_EVENT_NAME}",
+            "commit": "${GITHUB_SHA}",
+            "ref": "${GITHUB_REF}",
+            "runner_os": "${RUNNER_OS}",
+            "executed_at_utc": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          }
+          EOF
+
+      - name: Upload Docker Benchmark Artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: benchmarks-${{ matrix.suite }}
+          path: ${{ env.BENCHMARK_ARTIFACT_ROOT }}/${{ matrix.suite }}
+          if-no-files-found: error
+
+  azure-service-bus:
+    name: Azure Service Bus Benchmarks
+    if: ${{ secrets.PIPELINEZ_ASB_CONNECTION_STRING != '' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore Benchmark Project
+        run: dotnet restore $BENCHMARK_PROJECT/Pipelinez.Benchmarks.csproj
+
+      - name: Build Benchmark Project
+        run: dotnet build $BENCHMARK_PROJECT/Pipelinez.Benchmarks.csproj --configuration Release --no-restore
+
+      - name: Run Azure Service Bus Benchmarks
+        shell: bash
+        env:
+          PIPELINEZ_ASB_CONNECTION_STRING: ${{ secrets.PIPELINEZ_ASB_CONNECTION_STRING }}
+        run: |
+          set -euo pipefail
+          suite="azure-service-bus"
+          output_dir="${BENCHMARK_ARTIFACT_ROOT}/${suite}"
+          rm -rf "${BENCHMARK_PROJECT}/BenchmarkDotNet.Artifacts" "${output_dir}"
+          mkdir -p "${output_dir}"
+
+          dotnet run -c Release --project "${BENCHMARK_PROJECT}" -- --filter "*AzureServiceBus*" | tee "${output_dir}/run.log"
+
+          if [ -d "${BENCHMARK_PROJECT}/BenchmarkDotNet.Artifacts" ]; then
+            mkdir -p "${output_dir}/BenchmarkDotNet.Artifacts"
+            cp -R "${BENCHMARK_PROJECT}/BenchmarkDotNet.Artifacts/." "${output_dir}/BenchmarkDotNet.Artifacts/"
+          fi
+
+          cat > "${output_dir}/metadata.json" <<EOF
+          {
+            "suite": "${suite}",
+            "workflow": "${GITHUB_WORKFLOW}",
+            "run_id": "${GITHUB_RUN_ID}",
+            "run_attempt": "${GITHUB_RUN_ATTEMPT}",
+            "event": "${GITHUB_EVENT_NAME}",
+            "commit": "${GITHUB_SHA}",
+            "ref": "${GITHUB_REF}",
+            "runner_os": "${RUNNER_OS}",
+            "executed_at_utc": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          }
+          EOF
+
+      - name: Upload Azure Service Bus Benchmark Artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: benchmarks-azure-service-bus
+          path: ${{ env.BENCHMARK_ARTIFACT_ROOT }}/azure-service-bus
+          if-no-files-found: error
