@@ -240,6 +240,8 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+    env:
+      PIPELINEZ_BENCHMARK_PR_TOKEN: ${{ secrets.PIPELINEZ_BENCHMARK_PR_TOKEN }}
 
     steps:
       - name: Checkout
@@ -264,10 +266,10 @@ jobs:
 
       - name: Create Pull Request With Benchmark Token
         id: create_pr_with_benchmark_token
-        if: ${{ secrets.PIPELINEZ_BENCHMARK_PR_TOKEN != '' }}
+        if: ${{ env.PIPELINEZ_BENCHMARK_PR_TOKEN != '' }}
         uses: peter-evans/create-pull-request@v7
         with:
-          token: ${{ secrets.PIPELINEZ_BENCHMARK_PR_TOKEN }}
+          token: ${{ env.PIPELINEZ_BENCHMARK_PR_TOKEN }}
           commit-message: "docs: update benchmark results"
           branch: automation/benchmark-results-${{ github.run_id }}
           delete-branch: true
@@ -283,7 +285,7 @@ jobs:
 
       - name: Create Pull Request With GitHub Token
         id: create_pr_with_github_token
-        if: ${{ secrets.PIPELINEZ_BENCHMARK_PR_TOKEN == '' }}
+        if: ${{ env.PIPELINEZ_BENCHMARK_PR_TOKEN == '' }}
         continue-on-error: true
         uses: peter-evans/create-pull-request@v7
         with:
