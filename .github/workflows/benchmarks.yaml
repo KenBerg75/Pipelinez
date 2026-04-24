@@ -148,28 +148,46 @@ jobs:
 
   azure-service-bus:
     name: Azure Service Bus Benchmarks
-    if: ${{ secrets.PIPELINEZ_ASB_CONNECTION_STRING != '' }}
     runs-on: ubuntu-latest
+    env:
+      PIPELINEZ_ASB_CONNECTION_STRING: ${{ secrets.PIPELINEZ_ASB_CONNECTION_STRING }}
 
     steps:
+      - name: Check Azure Service Bus Benchmark Configuration
+        id: config
+        shell: bash
+        run: |
+          if [ -n "${PIPELINEZ_ASB_CONNECTION_STRING}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Skip Azure Service Bus Benchmarks
+        if: ${{ steps.config.outputs.enabled != 'true' }}
+        run: echo "Skipping Azure Service Bus benchmarks because PIPELINEZ_ASB_CONNECTION_STRING is not configured."
+
       - name: Checkout
+        if: ${{ steps.config.outputs.enabled == 'true' }}
         uses: actions/checkout@v6
 
       - name: Setup .NET
+        if: ${{ steps.config.outputs.enabled == 'true' }}
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 8.0.x
 
       - name: Restore Benchmark Project
+        if: ${{ steps.config.outputs.enabled == 'true' }}
         run: dotnet restore $BENCHMARK_PROJECT/Pipelinez.Benchmarks.csproj
 
       - name: Build Benchmark Project
+        if: ${{ steps.config.outputs.enabled == 'true' }}
         run: dotnet build $BENCHMARK_PROJECT/Pipelinez.Benchmarks.csproj --configuration Release --no-restore
 
       - name: Run Azure Service Bus Benchmarks
+        if: ${{ steps.config.outputs.enabled == 'true' }}
         shell: bash
-        env:
-          PIPELINEZ_ASB_CONNECTION_STRING: ${{ secrets.PIPELINEZ_ASB_CONNECTION_STRING }}
         run: |
           set -euo pipefail
           suite="azure-service-bus"
@@ -199,6 +217,7 @@ jobs:
           EOF
 
       - name: Upload Azure Service Bus Benchmark Artifacts
+        if: ${{ steps.config.outputs.enabled == 'true' }}
         uses: actions/upload-artifact@v7
         with:
           name: benchmarks-azure-service-bus
@@ -215,7 +234,7 @@ jobs:
       ${{
         needs.in-memory.result == 'success' &&
         needs.docker-backed.result == 'success' &&
-        (needs.azure-service-bus.result == 'success' || needs.azure-service-bus.result == 'skipped')
+        needs.azure-service-bus.result == 'success'
       }}
     runs-on: ubuntu-latest
     permissions:
