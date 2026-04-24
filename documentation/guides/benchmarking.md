@@ -81,9 +81,9 @@ That workflow:
 - runs Azure Service Bus suites only when `PIPELINEZ_ASB_CONNECTION_STRING` is configured as a secret
 - uploads raw BenchmarkDotNet artifacts for each executed suite
 - generates `documentation/guides/benchmark-results.md` from those artifacts
-- opens a pull request so benchmark result publication is reviewed before it reaches the docs site
+- opens a pull request so benchmark result publication is reviewed before it reaches the docs site when `PIPELINEZ_BENCHMARK_PR_TOKEN` is configured
 
-If the repository does not allow pull requests to be created with the default `GITHUB_TOKEN`, configure `PIPELINEZ_BENCHMARK_PR_TOKEN` as a repository secret for the workflow. Without that secret, the workflow still generates the results page and artifacts, then reports that pull request creation was skipped.
+Configure `PIPELINEZ_BENCHMARK_PR_TOKEN` as a repository secret for the workflow with a PAT or GitHub App token that can push branches and open pull requests. Without that secret, the workflow still generates the results page and artifacts, then reports that pull request creation was skipped.
 
 ## Reporting Guidance
 

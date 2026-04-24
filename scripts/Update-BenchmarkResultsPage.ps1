@@ -52,16 +52,31 @@ function Add-Line {
     $Lines.Add($Text) | Out-Null
 }
 
+function Get-ReportFiles {
+    param([string]$SuiteDirectory)
+
+    $githubReports = @(
+        Get-ChildItem -LiteralPath $SuiteDirectory -Recurse -Filter "*-report-github.md" -File |
+            Sort-Object FullName
+    )
+
+    if ($githubReports.Count -gt 0) {
+        return $githubReports
+    }
+
+    return @(
+        Get-ChildItem -LiteralPath $SuiteDirectory -Recurse -Filter "*-report*.md" -File |
+            Sort-Object FullName
+    )
+}
+
 $resolvedArtifactsRoot = (Resolve-Path -LiteralPath $ArtifactsRoot).Path
 $suiteDirectories = Get-ChildItem -LiteralPath $resolvedArtifactsRoot -Directory | Sort-Object Name
 
 $suiteData = @(
 foreach ($suiteDirectory in $suiteDirectories) {
     $metadata = Read-Metadata -MetadataPath (Join-Path $suiteDirectory.FullName "metadata.json")
-    $reportFiles = @(
-        Get-ChildItem -LiteralPath $suiteDirectory.FullName -Recurse -Filter "*-report-github.md" -File |
-            Sort-Object Name
-    )
+    $reportFiles = @(Get-ReportFiles -SuiteDirectory $suiteDirectory.FullName)
 
     [pscustomobject]@{
         SuiteName   = $suiteDirectory.Name -replace "^benchmarks-", ""
@@ -132,7 +147,7 @@ foreach ($suite in $suiteData) {
     }
 
     foreach ($reportFile in $suite.ReportFiles) {
-        $reportTitle = [System.IO.Path]::GetFileNameWithoutExtension($reportFile.Name) -replace "-report-github$", ""
+        $reportTitle = [System.IO.Path]::GetFileNameWithoutExtension($reportFile.Name) -replace "-report(?:-[a-z0-9-]+)?$", ""
         Add-Line -Lines $lines -Text "#### $reportTitle"
         Add-Line -Lines $lines
 

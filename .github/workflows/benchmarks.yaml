@@ -283,46 +283,25 @@ jobs:
 
             The page is generated automatically and is intended for maintainer review before merge.
 
-      - name: Create Pull Request With GitHub Token
-        id: create_pr_with_github_token
-        if: ${{ env.PIPELINEZ_BENCHMARK_PR_TOKEN == '' }}
-        continue-on-error: true
-        uses: peter-evans/create-pull-request@v7
-        with:
-          token: ${{ github.token }}
-          commit-message: "docs: update benchmark results"
-          branch: automation/benchmark-results-${{ github.run_id }}
-          delete-branch: true
-          title: "docs: update benchmark results"
-          body: |
-            This PR updates `documentation/guides/benchmark-results.md` from benchmark workflow artifacts.
-
-            Source workflow:
-            - `${{ github.workflow }}`
-            - Run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-
-            The page is generated automatically and is intended for maintainer review before merge.
-
       - name: Summarize Pull Request Automation
         if: always()
         shell: bash
         env:
           BENCHMARK_TOKEN_OUTCOME: ${{ steps.create_pr_with_benchmark_token.outcome }}
-          GITHUB_TOKEN_OUTCOME: ${{ steps.create_pr_with_github_token.outcome }}
         run: |
           {
             echo "## Benchmark Results Publication"
             echo
 
-            if [ "${BENCHMARK_TOKEN_OUTCOME}" = "success" ] || [ "${GITHUB_TOKEN_OUTCOME}" = "success" ]; then
+            if [ "${BENCHMARK_TOKEN_OUTCOME}" = "success" ]; then
               echo "Created or updated the benchmark results pull request."
             elif [ "${BENCHMARK_TOKEN_OUTCOME}" = "failure" ]; then
               echo "Pull request creation failed even though \`PIPELINEZ_BENCHMARK_PR_TOKEN\` is configured."
               echo
               echo "Verify that the token can push branches and open pull requests in this repository."
             else
-              echo "Automatic pull request creation was skipped because this repository does not allow pull requests to be created with the default \`GITHUB_TOKEN\`."
+              echo "Automatic pull request creation was skipped because \`PIPELINEZ_BENCHMARK_PR_TOKEN\` is not configured."
               echo
-              echo "Configure the \`PIPELINEZ_BENCHMARK_PR_TOKEN\` secret with a PAT or GitHub App token that can push branches and open pull requests, or enable the repository Actions setting that allows GitHub Actions to create pull requests."
+              echo "Configure the \`PIPELINEZ_BENCHMARK_PR_TOKEN\` secret with a PAT or GitHub App token that can push branches and open pull requests."
             fi
           } >> "$GITHUB_STEP_SUMMARY"
