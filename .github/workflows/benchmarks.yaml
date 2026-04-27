@@ -248,7 +248,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Download Benchmark Artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           pattern: benchmarks-*
           path: artifacts/benchmark-results-input
@@ -267,7 +267,7 @@ jobs:
       - name: Create Pull Request With Benchmark Token
         id: create_pr_with_benchmark_token
         if: ${{ env.PIPELINEZ_BENCHMARK_PR_TOKEN != '' }}
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ env.PIPELINEZ_BENCHMARK_PR_TOKEN }}
           commit-message: "docs: update benchmark results"
