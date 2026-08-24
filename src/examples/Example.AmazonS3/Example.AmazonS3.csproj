@@ -8,8 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AWSSDK.S3" Version="4.0.101.3" />
-    <PackageReference Include="Testcontainers.LocalStack" Version="4.13.0" />
+    <PackageReference Include="AWSSDK.S3" Version="4.0.102.3" />
+    <PackageReference Include="Testcontainers.LocalStack" Version="4.14.0" />
   </ItemGroup>
 
   <ItemGroup>
