@@ -97,7 +97,7 @@ jobs:
         run: ./scripts/Validate-Packages.ps1 -PackageDirectory artifacts/packages -PackageVersion ${{ steps.version.outputs.package_version }}
 
       - name: Generate Package SBOM
-        uses: anchore/sbom-action@v0.24.0
+        uses: anchore/sbom-action@v0.24.2
         with:
           path: artifacts/packages
           format: spdx-json
