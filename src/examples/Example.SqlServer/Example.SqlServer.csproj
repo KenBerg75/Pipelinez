@@ -10,7 +10,7 @@
   <ItemGroup>
     <PackageReference Include="Dapper" Version="2.1.79" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="7.0.2" />
-    <PackageReference Include="Testcontainers.MsSql" Version="4.13.0" />
+    <PackageReference Include="Testcontainers.MsSql" Version="4.15.0" />
   </ItemGroup>
 
   <ItemGroup>
